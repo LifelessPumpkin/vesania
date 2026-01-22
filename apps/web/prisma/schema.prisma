@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CardStatus {
+  UNCLAIMED
+  CLAIMED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  createdAt DateTime @default(now())
+
+  cards     Card[]
+  instances CardInstance[]
+  runs      Run[]
+}
+
+model Card {
+  id         String     @id @default(cuid())
+  publicCode String     @unique
+  status     CardStatus @default(UNCLAIMED)
+  createdAt  DateTime   @default(now())
+
+  ownerId    String?
+  owner      User?      @relation(fields: [ownerId], references: [id])
+
+  instances  CardInstance[]
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  name        String
+  archetype   String   // e.g. "Tank", "Rogue", "Mage"
+  description String
+  createdAt   DateTime @default(now())
+
+  items       Item[]
+  instances   CardInstance[]
+  runs        Run[]
+}
+
+model Item {
+  id           String   @id @default(cuid())
+  characterId  String
+  name         String
+  cost         Int
+  rarity       String   // "Common" | "Rare" | "Epic" etc
+  effectJson   Json     // flexible for now
+  createdAt    DateTime @default(now())
+
+  character    Character @relation(fields: [characterId], references: [id])
+}
+
+model CardInstance {
+  id          String   @id @default(cuid())
+  cardId      String
+  characterId String
+  ownerId     String
+  xp          Int      @default(0)
+  cosmetics   Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  card        Card      @relation(fields: [cardId], references: [id])
+  character   Character @relation(fields: [characterId], references: [id])
+  owner       User      @relation(fields: [ownerId], references: [id])
+}
+
+model Run {
+  id          String   @id @default(cuid())
+  ownerId     String
+  characterId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // store state snapshots or events later
+  stateJson   Json     @default("{}")
+
+  owner       User      @relation(fields: [ownerId], references: [id])
+  character   Character @relation(fields: [characterId], references: [id])
+}
