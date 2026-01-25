@@ -30,8 +30,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/lifelesspumpkin/vesania:latest
+            ghcr.io/lifelesspumpkin/vesania:${{ github.sha }}
 
   deploy:
     needs: build
@@ -51,5 +51,5 @@ jobs:
           port: 22
           script: |
             cd /home/logan/Homelab/vesania
-            docker pull ghcr.io/${{ github.repository }}:latest
+            docker pull ghcr.io/lifelesspumpkin/vesania:latest
             docker compose up -d
