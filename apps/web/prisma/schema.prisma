@@ -9,6 +9,13 @@ datasource db {
 enum CardStatus {
   UNCLAIMED
   CLAIMED
+  LOCKED
+}
+
+enum CardType {
+  CHARACTER
+  ITEM
+  SPELL
 }
 
 model User {
@@ -17,22 +24,35 @@ model User {
   createdAt DateTime @default(now())
 
   cards     Card[]
-  instances CardInstance[]
   runs      Run[]
 }
 
 model Card {
-  id         String     @id @default(cuid())
-  publicCode String     @unique
-  status     CardStatus @default(UNCLAIMED)
-  createdAt  DateTime   @default(now())
+  id           String     @id @default(cuid())
+  publicCode   String     @unique        // what’s stored on the NFC tag
+  status       CardStatus @default(UNCLAIMED)
 
-  ownerId    String?
-  owner      User?      @relation(fields: [ownerId], references: [id])
+  claimedAt    DateTime?  // set when claimed (scan success)
+  ownerId      String?
+  owner        User?      @relation(fields: [ownerId], references: [id])
 
-  instances  CardInstance[]
+  definitionId String
+  definition   CardDefinition @relation(fields: [definitionId], references: [id])
+
+  createdAt    DateTime   @default(now())
 }
 
+model CardDefinition {
+  id          String   @id @default(cuid())
+  type        CardType
+  name        String
+  description String
+
+  rarity      String?   // optional but handy
+  effectJson  Json?     // optional flexible rules blob for MVP
+
+  cards       Card[]    // all physical copies of this definition
+}
 model Character {
   id          String   @id @default(cuid())
   name        String
@@ -41,8 +61,9 @@ model Character {
   createdAt   DateTime @default(now())
 
   items       Item[]
-  instances   CardInstance[]
   runs        Run[]
+
+  // cardDefinitions CardDefinition[]
 }
 
 model Item {
@@ -55,20 +76,6 @@ model Item {
   createdAt    DateTime @default(now())
 
   character    Character @relation(fields: [characterId], references: [id])
-}
-
-model CardInstance {
-  id          String   @id @default(cuid())
-  cardId      String
-  characterId String
-  ownerId     String
-  xp          Int      @default(0)
-  cosmetics   Json     @default("{}")
-  createdAt   DateTime @default(now())
-
-  card        Card      @relation(fields: [cardId], references: [id])
-  character   Character @relation(fields: [characterId], references: [id])
-  owner       User      @relation(fields: [ownerId], references: [id])
 }
 
 model Run {
