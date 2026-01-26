@@ -10,8 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# If you use Next.js, this makes runtime smaller + cleaner
-# Add this to next.config.js:  module.exports = { output: 'standalone' }
+RUN npx prisma generate
 RUN npm run build
 
 # ---- runner ----
