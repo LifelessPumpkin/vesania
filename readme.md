@@ -26,3 +26,4 @@ npx prisma db seed         # run seed manually
 ## To-Do List
 
 - Onboarding everyone
+- Making DB schema
