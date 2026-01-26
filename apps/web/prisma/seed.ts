@@ -151,6 +151,27 @@ async function main() {
   //   },
   // });
 
+  // ------------------
+  // CardDefinition
+  // ------------------
+
+  // await prisma.cardDefinition.createMany({
+  //   data: [
+  //     {
+  //       character: "Ember",
+  //       name: "Cinder Shot",
+  //       cost: 1,
+  //       rarity: "Common",
+  //       effectJson: { type: "damage", amount: 6 },
+  //     },
+  //     {
+  //       character: "Ember",
+  //       name: "Flame Surge",
+  //       cost: 2,
+  //       rarity: "Uncommon",
+  //       effectJson: { type: "damage_all", amount: 4, burn: 2 },
+  //     }
+  //   ]});
 
   console.log("✅ Seeding complete!");
 }
