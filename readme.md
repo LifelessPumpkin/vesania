@@ -17,6 +17,7 @@ npx prisma migrate dev     # change schema + migrate
 npx prisma migrate reset   # nuke DB + reapply + seed
 npx prisma studio          # open DB GUI
 npx prisma db seed         # run seed manually
+npx prisma generate        # Add prisma client(should only need to be run once)
 
 ## Onboarding
 
