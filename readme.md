@@ -18,10 +18,10 @@ npm run dev
 there is a swagger page at /api-docs to test endpoints
 when you want to add an endpoint, you must also add the route in /apps/web/app/api/openapi/route.ts if you want to see it in the swagger ui
 
-1. Someone edits schema.prisma
-2. They run prisma migrate dev which creates a new migration folder like prisma/migrations/2026xxxx_addRunState/
-3. They commit schema.prisma and the new prisma/migrations/... folder
-4. Everyone else pulls and runs prisma migrate dev (or prisma migrate deploy) and their local DB updates automatically
+npx prisma migrate dev     # change schema + migrate
+npx prisma migrate reset   # nuke DB + reapply + seed
+npx prisma studio          # open DB GUI
+npx prisma db seed         # run seed manually
 
 ## DB Design
 
