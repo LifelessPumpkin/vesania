@@ -52,5 +52,5 @@ jobs:
           port: 22
           script: |
             cd /home/logan/Homelab/vesania
-            docker pull ghcr.io/lifelesspumpkin/vesania:latest
-            docker compose up -d
+            sudo -n docker pull ghcr.io/lifelesspumpkin/vesania:latest
+            sudo -n docker compose up -d
