@@ -23,7 +23,12 @@ npx prisma migrate reset   # nuke DB + reapply + seed
 npx prisma studio          # open DB GUI
 npx prisma db seed         # run seed manually
 
-## To-Do List
+## Onboarding
 
-- Onboarding everyone
-- Making DB schema
+1. Download docker desktop
+2. Download next and node
+
+- which node
+- homebrew intall node
+
+1. npx prisma generate to resolve the prisma client error
