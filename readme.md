@@ -3,11 +3,6 @@
 
 Capstone project for CEN4020L
 
-## Dependencies
-
-npm i prisma @prisma/client
-npx prisma migrate dev
-
 ## Convenient Tools
 
 you can do these commands from root
@@ -26,9 +21,36 @@ npx prisma db seed         # run seed manually
 ## Onboarding
 
 1. Download docker desktop
-2. Download next and node
+2. Launch the database container
 
-- which node
-- homebrew intall node
+    ```bash
+    npm run db:up
+    ```
 
-1. npx prisma generate to resolve the prisma client error
+3. Download node
+    - homebrew intall node
+
+    > **_NOTE:_** If it is giving an error about node version, run "which node" to determine what version is downloaded. Link it to  homebrew if not already.
+
+    ```bash
+    brew link --overwrite node
+    ```
+
+4. Download node_modules
+
+    ```bash
+    cd apps/web
+    npm install
+    ```
+
+5. Generate the prisma client
+
+    ```bash
+    npx prisma generate
+    ```
+
+6. Run the web app at <http://localhost:3000>
+
+    ```bash
+    npm run dev
+    ```
