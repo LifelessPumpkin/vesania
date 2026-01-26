@@ -54,10 +54,11 @@ jobs:
             cd /home/logan/Homelab/vesania
             sudo -n docker pull ghcr.io/lifelesspumpkin/vesania:latest
             sudo -n docker stack deploy -c docker-compose.yml vesania
+
             sudo -n docker run --rm \
               --network vesania_net \
               -e DATABASE_URL="postgresql://postgres:postgres@db:5432/stg?schema=public" \
               ghcr.io/lifelesspumpkin/vesania:latest \
-              npx prisma migrate deploy
+              npx prisma migrate deploy --schema prisma/schema.prisma
 
             sudo -n docker service update --force vesania_web
