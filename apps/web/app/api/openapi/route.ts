@@ -99,6 +99,51 @@ export async function GET() {
           },
         },
       },
+      '/api/scan': {
+        post: {
+          summary: 'Scan a Card',
+          description: 'Look up a card by its NFC public code.',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    code: { type: 'string', example: 'nfc-tag-id-123' },
+                  },
+                  required: ['code'],
+                },
+              },
+            },
+          },
+          responses: {
+            '200': {
+              description: 'Card details found',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      status: { type: 'string', enum: ['UNCLAIMED', 'CLAIMED'] },
+                      definition: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                          description: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '404': { description: 'Card not found' },
+            '500': { description: 'Internal server error' },
+          },
+        },
+      },
     },
   }
 
