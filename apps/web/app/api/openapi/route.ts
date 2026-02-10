@@ -11,7 +11,46 @@ export async function GET() {
     servers: [
       { url: '/' },
     ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT', 
+        },
+      },
+    },
     paths: {
+      '/api/auth/sync': {
+        post: {
+          summary: 'Sync Firebase User',
+          description: 'Syncs a logged-in Firebase user to the PostgreSQL database.',
+          security: [{ BearerAuth: [] }], // Requires Auth
+          responses: {
+            '200': {
+              description: 'User synced successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      user: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          email: { type: 'string' },
+                          username: { type: 'string' },
+                        }
+                      }
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Unauthorized / Invalid Token' },
+          },
+        },
+      },
       '/api/v1': {
         get: {
           summary: 'Health check',
