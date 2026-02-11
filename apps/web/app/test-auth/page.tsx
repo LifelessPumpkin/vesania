@@ -9,8 +9,7 @@ export default function TestAuth() {
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      const auth = getFirebaseAuth()
-      const result = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(getFirebaseAuth(), provider);
       // Get the raw JWT token
       const idToken = await result.user.getIdToken();
       setToken(idToken);
