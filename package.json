@@ -3,6 +3,8 @@
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "dotenv": "^17.2.3",
+    "firebase": "^12.8.0",
+    "firebase-admin": "^13.6.1",
     "pg": "^8.17.2"
   },
   "devDependencies": {
@@ -18,7 +20,5 @@
     "web:dev": "npm --prefix apps/web run dev",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"
-  } 
+  }
 }
-
-

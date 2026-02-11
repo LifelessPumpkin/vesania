@@ -1,8 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useAuth } from '@/context/AuthContext' 
 
 export default function ScanPage() {
+  const { user, getToken } = useAuth() 
+  
   const [code, setCode] = useState('')
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -14,22 +17,41 @@ export default function ScanPage() {
     setError('')
     setResult(null)
 
+    if (!user) {
+        setError('You must be logged in to scan cards.')
+        setLoading(false)
+        return
+    }
+
     try {
+      const token = await getToken() 
+
       const res = await fetch('/api/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ code }),
       })
 
       const data = await res.json()
 
-      if (!res.ok) throw new Error(data.message || 'Something went wrong')
+      if (!res.ok) {
+        throw new Error(data.message || 'Something went wrong')
+      }
+      
       setResult(data)
     } catch (err: any) {
+      console.error(err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!user) {
+    return <div className="p-8">Please log in to access the scanner.</div>
   }
 
   return (
@@ -57,10 +79,19 @@ export default function ScanPage() {
 
       {result && (
         <div className="border p-4 rounded bg-gray-50 text-black">
-          <h2 className="text-xl font-bold">{result.definition?.name}</h2>
-          <p className="text-gray-600 mb-2">{result.definition?.description}</p>
-          <div className="text-sm">
-            Status: <span className="font-mono">{result.status}</span>
+          <h2 className="text-xl font-bold">
+            {result.card?.definition?.name || result.definition?.name || 'Unknown Card'}
+          </h2>
+          <p className="text-gray-600 mb-2">
+            {result.card?.definition?.description || result.definition?.description}
+          </p>
+          
+          <div className="mt-4 p-2 bg-green-100 rounded text-green-800 text-sm">
+             {result.message}
+          </div>
+          
+          <div className="text-sm mt-2 text-gray-500">
+            Status: <span className="font-mono font-bold">{result.card?.status || result.status}</span>
           </div>
         </div>
       )}
