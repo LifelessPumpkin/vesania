@@ -12,6 +12,8 @@
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "dotenv": "^17.2.3",
+    "firebase": "^12.9.0",
+    "firebase-admin": "^13.6.1",
     "next": "16.1.4",
     "pg": "^8.17.2",
     "react": "19.2.3",

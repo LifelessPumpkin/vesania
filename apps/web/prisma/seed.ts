@@ -14,41 +14,41 @@ async function main() {
   // ------------------
   // USERS
   // ------------------
-  const logan = await prisma.user.upsert({
-    where: { username: "logan" },
-    update: {},
-    create: { username: "logan" },
-  });
+  // const logan = await prisma.user.upsert({
+  //   where: { username: "logan" },
+  //   update: {},
+  //   create: { username: "logan" },
+  // });
 
-  const chase = await prisma.user.upsert({
-    where: { username: "chase" },
-    update: {},
-    create: { username: "chase" },
-  });
+  // const chase = await prisma.user.upsert({
+  //   where: { username: "chase", firebaseUid: "chase-firebase-uid",  },
+  //   update: {},
+  //   create: { username: "chase" },
+  // });
 
-  const greg = await prisma.user.upsert({
-    where: { username: "greg" },
-    update: {},
-    create: { username: "greg" },
-  });
+  // const greg = await prisma.user.upsert({
+  //   where: { username: "greg" },
+  //   update: {},
+  //   create: { username: "greg" },
+  // });
 
-  const zach = await prisma.user.upsert({
-    where: { username: "zach" },
-    update: {},
-    create: { username: "zach" },
-  });
+  // const zach = await prisma.user.upsert({
+  //   where: { username: "zach" },
+  //   update: {},
+  //   create: { username: "zach" },
+  // });
 
-  const gio = await prisma.user.upsert({
-    where: { username: "gio" },
-    update: {},
-    create: { username: "gio" },
-  });
+  // const gio = await prisma.user.upsert({
+  //   where: { username: "gio" },
+  //   update: {},
+  //   create: { username: "gio" },
+  // });
 
-  const laura = await prisma.user.upsert({
-    where: { username: "laura" },
-    update: {},
-    create: { username: "laura" },
-  });
+  // const laura = await prisma.user.upsert({
+  //   where: { username: "laura" },
+  //   update: {},
+  //   create: { username: "laura" },
+  // });
 
   // ------------------
   // CHARACTERS
