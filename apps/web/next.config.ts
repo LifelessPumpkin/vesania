@@ -1,10 +1,8 @@
-// import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: "standalone",
-  allowedDevOrigins: ["*.local", "10.*", "192.168.*", "172.16.*"],
+  allowedDevOrigins: ["10.132.54.139"],
 };
-module.exports = nextConfig;
 
 export default nextConfig;
