@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       create: {
         firebaseUid: uid,
         email: email || '',
-        username: email?.split('@')[0],
+        username: email?.split('@')[0] || '',
       },
     });
 
