@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { adminAuth } from '@/lib/firebase-admin'
+import { getAdminAuth } from '@/lib/firebase-admin'
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,9 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.split('Bearer ')[1]
-    const decodedToken = await adminAuth.verifyIdToken(token)
+    
+    const adminAuth = getAdminAuth(); // <-- actually call it
+    const decodedToken = await adminAuth.verifyIdToken(token); // <-- verify Firebase ID token
     
     // Find the user in Postgres using the Firebase UID
     const user = await prisma.user.findUnique({

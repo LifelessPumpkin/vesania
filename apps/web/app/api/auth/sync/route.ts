@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 import prisma from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
   const token = authHeader.split('Bearer ')[1];
 
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const adminAuth = getAdminAuth(); // <-- actually call it
+    const decodedToken = await adminAuth.verifyIdToken(token); // <-- verify Firebase ID token
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 
