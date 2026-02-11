@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Ensure this matches your file path
+import { getFirebaseAuth } from '@/lib/firebase'; // Ensure this matches your file path
 
 export default function TestAuth() {
   const [token, setToken] = useState('');
@@ -9,6 +9,7 @@ export default function TestAuth() {
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      const auth = getFirebaseAuth()
       const result = await signInWithPopup(auth, provider);
       // Get the raw JWT token
       const idToken = await result.user.getIdToken();
