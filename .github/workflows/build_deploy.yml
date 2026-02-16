@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
 
 permissions:
+  id-token: write
   contents: read
   packages: write
 
@@ -30,6 +31,13 @@ jobs:
           context: ./apps/web
           file: ./apps/web/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           tags: |
             ghcr.io/lifelesspumpkin/vesania:latest
             ghcr.io/lifelesspumpkin/vesania:${{ github.sha }}
@@ -41,7 +49,9 @@ jobs:
       - name: Tailscale
         uses: tailscale/github-action@v3
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          oauth-client-id: ${{ secrets.TAILSCALE_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_CLIENT_SECRET }}
+          tags: tag:ci
       
       - name: Deploy over SSH via Tailscale
         uses: appleboy/ssh-action@v1.0.3
