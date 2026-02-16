@@ -12,12 +12,12 @@ export interface MatchState {
   matchId: string;
   status: "waiting" | "active" | "finished";
   players: {
-    p1: PlayerState;
-    p2: PlayerState | null;
+    p1: PlayerState; //host
+    p2: PlayerState | null; //connecting
   };
   turn: PlayerId;
   log: string[];
   winner: PlayerId | null;
 }
 
-export type SSECallback = (state: MatchState) => void;
+export type SSECallback = (state: MatchState) => void; // Server side events send current matchstate over http

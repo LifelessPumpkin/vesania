@@ -5,6 +5,8 @@ import { PlayerId, ActionType } from "@/lib/game-server/types";
 const VALID_ACTIONS: ActionType[] = ["PUNCH", "KICK", "BLOCK", "HEAL"];
 const VALID_PLAYERS: PlayerId[] = ["p1", "p2"];
 
+//just verifies and calls applyAction with validation
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

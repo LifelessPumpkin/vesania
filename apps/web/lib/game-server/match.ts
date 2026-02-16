@@ -10,7 +10,7 @@ const MAX_HP = 30;
 const matches = new Map<string, MatchState>();
 const subscribers = new Map<string, Set<SSECallback>>();
 
-function generateCode(): string {
+function generateCode(): string { //match id generation
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
   for (let i = 0; i < 6; i++) {
@@ -19,7 +19,7 @@ function generateCode(): string {
   return code;
 }
 
-export function createMatch(hostName: string): MatchState {
+export function createMatch(hostName: string): MatchState { //setup for match initialization
   let matchId = generateCode();
   while (matches.has(matchId)) {
     matchId = generateCode();
@@ -41,11 +41,11 @@ export function createMatch(hostName: string): MatchState {
   return state;
 }
 
-export function getMatch(matchId: string): MatchState | undefined {
+export function getMatch(matchId: string): MatchState | undefined { //map lookup 
   return matches.get(matchId);
 }
 
-export function joinMatch(matchId: string, guestName: string): MatchState {
+export function joinMatch(matchId: string, guestName: string): MatchState { //handles p2, flips status to active and notifies subscribers 
   const state = matches.get(matchId);
   if (!state) throw new Error("Match not found");
   if (state.status !== "waiting") throw new Error("Match is not accepting players");
@@ -59,7 +59,7 @@ export function joinMatch(matchId: string, guestName: string): MatchState {
   return state;
 }
 
-export function applyAction(
+export function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, notify subs  
   matchId: string,
   playerId: PlayerId,
   action: ActionType

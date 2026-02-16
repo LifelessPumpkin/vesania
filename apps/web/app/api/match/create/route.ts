@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createMatch } from "@/lib/game-server/match";
 
+/** Creates a match with p1, adds it to the matches map, and returns { matchId, playerId } */
 export async function POST(request: Request) {
   try {
     const { playerName } = await request.json();
