@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { getAdminAuth } from '@/lib/firebase-admin'
+import { verifyRequestAuth } from '@/lib/auth-session'
 
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const decodedToken = await verifyRequestAuth(req)
+    if (!decodedToken) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
-
-    const token = authHeader.split('Bearer ')[1]
-    
-    const adminAuth = getAdminAuth(); // <-- actually call it
-    const decodedToken = await adminAuth.verifyIdToken(token); // <-- verify Firebase ID token
     
     // Find the user in Postgres using the Firebase UID
     const user = await prisma.user.findUnique({

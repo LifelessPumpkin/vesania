@@ -12,6 +12,18 @@ export default function TestAuth() {
       const result = await signInWithPopup(getFirebaseAuth(), provider);
       // Get the raw JWT token
       const idToken = await result.user.getIdToken();
+
+      const syncResponse = await fetch('/api/auth/sync', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      if (!syncResponse.ok) {
+        throw new Error('Failed to sync session');
+      }
+
       setToken(idToken);
       console.log("Token:", idToken);
     } catch (error) {
