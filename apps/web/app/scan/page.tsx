@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext' 
+import { useAuth } from '@/context/AuthContext'
+import Link from 'next/link'
 
 export default function ScanPage() {
-  const { user, getToken } = useAuth() 
-  
+  const { user, getToken } = useAuth()
+
   const [code, setCode] = useState('')
   const [result, setResult] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -18,19 +19,19 @@ export default function ScanPage() {
     setResult(null)
 
     if (!user) {
-        setError('You must be logged in to scan cards.')
-        setLoading(false)
-        return
+      setError('You must be logged in to scan cards.')
+      setLoading(false)
+      return
     }
 
     try {
-      const token = await getToken() 
+      const token = await getToken()
 
       const res = await fetch('/api/scan', {
         method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ code }),
       })
@@ -40,7 +41,7 @@ export default function ScanPage() {
       if (!res.ok) {
         throw new Error(data.message || 'Something went wrong')
       }
-      
+
       setResult(data)
     } catch (err: any) {
       console.error(err)
@@ -56,8 +57,13 @@ export default function ScanPage() {
 
   return (
     <div className="p-8 max-w-md mx-auto">
+      <Link href="/" className="text-blue-500 underline mb-4 inline-block">
+        <button className="px-4 py-2 bg-blue-500 text-white rounded">
+          Back to Home
+        </button>
+      </Link>
       <h1 className="text-2xl font-bold mb-4">Scan Card</h1>
-      
+
       <form onSubmit={handleScan} className="flex gap-2 mb-6">
         <input
           type="text"
@@ -66,8 +72,8 @@ export default function ScanPage() {
           placeholder="Enter NFC Code"
           className="border p-2 rounded flex-1 text-black"
         />
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
         >
@@ -85,11 +91,11 @@ export default function ScanPage() {
           <p className="text-gray-600 mb-2">
             {result.card?.definition?.description || result.definition?.description}
           </p>
-          
+
           <div className="mt-4 p-2 bg-green-100 rounded text-green-800 text-sm">
-             {result.message}
+            {result.message}
           </div>
-          
+
           <div className="text-sm mt-2 text-gray-500">
             Status: <span className="font-mono font-bold">{result.card?.status || result.status}</span>
           </div>
