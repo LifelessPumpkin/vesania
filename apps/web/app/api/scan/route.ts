@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    if (card.status === 'CLAIMED' || card.ownerId) {
+    if (card.ownerId && card.ownerId !== user.id) {
       return NextResponse.json({ 
         message: 'This card has already been claimed by another player.' 
       }, { status: 409 }) // 409 Conflict
@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
       where: { id: card.id },
       data: {
         ownerId: user.id,
-        status: 'CLAIMED',
         claimedAt: new Date(),
       },
       include: {
