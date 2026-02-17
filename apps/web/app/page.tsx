@@ -1,8 +1,24 @@
+import Link from "next/link";
 export default function Home() {
   return (
     <main className="p-10">
-      <h1 className="text-3xl font-bold">It works</h1>
-      <p className="mt-4 text-gray-600">Tailwind is live.</p>
+      <Link href="/scan" className="text-blue-500 underline">
+        <button className="px-4 py-2 bg-blue-500 text-white rounded">
+          Go to Scan Page
+        </button>
+      </Link>
+      <br />
+      <Link href="/test-auth" className="text-blue-500 underline">
+        <button className="px-4 py-2 bg-blue-500 text-white rounded">
+          Go to Test Auth Page
+        </button>
+      </Link>
+      <br />
+      <Link href="/api-docs" className="text-blue-500 underline">
+        <button className="px-4 py-2 bg-blue-500 text-white rounded">
+          Go to API Docs Page
+        </button>
+      </Link>
     </main>
   );
 }
