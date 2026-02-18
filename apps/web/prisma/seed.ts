@@ -26,6 +26,7 @@ async function main() {
   //     name: "Ember",
   //     type: "CHARACTER",
   //     rarity: "COMMON",
+  //     description: "A fiery character with moderate health and energy.",
   //     effectJson: { health: 70, energy: 4 },
   //   },
   // });
@@ -38,10 +39,14 @@ async function main() {
   //     name: "Tide",
   //     type: "CHARACTER",
   //     rarity: "COMMON",
+  //     description: "A water-based character with high health and steady energy.",
   //     effectJson: { health: 80, energy: 4 },
   //   },
   // });
 
+  // // ------------------
+  // // NFC Cards
+  // // ------------------
   // ------------------
   // NFC Cards
   // ------------------

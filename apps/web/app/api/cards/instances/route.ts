@@ -1,13 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { verifyRequestAuth } from '@/lib/auth-session'
+import { verifyAdminAuth } from '@/lib/auth-session'
 
 export async function GET(req: NextRequest) {
     try {
-        const session = await verifyRequestAuth(req)
-        if (!session) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+        const admin = await verifyAdminAuth(req)
+        if (!admin) {
+            return NextResponse.json({ message: 'Forbidden: Admin access required' }, { status: 403 })
         }
 
         const cards = await prisma.card.findMany({
@@ -35,9 +35,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await verifyRequestAuth(req)
-        if (!session) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+        const admin = await verifyAdminAuth(req)
+        if (!admin) {
+            return NextResponse.json({ message: 'Forbidden: Admin access required' }, { status: 403 })
         }
 
         const body = await req.json()
