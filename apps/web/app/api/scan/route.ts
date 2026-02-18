@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyRequestAuth } from '@/lib/auth-session'
@@ -8,25 +9,26 @@ export async function POST(req: NextRequest) {
     if (!decodedToken) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
-    
-    // Find the user in Postgres using the Firebase UID
+
     const user = await prisma.user.findUnique({
       where: { firebaseUid: decodedToken.uid },
     })
 
     if (!user) {
-      return NextResponse.json({ message: 'User not found. Please re-login.' }, { status: 404 })
+      return NextResponse.json({ message: 'User not found' }, { status: 404 })
     }
 
-
     const body = await req.json()
-    const { code } = body // The frontend sends { code: "nfc-tag-content" }
+    let { code } = body
 
     if (!code) {
       return NextResponse.json({ message: 'No card code provided' }, { status: 400 })
     }
 
-    // search by 'publicCode' (your schema's unique field)
+    if (!code.startsWith('ves_')) {
+      code = `ves_${code}`
+    }
+
     const card = await prisma.card.findUnique({
       where: { publicCode: code },
       include: {
@@ -36,12 +38,11 @@ export async function POST(req: NextRequest) {
     })
 
     if (!card) {
-      return NextResponse.json({ message: 'Invalid card code.' }, { status: 404 })
+      return NextResponse.json({ message: 'Invalid card code' }, { status: 404 })
     }
 
-    
     if (card.ownerId === user.id) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'You already collected this card!',
         card: card,
         alreadyOwned: true
@@ -49,19 +50,23 @@ export async function POST(req: NextRequest) {
     }
 
     if (card.ownerId && card.ownerId !== user.id) {
-      return NextResponse.json({ 
-        message: 'This card has already been claimed by another player.' 
-      }, { status: 409 }) // 409 Conflict
+      return NextResponse.json({
+        message: 'This card has already been claimed by another player.'
+      }, { status: 409 })
     }
 
     const updatedCard = await prisma.card.update({
       where: { id: card.id },
       data: {
-        ownerId: user.id,
+        owner: {
+          connect: { id: user.id }
+        },
         claimedAt: new Date(),
+        status: 'CLAIMED',
       },
       include: {
-        definition: true
+        definition: true,
+        owner: true,
       }
     })
 

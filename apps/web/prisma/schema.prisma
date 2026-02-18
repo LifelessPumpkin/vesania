@@ -6,50 +6,78 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id          String   @id @default(cuid())
+  username    String   @unique
+  createdAt   DateTime @default(now())
+  email       String   @unique
+  firebaseUid String   @unique
+  cards       Card[]
+  Run         Run[]
+}
+
+model Card {
+  id           String         @id @default(cuid())
+  publicCode   String         @unique
+  status       CardStatus     @default(UNCLAIMED)
+  claimedAt    DateTime?
+  ownerId      String?
+  definitionId String
+  createdAt    DateTime       @default(now())
+  definition   CardDefinition @relation(fields: [definitionId], references: [id])
+  owner        User?          @relation(fields: [ownerId], references: [id])
+}
+
+model CardDefinition {
+  id          String   @id @default(cuid())
+  type        CardType
+  name        String
+  description String
+  rarity      String?
+  effectJson  Json?
+  cards       Card[]
+}
+
+model Character {
+  id          String   @id
+  name        String
+  archetype   String
+  description String
+  createdAt   DateTime @default(now())
+  Item        Item[]
+  Run         Run[]
+}
+
+model Item {
+  id          String    @id
+  characterId String
+  name        String
+  cost        Int
+  rarity      String
+  effectJson  Json
+  createdAt   DateTime  @default(now())
+  Character   Character @relation(fields: [characterId], references: [id])
+}
+
+model Run {
+  id          String    @id
+  ownerId     String
+  characterId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  stateJson   Json      @default("{}")
+  Character   Character @relation(fields: [characterId], references: [id])
+  User        User      @relation(fields: [ownerId], references: [id])
+}
+
 enum CardType {
   CHARACTER
   ITEM
   SPELL
-  TOOL
 }
 
-enum CardRarity {
-  COMMON
-  UNCOMMON
-  RARE
-  EPIC
-  LEGENDARY
-}
-
-model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  firebaseUid String   @unique
-  email       String   @unique
-  createdAt   DateTime @default(now())
-
-  cards Card[]
-}
-
-model Card {
-  id         String    @id @default(cuid())
-  publicCode String    @unique // what’s stored on the NFC tag
-  claimedAt  DateTime?
-  createdAt  DateTime  @default(now())
-
-  ownerId String? // nullable because a card might not be claimed yet
-  owner   User?   @relation(fields: [ownerId], references: [id])
-
-  definitionId String
-  definition   CardDefinition @relation(fields: [definitionId], references: [id])
-}
-
-model CardDefinition {
-  id         String     @id @default(cuid())
-  name       String     @unique
-  type       CardType
-  rarity     CardRarity
-  effectJson Json?
-
-  cards Card[] // all physical copies of this definition
+enum CardStatus {
+  UNCLAIMED
+  CLAIMED
+  LOCKED
 }
