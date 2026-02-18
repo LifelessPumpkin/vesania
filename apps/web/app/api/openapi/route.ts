@@ -82,11 +82,12 @@ export async function GET() {
               'application/json': {
                 schema: {
                   type: 'object',
-                  required: ['name', 'type', 'rarity'],
+                  required: ['name', 'type', 'rarity', 'description'],
                   properties: {
                     name: { type: 'string' },
                     type: { type: 'string', enum: ['CHARACTER', 'ITEM', 'SPELL', 'TOOL'] },
                     rarity: { type: 'string', enum: ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'] },
+                    description: { type: 'string' },
                     effectJson: { type: 'object' }
                   }
                 }

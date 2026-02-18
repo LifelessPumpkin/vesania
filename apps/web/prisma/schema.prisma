@@ -33,7 +33,7 @@ model CardDefinition {
   type        CardType
   name        String
   description String
-  rarity      String?
+  rarity      CardRarity
   effectJson  Json?
   cards       Card[]
 }
@@ -74,6 +74,15 @@ enum CardType {
   CHARACTER
   ITEM
   SPELL
+  TOOL
+}
+
+enum CardRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
 }
 
 enum CardStatus {
