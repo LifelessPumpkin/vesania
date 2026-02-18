@@ -24,7 +24,7 @@ export async function GET() {
       '/api/cards': {
         get: {
           summary: 'Search Card Definitions',
-          description: 'Search for cards by name, type, or rarity.',
+          description: 'Search for cards by name, type, or rarity. Public endpoint.',
           parameters: [
             {
               name: 'q',
@@ -73,8 +73,8 @@ export async function GET() {
           }
         },
         post: {
-          summary: 'Create Card Definition',
-          description: 'Add a new card definition to the catalog (Admin).',
+          summary: 'Create Card Definition (Admin)',
+          description: 'Add a new card definition to the catalog. Requires ADMIN role.',
           security: [{ BearerAuth: [] }],
           requestBody: {
             required: true,
@@ -96,14 +96,15 @@ export async function GET() {
           },
           responses: {
             '201': { description: 'Card definition created' },
-            '401': { description: 'Unauthorized' }
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden — requires ADMIN role' }
           }
         }
       },
       '/api/cards/instances': {
         get: {
-          summary: 'List All Physical Cards',
-          description: 'Retrieve a list of every physical card instance that has been minted.',
+          summary: 'List All Physical Cards (Admin)',
+          description: 'Retrieve a list of every physical card instance that has been minted. Requires ADMIN role.',
           security: [{ BearerAuth: [] }],
           responses: {
             '200': {
@@ -140,12 +141,12 @@ export async function GET() {
                 }
               }
             },
-            '401': { description: 'Unauthorized' }
+            '403': { description: 'Forbidden — requires ADMIN role' }
           }
         },
         post: {
-          summary: 'Mint New Physical Card',
-          description: 'Create a new physical card instance linked to a card definition. This is used when assigning an NFC tag to a card type.',
+          summary: 'Mint New Physical Card (Admin)',
+          description: 'Create a new physical card instance linked to a card definition. Requires ADMIN role.',
           security: [{ BearerAuth: [] }],
           requestBody: {
             required: true,
@@ -165,8 +166,70 @@ export async function GET() {
           responses: {
             '201': { description: 'Card minted successfully' },
             '400': { description: 'Missing definitionId or publicCode' },
+            '403': { description: 'Forbidden — requires ADMIN role' },
             '404': { description: 'Card Definition not found' },
             '409': { description: 'Card with this code already exists' }
+          }
+        }
+      },
+      '/api/list-user': {
+        get: {
+          summary: 'List All Users (Admin)',
+          description: 'Retrieve a list of all registered users with their roles and card counts. Requires ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'List of users',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        username: { type: 'string' },
+                        email: { type: 'string' },
+                        role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        _count: {
+                          type: 'object',
+                          properties: {
+                            cards: { type: 'integer' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '403': { description: 'Forbidden — requires ADMIN role' }
+          }
+        },
+        patch: {
+          summary: 'Update User Role (Admin)',
+          description: 'Change a user\'s role between USER and ADMIN. Requires ADMIN role. Cannot demote yourself.',
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'role'],
+                  properties: {
+                    userId: { type: 'string', description: 'The ID of the user to update' },
+                    role: { type: 'string', enum: ['USER', 'ADMIN'], description: 'The new role to assign' }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'User role updated' },
+            '400': { description: 'Invalid request or self-demotion attempt' },
+            '403': { description: 'Forbidden — requires ADMIN role' }
           }
         }
       },
@@ -214,7 +277,7 @@ export async function GET() {
       '/api/auth/sync': {
         post: {
           summary: 'Sync Firebase User',
-          description: 'Syncs a logged-in Firebase user to the PostgreSQL database.',
+          description: 'Syncs a logged-in Firebase user to the PostgreSQL database. If the user\'s email is in the ADMIN_EMAILS environment variable, they are automatically promoted to ADMIN role.',
           security: [{ BearerAuth: [] }],
           responses: {
             '200': {
@@ -257,7 +320,8 @@ export async function GET() {
       '/api/scan': {
         post: {
           summary: 'Scan a Card',
-          description: 'Look up a card by its NFC public code.',
+          description: 'Look up a card by its NFC public code and claim it for the logged-in user.',
+          security: [{ BearerAuth: [] }],
           requestBody: {
             required: true,
             content: {

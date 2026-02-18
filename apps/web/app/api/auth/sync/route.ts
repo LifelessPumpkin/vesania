@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('Authorization');
-  
+
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Missing token' }, { status: 401 });
   }
@@ -13,18 +13,29 @@ export async function POST(req: NextRequest) {
   const token = authHeader.split('Bearer ')[1];
 
   try {
-    const adminAuth = getAdminAuth(); // <-- actually call it
-    const decodedToken = await adminAuth.verifyIdToken(token); // <-- verify Firebase ID token
+    const adminAuth = getAdminAuth();
+    const decodedToken = await adminAuth.verifyIdToken(token);
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 
+    // Check if this email should be auto-promoted to ADMIN
+    const adminEmails = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    const isBootstrapAdmin = email && adminEmails.includes(email.toLowerCase());
+
     const user = await prisma.user.upsert({
       where: { firebaseUid: uid },
-      update: { email },
+      update: {
+        email,
+        ...(isBootstrapAdmin ? { role: 'ADMIN' } : {}),
+      },
       create: {
         firebaseUid: uid,
         email: email || '',
         username: email?.split('@')[0] || '',
+        ...(isBootstrapAdmin ? { role: 'ADMIN' } : {}),
       },
     });
 
