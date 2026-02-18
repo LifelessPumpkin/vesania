@@ -47,6 +47,9 @@ async function main() {
   // // ------------------
   // // NFC Cards
   // // ------------------
+  // ------------------
+  // NFC Cards
+  // ------------------
   // await prisma.card.upsert({
   //   where: { publicCode: "PUB12345" }, // best unique lookup for NFC cards
   //   update: {},
