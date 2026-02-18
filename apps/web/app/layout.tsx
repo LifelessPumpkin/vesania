@@ -28,9 +28,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <nav className="flex items-center gap-6 px-6 py-3 bg-gray-900 text-white text-sm border-b border-gray-800">
+          <a href="/" className="font-bold">Vesania</a>
+          <a href="/play" className="text-gray-300 hover:text-white">Play</a>
+          <a href="/match" className="text-gray-300 hover:text-white">PvP</a>
+          <a href="/api-docs" className="text-gray-300 hover:text-white">API Docs</a>
+        </nav>
+        {children}
       </body>
     </html>
   );

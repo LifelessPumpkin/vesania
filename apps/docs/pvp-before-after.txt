@@ -1,0 +1,376 @@
+================================================================================
+  VESANIA — PvP Multiplayer: Before & After Breakdown
+  Generated: 2026-02-11
+================================================================================
+
+
+================================================================================
+  BEFORE: Standalone Express Prototype
+================================================================================
+
+File: src/proto/server.ts (53 lines)
+
+ARCHITECTURE
+--------------------------------------------------------------------------------
+  - Separate Express process running completely outside of Next.js
+  - Required its own start command: `npm run dev:proto`
+  - Fought with Next.js over port 3000 — both defaulted to it, so you had to
+    manually configure one or the other to avoid EADDRINUSE errors
+  - Not part of the Next.js build or deploy pipeline — totally isolated
+  - Required three extra dependencies: `express`, `cors`, and `ts-node-dev`
+  - The team had to run and manage two separate server processes during dev
+
+GAME STATE
+--------------------------------------------------------------------------------
+  - Single hardcoded match with ID "demo" — no way to create new matches or
+    join existing ones dynamically
+  - Two anonymous players identified only as "p1" and "p2" — no names, no
+    identity, no way to tell who is who
+  - HP tracked as a simple Record<PlayerId, number> starting at 30 for each
+  - Only two moves available: PUNCH (5 damage) and KICK (8 damage)
+  - No defensive options whatsoever — pure damage race
+  - No win condition check — HP could hit 0 and the game would keep going
+    with negative HP values. No winner declared, no game over state
+  - No concept of match lifecycle (no waiting/active/finished states)
+  - State lived in a single mutable variable at module scope — one match
+    total, ever, for the entire server lifetime
+
+NETWORKING
+--------------------------------------------------------------------------------
+  - REST only: GET /match/:id/state and POST /match/:id/action
+  - No real-time updates of any kind. If Player 2 punched you, you had
+    absolutely no way of knowing until you manually refreshed or polled
+  - A real client would need setInterval(() => fetch(...), 1000) to feel
+    remotely interactive — hammering the server with requests that mostly
+    return unchanged data
+  - No CORS configuration beyond app.use(cors()) — wide open to any origin
+  - Every "update" required a full HTTP request/response round trip from
+    the client, even when nothing had changed
+
+FRONTEND
+--------------------------------------------------------------------------------
+  - None. Zero UI. No web page, no buttons, no display
+  - The only way to interact was curl, Postman, or writing your own client
+  - No way for a non-technical teammate to test or demo the game
+  - No visual feedback for any game event
+
+DEPLOYMENT
+--------------------------------------------------------------------------------
+  - Not deployed anywhere. Not in the Dockerfile. Not in CI/CD
+  - Would need its own container, its own port exposure, its own reverse
+    proxy configuration, and its own health checks
+  - The team would have to maintain two separate server deployments
+  - No production viability whatsoever
+
+
+================================================================================
+  AFTER: Next.js API Routes + SSE
+================================================================================
+
+Files: 9 files across apps/web/
+
+  lib/game-server/
+    types.ts            Type definitions (MatchState, PlayerState, etc.)
+    match.ts            Pure game logic + in-memory store + SSE registry
+
+  app/api/match/
+    create/route.ts     POST: create a new match, get room code
+    join/route.ts       POST: join match by room code
+    [id]/route.ts       GET: current state (debug/reconnect)
+    [id]/action/route.ts    POST: submit a move
+    [id]/stream/route.ts    GET: SSE stream (real-time push)
+
+  app/match/page.tsx    Full game UI (lobby -> waiting -> combat -> result)
+  app/layout.tsx        Updated with nav bar including PvP link
+
+ARCHITECTURE
+--------------------------------------------------------------------------------
+  - Everything lives inside Next.js API routes — same process, same port,
+    same deployment artifact
+  - One command to run everything: `npm run dev`
+  - No new dependencies added. SSE (server side) and EventSource (browser
+    side) are built-in web standards. No socket.io, no ws library, no
+    express, no cors package needed
+  - The dependency footprint actually shrank compared to the prototype
+  - Game logic is cleanly isolated in lib/game-server/ with zero framework
+    coupling. It imports nothing from Next.js, React, or any HTTP library.
+    This makes it portable — if you later want to extract it into a
+    standalone WebSocket server, the game logic module moves unchanged
+
+GAME STATE
+--------------------------------------------------------------------------------
+  - Unlimited concurrent matches stored in a Map<string, MatchState>
+  - Each match gets a random 6-character alphanumeric room code (e.g.
+    "X4KN7P") that players share to connect
+  - Named players — you enter your name before creating or joining
+  - Full match lifecycle management: waiting -> active -> finished
+  - Player state includes hp (30), block (0), and name
+  - Four moves with real strategic depth:
+      PUNCH  — 5 damage, reduced by target's block
+      KICK   — 8 damage, reduced by target's block
+      BLOCK  — gain 5 shield points that absorb incoming damage
+      HEAL   — restore 3 HP, capped at max 30
+  - Block creates a resource management layer: do you attack through their
+    shield, build your own, or heal while they waste a turn blocking?
+  - Proper win condition: when a player's HP hits 0, the match status
+    changes to "finished", a winner is declared, and no more actions are
+    accepted
+  - Turn validation: server rejects actions from the wrong player. You
+    cannot act out of turn
+  - Combat log tracks every action with descriptive messages including
+    damage dealt, damage blocked, and healing done
+
+NETWORKING
+--------------------------------------------------------------------------------
+  - SSE (Server-Sent Events) for real-time server-to-client push
+  - When either player acts, BOTH players instantly receive the updated
+    state through their SSE connections — no polling, no delay
+  - Players POST actions via regular fetch() calls (standard HTTP)
+  - The server pushes state changes via text/event-stream — the browser
+    holds open a single persistent HTTP connection and receives events
+    as they happen with zero overhead between updates
+  - Subscriber registry pattern internally: each SSE connection registers
+    a callback function. When applyAction() or joinMatch() changes state,
+    notifySubscribers() fans out to all connected clients for that match
+  - Cleanup on disconnect: when the browser closes the tab or the
+    EventSource errors out, the abort signal fires and the subscriber is
+    automatically removed from the registry
+  - Current state is sent immediately on SSE connect, so new connections
+    are always in sync
+
+FRONTEND
+--------------------------------------------------------------------------------
+  - Three-screen flow in one page component:
+
+    1. LOBBY — Enter your name. Two options: "Create Match" (generates a
+       room code) or enter a code and click "Join". Input validation and
+       error display included.
+
+    2. WAITING ROOM — Shows the room code in large monospace text for easy
+       sharing. Animated "Listening for players..." pulse. Automatically
+       transitions to the game screen when the opponent connects via SSE.
+
+    3. COMBAT — Side-by-side player cards showing name, HP bar, and shield
+       value. Four color-coded action buttons (orange/red/blue/green) with
+       damage/effect labels. Turn indicator: green "Your Turn" or yellow
+       "Waiting for opponent...". Scrollable combat log with auto-scroll.
+       Win/lose banner when match ends. "Back to Lobby" button to reset.
+
+  - Dark theme (gray-950 background) with color-coded UI throughout
+  - All state driven by SSE — the UI is purely reactive to server pushes
+
+DEPLOYMENT
+--------------------------------------------------------------------------------
+  - Deploys with the rest of the Next.js app automatically
+  - No additional containers, ports, or reverse proxy rules needed
+  - Works in the existing Dockerfile and CI/CD pipeline without changes
+  - Same health checks, same monitoring, same infrastructure
+
+
+================================================================================
+  PROS OF THE NEW SYSTEM
+================================================================================
+
+1. ACTUALLY PLAYABLE
+   Two people can open their browsers and play a full game right now, start
+   to finish. Before, there was literally no UI — you needed curl or Postman
+   to interact with the server at all.
+
+2. REAL-TIME WITHOUT POLLING
+   SSE pushes state to both players instantly when anything changes. The old
+   system required the client to repeatedly ask "anything new?" on a timer,
+   which wastes bandwidth, adds artificial latency (up to the poll interval),
+   and doesn't scale. With SSE, updates arrive in milliseconds.
+
+3. SINGLE DEPLOYMENT
+   No port conflicts. No second process. No second container. No separate
+   start command. The PvP system deploys as part of the main Next.js app
+   with zero additional infrastructure. This eliminates an entire category
+   of "works on my machine" problems.
+
+4. ZERO NEW DEPENDENCIES
+   SSE is a web standard baked into Node.js. EventSource is built into every
+   modern browser. No socket.io (500KB+), no ws, no express, no cors. The
+   project's dependency footprint actually decreased since the old proto
+   required express/cors/ts-node-dev.
+
+5. MATCHMAKING VIA ROOM CODES
+   Any number of concurrent matches can run simultaneously. Players share a
+   6-character code to connect. The old system had exactly one hardcoded
+   match called "demo" with no way to create others.
+
+6. RICHER GAMEPLAY
+   Block and Heal add genuine strategic decisions to combat. Block creates a
+   resource management layer (do you attack through their shield, build your
+   own, or heal while they waste a turn?). The old system was a coinflip of
+   "punch or kick until someone dies" with no counterplay.
+
+7. CLEAN SEPARATION OF CONCERNS
+   Game logic in lib/game-server/ knows nothing about HTTP, SSE, React, or
+   Next.js. It's pure TypeScript functions that take state in and return
+   state out. This means:
+     - Unit testable without mocking any framework
+     - Portable to any transport layer (WebSocket, raw TCP, etc.)
+     - The team can work on game balance without touching networking code
+
+8. MATCH LIFECYCLE MANAGEMENT
+   The server properly tracks waiting/active/finished states and enforces
+   valid transitions. You can't submit actions to a finished match, join an
+   active one, or act out of turn. The old system had none of these guards.
+
+
+================================================================================
+  CONS / CURRENT LIMITATIONS
+================================================================================
+
+1. IN-MEMORY STATE
+   All matches live in a JavaScript Map. If the server restarts — whether
+   from a deploy, a crash, or even a dev reload — every active match is
+   destroyed with no way to recover. This is acceptable for prototyping
+   and local dev but not viable for production.
+   >> Fix: Issue #2 — Persist match state to DB/Redis
+
+2. NO AUTHENTICATION
+   Any client can claim to be p1 or p2 by sending the right playerId in
+   the POST body. There's no session, no token, no verification. A
+   malicious user could POST actions as their opponent and win by playing
+   both sides. The SSE stream is also open to anyone who knows the match
+   ID, so matches can be observed by third parties.
+   >> Fix: Issue #1 — Per-match auth tokens
+
+3. SSE IS ONE-WAY ONLY
+   The server can push to the client, but the client still sends actions
+   via separate fetch() calls. Each action is a full HTTP request/response
+   cycle. For turn-based combat this overhead is negligible — you're making
+   one request every few seconds at most. But if you later want real-time
+   bidirectional features (live chat, typing indicators, frame-by-frame
+   animation sync), you'd want WebSockets.
+   >> Future: Phase 4 upgrade path is already planned
+
+4. NO RECONNECTION HANDLING
+   If a player's SSE connection drops (network blip, laptop sleep, tab
+   backgrounded), the browser's EventSource will auto-reconnect (built-in
+   browser behavior), but the client doesn't re-identify itself or
+   reconcile state. The player will start receiving new events again, but
+   could have missed events during the gap. The GET /api/match/[id]
+   endpoint exists for manual state recovery, but the client doesn't call
+   it automatically on reconnect yet.
+   >> Fix: Issue #2 + Issue #7 (connection status indicator)
+
+5. NO MATCH CLEANUP / GARBAGE COLLECTION
+   Finished or abandoned matches sit in memory forever. There's no TTL,
+   no periodic cleanup, no expiration. In a long-running production server,
+   this is a slow memory leak. Over hours/days of continuous use, the Map
+   grows unbounded.
+   >> Fix: Issue #2 includes TTL/cleanup for abandoned matches
+
+6. NO SPECTATOR MODE (OR SPECTATOR PREVENTION)
+   The SSE stream doesn't distinguish between players and observers.
+   Anyone who knows the match ID can connect to /api/match/[id]/stream
+   and watch the full game state in real-time. Depending on your goals
+   this is either a feature (spectating is cool) or a security issue
+   (opponents could open a second connection to confirm state).
+   >> Fix: Issue #1 (auth tokens) would gate stream access
+
+7. SINGLE-SERVER ONLY
+   The in-memory Map means this only works on a single server instance.
+   If you horizontally scale to multiple pods or containers, matches are
+   silently partitioned — Player 1 might hit Server A while Player 2
+   hits Server B, and they'd never see each other's updates.
+   >> Fix: Issue #2 (database/Redis backing) enables multi-instance
+
+8. NO INPUT RATE LIMITING
+   A player could spam action requests as fast as they can click or script.
+   Turn validation prevents acting out of turn, but there's no cooldown,
+   throttle, or rate limit on the endpoint itself. A flood of invalid
+   requests would still consume server resources.
+   >> Fix: Add rate limiting middleware (future issue)
+
+
+================================================================================
+  WHAT STAYED THE SAME (NO CHANGES)
+================================================================================
+
+  - Prisma schema                         Untouched
+  - Database                              Untouched
+  - Existing API routes (/api/v1/*, etc.) Untouched
+  - Docker setup                          Untouched
+  - package.json                          No new dependencies
+  - CI/CD pipeline                        Untouched
+  - The old src/proto/server.ts           Still exists (can be removed)
+
+
+================================================================================
+  HOW SSE WORKS (TECHNICAL DETAIL)
+================================================================================
+
+The flow for a complete match:
+
+  1. Player 1 hits POST /api/match/create with their name
+     -> Server creates match in Map, returns { matchId, playerId: "p1" }
+
+  2. Player 1 opens GET /api/match/[id]/stream
+     -> Server returns a Response with Content-Type: text/event-stream
+     -> The connection stays open. Server immediately sends current state
+     -> Player 1's browser receives this via EventSource.onmessage
+
+  3. Player 2 hits POST /api/match/join with the room code and their name
+     -> Server sets p2, changes status to "active"
+     -> Server calls notifySubscribers() which pushes the new state to
+        Player 1's open SSE connection
+     -> Player 2 gets { matchId, playerId: "p2" } back
+
+  4. Player 2 opens GET /api/match/[id]/stream
+     -> Same as step 2. Now both players have open SSE connections
+     -> Both receive current state immediately
+
+  5. Player 1 hits POST /api/match/[id]/action with { playerId, type }
+     -> Server validates turn, applies damage/block/heal
+     -> Server calls notifySubscribers() — BOTH players receive the
+        updated state through their SSE connections simultaneously
+     -> Player 2's UI updates instantly: HP changes, log entry appears,
+        "Your Turn" lights up
+
+  6. Repeat step 5 alternating between players until someone's HP hits 0
+
+  7. On game over: server sets status to "finished" and winner field
+     -> Both players receive final state via SSE
+     -> Both UIs show win/lose screen
+
+  8. When a player closes their tab or navigates away:
+     -> The browser closes the EventSource connection
+     -> The Request.signal fires "abort"
+     -> The server removes that player's callback from the subscriber Set
+     -> If no subscribers remain for that match, the Set is cleaned up
+
+
+================================================================================
+  UPGRADE PATH
+================================================================================
+
+The architecture is intentionally layered so the game logic is the stable
+core and the transport layer is the swappable shell:
+
+  PHASE 2 — Card-Based Combat (Issue #8)
+    Replace hardcoded PUNCH/KICK/BLOCK/HEAL with CardDefinition records
+    from the Prisma database. applyAction() becomes playCard() and looks
+    up effects from the DB. Players get hands, decks, and draws.
+
+  PHASE 3 — Match Persistence (Issue #2)
+    Write match results to the Run table in Prisma. Match history, win/loss
+    records, stats tracking. Rehydrate active matches on server restart.
+
+  PHASE 4 — WebSocket Upgrade
+    If bidirectional real-time is needed (chat, live animations, spectator
+    interactions), swap SSE for WebSockets. Create a thin server.ts wrapper
+    that imports from lib/game-server/ and uses the ws library. The game
+    logic module moves over unchanged — only the delivery mechanism changes.
+
+  The key insight: lib/game-server/ is framework-agnostic by design. It
+  exports pure functions that take state and return state. It doesn't know
+  or care whether it's being called from a Next.js API route, an Express
+  handler, or a WebSocket message handler. This is what makes the upgrade
+  path viable without rewriting game logic.
+
+
+================================================================================

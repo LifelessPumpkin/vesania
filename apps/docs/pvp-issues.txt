@@ -1,0 +1,194 @@
+================================================================================
+  VESANIA — PvP Multiplayer GitHub Issues
+  Generated: 2026-02-11
+================================================================================
+
+
+--------------------------------------------------------------------------------
+ISSUE 1: Add per-match auth tokens to prevent player impersonation
+--------------------------------------------------------------------------------
+
+Currently the `/api/match/[id]/action` endpoint trusts the `playerId` field in
+the request body with no verification. Any client that knows the match ID can
+POST actions as either player.
+
+Expected behavior:
+Each player receives a match-scoped token when they create or join a match. All
+subsequent action requests must include this token. The server validates the
+token matches the claimed `playerId` before processing.
+
+Changes needed:
+  - Generate a unique token per player on create/join, return it in the response
+  - Store tokens in the match state (server-side only, never sent via SSE)
+  - Validate token on every action POST
+  - Reject requests with missing/invalid tokens (401)
+
+
+--------------------------------------------------------------------------------
+ISSUE 2: Persist match state for crash/disconnect recovery
+--------------------------------------------------------------------------------
+
+Match state currently lives in an in-memory `Map`. If the server restarts
+(deploy, crash, dev reload), all active matches are lost with no way to recover.
+
+Expected behavior:
+Players can reconnect to an in-progress match after a server restart or network
+disconnect and resume where they left off.
+
+Changes needed:
+  - Persist match state to the database (or Redis) on every state change
+  - On server start, rehydrate active matches from storage
+  - Client-side: detect SSE disconnect and attempt reconnection with state
+    recovery via the existing `GET /api/match/[id]` endpoint
+  - Add a TTL/cleanup for abandoned matches (e.g. no activity for 15 minutes)
+
+
+--------------------------------------------------------------------------------
+ISSUE 3: Improve Frontend for Pre-Match page
+--------------------------------------------------------------------------------
+
+The current `/match` page handles lobby, waiting, and gameplay all in a single
+component (`app/match/page.tsx`) with basic state toggling. The pre-match
+experience (lobby + waiting room) needs its own dedicated UI with better UX.
+
+Current state:
+A single input field, two buttons, and a raw room code display. No visual
+identity, no instructions, no feedback beyond error text.
+
+Improvements:
+  - Dedicated lobby layout with game branding/art
+  - Animated waiting room with a visual indicator that the match is about to
+    start
+  - Player avatar or icon selection before match
+  - Copy-to-clipboard button for the room code
+  - Show player names as they connect (e.g. "Zach vs ???" -> "Zach vs Greg")
+  - Countdown or transition animation when opponent joins before entering combat
+  - Mobile-responsive layout
+  - Input validation with inline feedback (not just a red error string)
+
+
+--------------------------------------------------------------------------------
+ISSUE 4: Build Combat UI as dedicated component
+--------------------------------------------------------------------------------
+
+The in-match combat view is currently inlined in `app/match/page.tsx`. It should
+be extracted into its own component with richer visuals and better game feel.
+
+Current state:
+Two stat cards, four plain buttons, a text log. Functional but flat.
+
+Needs:
+  - Extract to `components/match/CombatView.tsx`
+  - Animated HP bars (smooth transitions, color shifts as HP drops:
+    green -> yellow -> red)
+  - Action buttons with icons, hover effects, and a brief disabled animation
+    after submitting
+  - Visual feedback on hit (screen shake, flash on the damaged player card)
+  - Turn transition animation ("Your turn!" sliding in)
+  - Damage/heal numbers that float up and fade out on the player cards
+  - Block shield visual indicator (not just a text line)
+  - Sound effects (optional/muted by default)
+
+
+--------------------------------------------------------------------------------
+ISSUE 5: Build Match Result / Game Over screen
+--------------------------------------------------------------------------------
+
+When a match ends, the UI currently swaps the turn indicator for "You Win!" or
+"You Lose!" in text and shows a "Back to Lobby" button. This should be a proper
+result screen.
+
+Needs:
+  - Extract to `components/match/MatchResult.tsx`
+  - Full-screen overlay or transition when match ends
+  - Winner/loser splash with player names and final HP values
+  - Match summary: total turns, damage dealt, damage blocked, healing done
+  - "Play Again" button (creates a new match with the same name pre-filled)
+  - "Back to Lobby" button
+  - Optional: share result (copy a text summary to clipboard)
+
+
+--------------------------------------------------------------------------------
+ISSUE 6: Build Combat Log as scrollable component with styled entries
+--------------------------------------------------------------------------------
+
+The combat log is currently a plain list of strings in a `div`. It should be a
+standalone component with visual differentiation between event types.
+
+Needs:
+  - Extract to `components/match/CombatLog.tsx`
+  - Color-code entries by type: damage (red/orange), block (blue), heal (green),
+    system messages (gray)
+  - Icon per action type (fist, boot, shield, heart)
+  - Highlight entries involving "you" vs entries involving opponent
+  - Auto-scroll to bottom with a "new events" indicator if user has scrolled up
+  - Timestamp or turn number on each entry
+  - Expandable/collapsible on mobile
+
+
+--------------------------------------------------------------------------------
+ISSUE 7: Create shared Match layout and navigation
+--------------------------------------------------------------------------------
+
+The `/match` route needs a consistent layout wrapper that handles navigation
+state and shared UI across all match screens (lobby, waiting, combat, result).
+
+Needs:
+  - Create `app/match/layout.tsx` with match-specific styling (dark theme, no
+    main nav distraction during gameplay)
+  - Back/exit button that confirms before leaving an active match ("Leave match?
+    This will forfeit the game.")
+  - Connection status indicator (SSE connected / reconnecting / disconnected)
+  - Responsive container that works on desktop and mobile
+  - Shared context provider if state needs to flow between sub-components (or
+    keep it simple with props)
+
+
+--------------------------------------------------------------------------------
+ISSUE 8: Replace hardcoded moves with card-based combat from database
+--------------------------------------------------------------------------------
+
+Combat currently uses four hardcoded actions (PUNCH, KICK, BLOCK, HEAL) with
+static values defined directly in `lib/game-server/match.ts`. This should be
+replaced with card definitions pulled from the Prisma database so that game
+balance can be tuned without code changes and players can build/use custom decks.
+
+Current state:
+  - Actions are a TypeScript union: "PUNCH" | "KICK" | "BLOCK" | "HEAL"
+  - Damage/heal/block values are hardcoded in a switch statement in applyAction()
+  - Every player has the same four moves every game
+  - No concept of a hand, deck, or card draw
+
+Database:
+  - Use existing `CardDefinition` table (or create one if not present) with
+    fields like: id, name, type (attack/defend/heal), value, description,
+    manaCost (if applicable), art (optional URL)
+  - Seed the database with an initial set of cards
+  - API route to fetch available cards: GET /api/cards
+
+Game logic (lib/game-server/):
+  - Update types.ts: replace ActionType with a cardId reference. Player actions
+    become { playerId, cardId } instead of { playerId, type }
+  - Update match.ts: applyAction looks up the card definition and applies its
+    effect based on type and value from the DB rather than a hardcoded switch
+  - Add deck/hand system to match state: each player gets a hand of N cards
+    drawn from their deck at match start. Playing a card removes it from the
+    hand. Optional: draw a new card each turn
+  - Validate that the player actually has the card in their hand before applying
+
+Frontend:
+  - Replace the four static buttons with a hand of card components rendered from
+    match state
+  - Each card shows name, type icon, value, and description
+  - Cards are clickable when it's your turn, grayed out when it's not
+  - Hand updates after each turn (card removed, new card drawn if applicable)
+
+Migration path:
+  - Keep the existing hardcoded moves working behind a flag or fallback until
+    the card system is fully wired up
+  - Seed the DB with cards that mirror the current four moves (Punch: 5 atk,
+    Kick: 8 atk, Block: 5 def, Heal: 3 heal) so gameplay parity is maintained
+    during the transition
+
+
+================================================================================
