@@ -1,17 +1,18 @@
 'use client';
 import { useState } from 'react';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { getFirebaseAuth } from '@/lib/firebase'; // Ensure this matches your file path
+import { signInWithPopup, signOut, GoogleAuthProvider } from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
 export default function TestAuth() {
+  const { user } = useAuth();
   const [token, setToken] = useState('');
 
   const handleLogin = async () => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(getFirebaseAuth(), provider);
-      // Get the raw JWT token
       const idToken = await result.user.getIdToken();
 
       const syncResponse = await fetch('/api/auth/sync', {
@@ -33,6 +34,17 @@ export default function TestAuth() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(getFirebaseAuth());
+      setToken('');
+      console.log('Signed out');
+    } catch (error) {
+      console.error(error);
+      alert('Logout failed check console');
+    }
+  };
+
   const copyToken = () => {
     navigator.clipboard.writeText(token);
     alert('Token copied!');
@@ -46,12 +58,22 @@ export default function TestAuth() {
         </button>
       </Link>
       <h1 className="text-2xl font-bold">Auth Tester</h1>
-      <button
-        onClick={handleLogin}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Sign in with Google
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={handleLogin}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Sign in with Google
+        </button>
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded transition-colors"
+          >
+            Sign Out
+          </button>
+        )}
+      </div>
 
       {token && (
         <div className="bg-gray-100 p-4 rounded break-all">
