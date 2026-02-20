@@ -6,34 +6,32 @@ export default function Home() {
   const { role } = useAuth();
 
   return (
-    <main className="p-10">
-      <Link href="/scan" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to Scan Page
-        </button>
-      </Link>
-      <br />
-      <Link href="/test-auth" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to Test Auth Page
-        </button>
-      </Link>
-      <br />
-      <Link href="/api-docs" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to API Docs Page
-        </button>
-      </Link>
-      {role === 'ADMIN' && (
-        <>
-          <br />
-          <Link href="/admin" className="text-purple-500 underline">
-            <button className="px-4 py-2 bg-purple-600 text-white rounded">
+    <main className="p-10 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-black-100">Welcome to Vesania (Alpha)</h1>
+      <div className="flex flex-col gap-4 items-center">
+        <Link href="/scan" className="w-full sm:w-64 block">
+          <button className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-medium rounded-lg shadow-sm">
+            Scan a Card
+          </button>
+        </Link>
+        <Link href="/test-auth" className="w-full sm:w-64 block">
+          <button className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-300 transition-colors text-gray-800 font-medium rounded-lg shadow-sm">
+            Test Auth
+          </button>
+        </Link>
+        <Link href="/api-docs" className="w-full sm:w-64 block">
+          <button className="w-full px-6 py-3 bg-gray-200 hover:bg-gray-300 transition-colors text-gray-800 font-medium rounded-lg shadow-sm">
+            API Docs
+          </button>
+        </Link>
+        {role === 'ADMIN' && (
+          <Link href="/admin" className="w-full sm:w-64 block mt-4">
+            <button className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-700 transition-colors text-white font-medium rounded-lg shadow-sm">
               Admin Dashboard
             </button>
           </Link>
-        </>
-      )}
+        )}
+      </div>
     </main>
   );
 }
