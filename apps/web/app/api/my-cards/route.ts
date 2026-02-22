@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyRequestAuth } from '@/lib/auth-session'
+import { apiError } from '@/lib/api-helpers'
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,6 +36,6 @@ export async function GET(req: NextRequest) {
 
   } catch (error) {
     console.error('Inventory error:', error)
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 })
+    return apiError('Internal Server Error', 500)
   }
 }

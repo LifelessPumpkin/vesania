@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth-session'
+import { apiError } from '@/lib/api-helpers'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get('type')
     const rarity = searchParams.get('rarity')
 
-    const where: any = {}
+    const where: Record<string, unknown> = {}
 
     if (query) {
       where.name = {
@@ -37,10 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ cards })
   } catch (error) {
     console.error('Error fetching cards:', error)
-    return NextResponse.json({
-      message: 'Error fetching cards',
-      error: error instanceof Error ? error.message : String(error)
-    }, { status: 500 })
+    return apiError('Error fetching cards', 500, error)
   }
 }
 
@@ -58,7 +56,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 })
     }
 
-    const customId = `def_${Math.random().toString(36).substring(2, 10)}`
+    const customId = `def_${crypto.randomUUID()}`
 
     const newDefinition = await prisma.cardDefinition.create({
       data: {
@@ -78,9 +76,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Create error:', error)
-    return NextResponse.json({
-      message: 'Error creating card',
-      error: error instanceof Error ? error.message : 'Unknown'
-    }, { status: 500 })
+    return apiError('Error creating card', 500, error)
   }
 }
