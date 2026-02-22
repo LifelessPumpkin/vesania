@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { GAME } from "@/lib/game-server/constants";
 
 type PlayerId = "p1" | "p2";
 
@@ -34,6 +35,7 @@ export default function MatchPage() {
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [connectionLost, setConnectionLost] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +51,7 @@ export default function MatchPage() {
       es.onmessage = (event) => {
         const state: MatchState = JSON.parse(event.data);
         setMatchState(state);
+        setConnectionLost(false);
         if (state.status === "active" || state.status === "finished") {
           setScreen("game");
         }
@@ -56,6 +59,7 @@ export default function MatchPage() {
 
       es.onerror = () => {
         es.close();
+        setConnectionLost(true);
       };
     },
     []
@@ -272,12 +276,12 @@ export default function MatchPage() {
             <div className="mt-2">
               <div className="flex justify-between text-sm">
                 <span>HP</span>
-                <span>{me.hp}/30</span>
+                <span>{me.hp}/{GAME.MAX_HP}</span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
                 <div
                   className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${(me.hp / 30) * 100}%` }}
+                  style={{ width: `${(me.hp / GAME.MAX_HP) * 100}%` }}
                 />
               </div>
             </div>
@@ -294,12 +298,12 @@ export default function MatchPage() {
               <div className="mt-2">
                 <div className="flex justify-between text-sm">
                   <span>HP</span>
-                  <span>{opponent.hp}/30</span>
+                  <span>{opponent.hp}/{GAME.MAX_HP}</span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
                   <div
                     className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${(opponent.hp / 30) * 100}%` }}
+                    style={{ width: `${(opponent.hp / GAME.MAX_HP) * 100}%` }}
                   />
                 </div>
                 {opponent.block > 0 && (
@@ -377,6 +381,12 @@ export default function MatchPage() {
 
         {error && (
           <p className="text-red-400 text-sm text-center">{error}</p>
+        )}
+
+        {connectionLost && (
+          <p className="text-yellow-400 text-sm text-center">
+            Connection lost. The game state may be outdated.
+          </p>
         )}
       </div>
     </main>

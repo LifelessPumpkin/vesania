@@ -52,10 +52,8 @@ export default function TestAuth() {
 
   return (
     <div className="p-10 space-y-4">
-      <Link href="/" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Back to Home
-        </button>
+      <Link href="/" className="px-4 py-2 bg-blue-500 text-white rounded inline-block">
+        Back to Home
       </Link>
       <h1 className="text-2xl font-bold">Auth Tester</h1>
       <div className="flex gap-2">

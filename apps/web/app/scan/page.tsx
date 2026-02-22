@@ -6,13 +6,14 @@ import { useAuth } from '@/context/AuthContext'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase'
 import Link from 'next/link'
+import type { ScanResult } from '@/lib/api-types'
 
 function ScanPageContent() {
   const { user, getToken } = useAuth()
   const searchParams = useSearchParams()
 
   const [code, setCode] = useState('')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<ScanResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
@@ -58,9 +59,10 @@ function ScanPageContent() {
       }
 
       setResult(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong'
       console.error(err)
-      setError(err.message)
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -80,7 +82,7 @@ function ScanPageContent() {
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(getFirebaseAuth(), provider)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
       setError('Sign-in failed. Please try again.')
     } finally {
@@ -90,10 +92,8 @@ function ScanPageContent() {
 
   return (
     <div className="p-8 max-w-md mx-auto">
-      <Link href="/" className="text-blue-500 underline mb-4 inline-block">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Back to Home
-        </button>
+      <Link href="/" className="px-4 py-2 bg-blue-500 text-white rounded inline-block mb-4">
+        Back to Home
       </Link>
       <h1 className="text-2xl font-bold mb-4">Scan Card</h1>
 
@@ -153,14 +153,14 @@ function ScanPageContent() {
 
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <Link href="/collection" className="flex-1">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors">
+                  <span className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-center">
                     View My Collection
-                  </button>
+                  </span>
                 </Link>
                 <Link href="/" className="flex-1">
-                  <button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors">
+                  <span className="block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors text-center">
                     Back to Home
-                  </button>
+                  </span>
                 </Link>
               </div>
             </div>

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth-session'
+import { apiError } from '@/lib/api-helpers'
 
 export async function GET(req: NextRequest) {
     try {
@@ -26,10 +27,7 @@ export async function GET(req: NextRequest) {
         })
     } catch (error) {
         console.error('Error fetching card instances:', error)
-        return NextResponse.json({
-            message: 'Error fetching card instances',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 })
+        return apiError('Error fetching card instances', 500, error)
     }
 }
 
@@ -41,7 +39,8 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json()
-        let { definitionId, publicCode } = body
+        const { definitionId } = body
+        let { publicCode } = body
 
         if (!definitionId || !publicCode) {
             return NextResponse.json({
@@ -68,7 +67,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'A card with this publicCode already exists.' }, { status: 409 })
         }
 
-        const customId = `inst_${Math.random().toString(36).substring(2, 10)}`
+        const customId = `inst_${crypto.randomUUID()}`
 
         const newCard = await prisma.card.create({
             data: {
@@ -88,9 +87,6 @@ export async function POST(req: NextRequest) {
 
     } catch (error) {
         console.error('Mint error:', error)
-        return NextResponse.json({
-            message: 'Error minting card',
-            error: error instanceof Error ? error.message : 'Unknown'
-        }, { status: 500 })
+        return apiError('Error minting card', 500, error)
     }
 }
