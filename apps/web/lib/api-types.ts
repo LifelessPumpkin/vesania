@@ -15,6 +15,7 @@ export interface CardInstance {
     id: string;
     publicCode: string;
     status: string;
+    createdAt: string;
     claimedAt: string | null;
     definition: CardDefinition;
     owner: { username: string; email: string } | null;
