@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {
   MatchState,
   PlayerId,
@@ -19,6 +20,15 @@ function generateCode(): string { //match id generation
   return code;
 }
 
+// Generates a cryptographically secure random token for a player's match seat.
+// crypto.randomBytes(32) pulls 32 bytes from the OS entropy source (not Math.random).
+// .toString("hex") encodes those 32 bytes as a 64-character hex string.
+// This is the same approach used by session token libraries — unpredictable enough
+// that guessing one is effectively impossible.
+function generateToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
 export function createMatch(hostName: string): MatchState { //setup for match initialization
   let matchId = generateCode();
   while (matches.has(matchId)) {
@@ -35,17 +45,22 @@ export function createMatch(hostName: string): MatchState { //setup for match in
     turn: "p1",
     log: [`${hostName} created the match. Waiting for opponent...`],
     winner: null,
+    // Token is generated here and stored in MatchState. The create route reads
+    // it from the returned state and includes it in the HTTP response — that is
+    // the one and only time p1Token is sent outside the server.
+    p1Token: generateToken(),
+    p2Token: null, // p2 hasn't joined yet; token is assigned in joinMatch()
   };
 
   matches.set(matchId, state);
   return state;
 }
 
-export function getMatch(matchId: string): MatchState | undefined { //map lookup 
+export function getMatch(matchId: string): MatchState | undefined { //map lookup
   return matches.get(matchId);
 }
 
-export function joinMatch(matchId: string, guestName: string): MatchState { //handles p2, flips status to active and notifies subscribers 
+export function joinMatch(matchId: string, guestName: string): MatchState { //handles p2, flips status to active and notifies subscribers
   const state = matches.get(matchId);
   if (!state) throw new Error("Match not found");
   if (state.status !== "waiting") throw new Error("Match is not accepting players");
@@ -53,13 +68,36 @@ export function joinMatch(matchId: string, guestName: string): MatchState { //ha
 
   state.players.p2 = { name: guestName, hp: MAX_HP, block: 0 };
   state.status = "active";
+  // Token is assigned here once p2's seat is confirmed. The join route reads
+  // it from the returned state and sends it in the HTTP response.
+  state.p2Token = generateToken();
   state.log.push(`${guestName} joined! ${state.players.p1.name}'s turn.`);
 
   notifySubscribers(matchId, state);
   return state;
 }
 
-export function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, notify subs  
+// Looks up which player seat (p1 or p2) a given token belongs to within a match.
+// Returns null if the match doesn't exist or the token doesn't match either seat.
+// The action route calls this to identify who is acting — the server never trusts
+// a playerId sent by the client.
+//
+// [REDIS INTEGRATION POINT] — when Issue #2 (Redis) lands, replace the Map lookup
+// with: const match = await redis.get(`match:${matchId}`).then(d => d ? JSON.parse(d) : null);
+// and make this function async. All callers (currently just the action route) will
+// need to add await. The comparison logic below stays exactly the same.
+export function resolvePlayerByToken(
+  matchId: string,
+  token: string
+): PlayerId | null {
+  const match = matches.get(matchId);
+  if (!match) return null;
+  if (match.p1Token === token) return "p1";
+  if (match.p2Token === token) return "p2";
+  return null;
+}
+
+export function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, notify subs
   matchId: string,
   playerId: PlayerId,
   action: ActionType
