@@ -11,33 +11,294 @@ export async function GET() {
     servers: [
       { url: '/' },
     ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
     paths: {
-      '/api/v1': {
+      '/api/cards': {
         get: {
-          summary: 'Health check',
-          description: 'Pings the database and returns service status.',
+          summary: 'Search Card Definitions',
+          description: 'Search for cards by name, type, or rarity. Public endpoint.',
+          parameters: [
+            {
+              name: 'q',
+              in: 'query',
+              schema: { type: 'string' },
+              description: 'Search term for card name',
+            },
+            {
+              name: 'type',
+              in: 'query',
+              schema: { type: 'string', enum: ['CHARACTER', 'ITEM', 'SPELL', 'TOOL'] },
+              description: 'Filter by card type',
+            },
+            {
+              name: 'rarity',
+              in: 'query',
+              schema: { type: 'string', enum: ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'] },
+              description: 'Filter by rarity',
+            },
+          ],
           responses: {
             '200': {
-              description: 'Successful health check',
+              description: 'List of card definitions',
               content: {
                 'application/json': {
                   schema: {
                     type: 'object',
                     properties: {
-                      status: { type: 'string', example: 'ok' },
-                      message: { type: 'string' },
-                      timestamp: { type: 'string', format: 'date-time' },
-                    },
-                  },
-                },
-              },
+                      cards: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            name: { type: 'string' },
+                            type: { type: 'string' },
+                            rarity: { type: 'string' },
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        post: {
+          summary: 'Create Card Definition (Admin)',
+          description: 'Add a new card definition to the catalog. Requires ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['name', 'type', 'rarity', 'description'],
+                  properties: {
+                    name: { type: 'string' },
+                    type: { type: 'string', enum: ['CHARACTER', 'ITEM', 'SPELL', 'TOOL'] },
+                    rarity: { type: 'string', enum: ['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'] },
+                    description: { type: 'string' },
+                    effectJson: { type: 'object' }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '201': { description: 'Card definition created' },
+            '401': { description: 'Unauthorized' },
+            '403': { description: 'Forbidden — requires ADMIN role' }
+          }
+        }
+      },
+      '/api/cards/instances': {
+        get: {
+          summary: 'List All Physical Cards (Admin)',
+          description: 'Retrieve a list of every physical card instance that has been minted. Requires ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'List of physical card instances',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      count: { type: 'integer' },
+                      cards: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            publicCode: { type: 'string' },
+                            claimedAt: { type: 'string', format: 'date-time' },
+                            ownerId: { type: 'string' },
+                            definition: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                name: { type: 'string' },
+                                rarity: { type: 'string' },
+                                type: { type: 'string' }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             },
+            '403': { description: 'Forbidden — requires ADMIN role' }
+          }
+        },
+        post: {
+          summary: 'Mint New Physical Card (Admin)',
+          description: 'Create a new physical card instance linked to a card definition. Requires ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['publicCode', 'definitionId'],
+                  properties: {
+                    publicCode: { type: 'string', description: 'The unique code stored on the NFC tag' },
+                    definitionId: { type: 'string', description: 'The ID of the Card Definition (blueprint) this card is an instance of' }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '201': { description: 'Card minted successfully' },
+            '400': { description: 'Missing definitionId or publicCode' },
+            '403': { description: 'Forbidden — requires ADMIN role' },
+            '404': { description: 'Card Definition not found' },
+            '409': { description: 'Card with this code already exists' }
+          }
+        }
+      },
+      '/api/list-user': {
+        get: {
+          summary: 'List All Users (Admin)',
+          description: 'Retrieve a list of all registered users with their roles and card counts. Requires ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'List of users',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        username: { type: 'string' },
+                        email: { type: 'string' },
+                        role: { type: 'string', enum: ['USER', 'ADMIN'] },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        _count: {
+                          type: 'object',
+                          properties: {
+                            cards: { type: 'integer' }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '403': { description: 'Forbidden — requires ADMIN role' }
+          }
+        },
+        patch: {
+          summary: 'Update User Role (Admin)',
+          description: 'Change a user\'s role between USER and ADMIN. Requires ADMIN role. Cannot demote yourself.',
+          security: [{ BearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['userId', 'role'],
+                  properties: {
+                    userId: { type: 'string', description: 'The ID of the user to update' },
+                    role: { type: 'string', enum: ['USER', 'ADMIN'], description: 'The new role to assign' }
+                  }
+                }
+              }
+            }
+          },
+          responses: {
+            '200': { description: 'User role updated' },
+            '400': { description: 'Invalid request or self-demotion attempt' },
+            '403': { description: 'Forbidden — requires ADMIN role' }
+          }
+        }
+      },
+      '/api/my-cards': {
+        get: {
+          summary: 'Get My Inventory',
+          description: 'Retrieve the list of cards owned by the logged-in user.',
+          security: [{ BearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'User inventory',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      count: { type: 'integer' },
+                      cards: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string' },
+                            publicCode: { type: 'string' },
+                            claimedAt: { type: 'string', format: 'date-time' },
+                            definition: {
+                              type: 'object',
+                              properties: {
+                                name: { type: 'string' },
+                                rarity: { type: 'string' }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            '401': { description: 'Unauthorized' }
+          }
+        }
+      },
+      '/api/auth/sync': {
+        post: {
+          summary: 'Sync Firebase User',
+          description: 'Syncs a logged-in Firebase user to the PostgreSQL database. If the user\'s email is in the ADMIN_EMAILS environment variable, they are automatically promoted to ADMIN role.',
+          security: [{ BearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'User synced successfully',
+            },
+            '401': { description: 'Unauthorized / Invalid Token' },
+          },
+        },
+      },
+      '/api/v1': {
+        get: {
+          summary: 'Health check',
+          description: 'Pings the database and returns service status.',
+          responses: {
+            '200': { description: 'Successful health check' },
             '500': { description: 'Database connection failed' },
           },
         },
         post: {
           summary: 'Perform an API action',
-          description: 'Currently supports `pingDb` action to test DB connectivity.',
+          description: 'Currently supports `pingDb` action.',
           requestBody: {
             required: true,
             content: {
@@ -47,62 +308,20 @@ export async function GET() {
                   properties: {
                     action: { type: 'string', enum: ['pingDb'] },
                   },
-                  required: ['action'],
                 },
               },
             },
           },
           responses: {
-            '200': {
-              description: 'Action succeeded',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      message: { type: 'string' },
-                    },
-                  },
-                },
-              },
-            },
-            '400': { description: 'Unknown action' },
-            '500': { description: 'Internal server error' },
-          },
-        },
-      },
-      '/api/list-user': {
-        get: {
-          summary: 'List Users',
-          description: 'Retrieves a list of users from the database.',
-          responses: {
-            '200': {
-              description: 'A list of users',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        id: { type: 'string', format: 'uuid' },
-                        email: { type: 'string', format: 'email' },
-                        createdAt: { type: 'string', format: 'date-time' },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            '500': { description: 'Failed to fetch users' },
+            '200': { description: 'Action succeeded' },
           },
         },
       },
       '/api/scan': {
         post: {
           summary: 'Scan a Card',
-          description: 'Look up a card by its NFC public code.',
+          description: 'Look up a card by its NFC public code and claim it for the logged-in user.',
+          security: [{ BearerAuth: [] }],
           requestBody: {
             required: true,
             content: {
@@ -118,29 +337,8 @@ export async function GET() {
             },
           },
           responses: {
-            '200': {
-              description: 'Card details found',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      status: { type: 'string', enum: ['UNCLAIMED', 'CLAIMED'] },
-                      definition: {
-                        type: 'object',
-                        properties: {
-                          name: { type: 'string' },
-                          description: { type: 'string' },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
+            '200': { description: 'Card details found' },
             '404': { description: 'Card not found' },
-            '500': { description: 'Internal server error' },
           },
         },
       },

@@ -6,40 +6,27 @@ datasource db {
   provider = "postgresql"
 }
 
-enum CardStatus {
-  UNCLAIMED
-  CLAIMED
-  LOCKED
-}
-
-enum CardType {
-  CHARACTER
-  ITEM
-  SPELL
-}
-
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  createdAt DateTime @default(now())
-
-  cards     Card[]
-  runs      Run[]
+  id          String   @id @default(cuid())
+  username    String   @unique
+  createdAt   DateTime @default(now())
+  email       String   @unique
+  firebaseUid String   @unique
+  role        Role     @default(USER)
+  cards       Card[]
+  Run         Run[]
 }
 
 model Card {
-  id           String     @id @default(cuid())
-  publicCode   String     @unique        // what’s stored on the NFC tag
-  status       CardStatus @default(UNCLAIMED)
-
-  claimedAt    DateTime?  // set when claimed (scan success)
+  id           String         @id @default(cuid())
+  publicCode   String         @unique
+  status       CardStatus     @default(UNCLAIMED)
+  claimedAt    DateTime?
   ownerId      String?
-  owner        User?      @relation(fields: [ownerId], references: [id])
-
   definitionId String
+  createdAt    DateTime       @default(now())
   definition   CardDefinition @relation(fields: [definitionId], references: [id])
-
-  createdAt    DateTime   @default(now())
+  owner        User?          @relation(fields: [ownerId], references: [id])
 }
 
 model CardDefinition {
@@ -47,47 +34,65 @@ model CardDefinition {
   type        CardType
   name        String
   description String
-
-  rarity      String?   // optional but handy
-  effectJson  Json?     // optional flexible rules blob for MVP
-
-  cards       Card[]    // all physical copies of this definition
+  rarity      CardRarity
+  effectJson  Json?
+  cards       Card[]
 }
+
 model Character {
-  id          String   @id @default(cuid())
+  id          String   @id
   name        String
-  archetype   String   // e.g. "Tank", "Rogue", "Mage"
+  archetype   String
   description String
   createdAt   DateTime @default(now())
-
-  items       Item[]
-  runs        Run[]
-
-  // cardDefinitions CardDefinition[]
+  Item        Item[]
+  Run         Run[]
 }
 
 model Item {
-  id           String   @id @default(cuid())
-  characterId  String
-  name         String
-  cost         Int
-  rarity       String   // "Common" | "Rare" | "Epic" etc
-  effectJson   Json     // flexible for now
-  createdAt    DateTime @default(now())
-
-  character    Character @relation(fields: [characterId], references: [id])
+  id          String    @id
+  characterId String
+  name        String
+  cost        Int
+  rarity      String
+  effectJson  Json
+  createdAt   DateTime  @default(now())
+  Character   Character @relation(fields: [characterId], references: [id])
 }
 
 model Run {
-  id          String   @id @default(cuid())
+  id          String    @id
   ownerId     String
   characterId String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  stateJson   Json      @default("{}")
+  Character   Character @relation(fields: [characterId], references: [id])
+  User        User      @relation(fields: [ownerId], references: [id])
+}
 
-  // store state snapshots or events later
-  stateJson   Json     @default("{}")
+enum Role {
+  USER
+  ADMIN
+}
 
-  owner       User      @relation(fields: [ownerId], references: [id])
-  character   Character @relation(fields: [characterId], references: [id])
+enum CardType {
+  CHARACTER
+  ITEM
+  SPELL
+  TOOL
+}
+
+enum CardRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum CardStatus {
+  UNCLAIMED
+  CLAIMED
+  LOCKED
 }
