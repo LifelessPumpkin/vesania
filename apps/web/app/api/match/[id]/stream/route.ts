@@ -1,5 +1,5 @@
 import { getMatch, subscribe } from "@/lib/game-server/match";
-import { MatchState } from "@/lib/game-server/types";
+import { MatchState, toPublicState } from "@/lib/game-server/types";
 
 export const dynamic = "force-dynamic"; //need this to avoid caching game state, would get stale state or break stream
 
@@ -17,19 +17,27 @@ export async function GET(
     });
   }
 
-  const stream = new ReadableStream({ //alllows for data to be pushed over an extended period of time 
+  const stream = new ReadableStream({ //allows for data to be pushed over an extended period of time
     start(controller) { //controller is like a pipe
       const encoder = new TextEncoder(); //converts strings into bytes
 
+      // Strips tokens and pushes a state snapshot as an SSE data frame.
+      // Tokens must NEVER appear in SSE frames — any browser tab subscribed
+      // to this stream would see them, including spectators.
+      // [REDIS INTEGRATION POINT] — when the subscriber callback receives a
+      // raw JSON string from Redis PUBLISH instead of a MatchState object,
+      // parse it first: toPublicState(JSON.parse(message))
       function send(state: MatchState) {
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(state)}\n\n`)); //push bytes into stream
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(toPublicState(state))}\n\n`) //push bytes into stream
+          );
         } catch {
           // Stream closed, unsubscribe will clean up
         }
       }
 
-      // Send current state immediately
+      // Send current state immediately on connect
       send(match);
 
       // Subscribe to future updates
