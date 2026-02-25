@@ -1,28 +1,50 @@
 'use client'
 
-import { useState } from 'react'
-import Vortex from '@/components/Vortex'
-import ScanCard from '@/components/scan/ScanCard'
-import LoginCard from '@/components/scan/LoginCard'
-import CardSaved from '@/components/scan/CardSaved'
+import { useRouter } from 'next/navigation'
 
-type Step = 'scan' | 'login' | 'saved'
+import Image from 'next/image'
 
 export default function Home() {
-  const [step, setStep] = useState<Step>('scan')
-
+  const router = useRouter()
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <Vortex />
+    <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+      <Image
+        src="/background.jpg"
+        alt="Background"
+        fill
+        style={{ objectFit: 'cover' }}
+      />
       <div style={{
         position: 'relative', zIndex: 10, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        height: '100%', padding: '1rem', boxSizing: 'border-box'
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', paddingTop: '2vh',
+        height: '100%', gap: '2rem'
       }}>
-        {step === 'scan' && <ScanCard onLoginClick={() => setStep('login')} />}
-        {step === 'login' && <LoginCard onBack={() => setStep('scan')} onSaved={() => setStep('saved')} />}
-        {step === 'saved' && <CardSaved />}
-      </div>
-    </div>
+        <Image
+          src="/AI_slop.png"
+          alt="Vesania"
+          width={700}
+          height={400}
+        />
+        <button
+          onClick={() => router.push('/login')}
+          style={{
+            marginTop: '-8rem',
+            padding: '1rem 10rem', fontSize: '1rem',
+            background: 'goldenrod', color: 'white',
+            border: 'none', borderRadius: '0.75rem', cursor: 'pointer'
+          }}
+        >
+          Play now
+        </button>
+        <button style={{
+          position: 'absolute', top: '1rem', left: '1rem',
+          zIndex: 20, padding: '0.5rem 1rem',
+          background: 'goldenrod', color: 'white',
+          border: 'none', borderRadius: '0.5rem', cursor: 'pointer'
+        }}>
+          About
+        </button>
+      </div >
+    </div >
   )
 }
