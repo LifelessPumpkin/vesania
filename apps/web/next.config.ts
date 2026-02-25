@@ -1,9 +1,10 @@
-// import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: "standalone",
+  turbopack: {
+    root: process.cwd(),
+  },
 };
-module.exports = nextConfig;
 
 export default nextConfig;
