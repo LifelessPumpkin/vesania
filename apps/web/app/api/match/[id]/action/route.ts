@@ -29,9 +29,6 @@ export async function POST(
     // MatchState. Returns "p1", "p2", or null if the token is invalid.
     // This is the core of impersonation prevention — the server decides who
     // is acting, never the client.
-    //
-    // [REDIS INTEGRATION POINT] — add await here when resolvePlayerByToken
-    // becomes async after the Redis migration (Issue #2).
     const playerId = await resolvePlayerByToken(id, token);
     if (!playerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -43,8 +40,11 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }
 
-    const state = await applyAction(id, playerId as PlayerId, type as ActionType);
-    return NextResponse.json({ state });
+    // --- Step 4: Apply the action using the server-verified playerId ---
+    const state = await applyAction(id, playerId, type as ActionType);
+
+    // Strip tokens from the response — clients only need the public game state.
+    return NextResponse.json({ state: toPublicState(state) });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     const status = message === "Match not found" ? 404 : 400;
