@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { getMatch } from "@/lib/game-server/match";
 import { toPublicState } from "@/lib/game-server/types";
 
-//fetch current game state or 404 if there is none
-
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,7 +11,5 @@ export async function GET(
   if (!state) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
-  // toPublicState() strips p1Token and p2Token before the response goes out.
-  // [REDIS INTEGRATION POINT] — add await to getMatch() when Issue #2 lands.
   return NextResponse.json(toPublicState(state));
 }

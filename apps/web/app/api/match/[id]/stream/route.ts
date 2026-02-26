@@ -2,7 +2,7 @@ import { getMatch } from "@/lib/game-server/match";
 import { createSubscriber } from "@/lib/redis";
 import { MatchState, toPublicState } from "@/lib/game-server/types";
 
-export const dynamic = "force-dynamic"; //need this to avoid caching game state, would get stale state or break stream
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
@@ -21,32 +21,25 @@ export async function GET(
   const sub = createSubscriber();
   await sub.subscribe(`match:${id}`);
 
-  const stream = new ReadableStream({ //allows for data to be pushed over an extended period of time
-    start(controller) { //controller is like a pipe
-      const encoder = new TextEncoder(); //converts strings into bytes
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
 
-      // Strips tokens and pushes a state snapshot as an SSE data frame.
-      // Tokens must NEVER appear in SSE frames — any browser tab subscribed
-      // to this stream would see them, including spectators.
+      // Strips tokens before pushing each SSE frame — tokens must never leave the server.
       function send(state: MatchState) {
         try {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(toPublicState(state))}\n\n`) //push bytes into stream
-          );
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(toPublicState(state))}\n\n`));
         } catch {
           // Stream closed
         }
       }
 
-      // Send current state immediately on connect
       send(match);
 
-      // Listen for published updates
       sub.on("message", (_channel: string, message: string) => {
         send(JSON.parse(message) as MatchState);
       });
 
-      // Cleanup on client disconnect
       request.signal.addEventListener("abort", () => {
         sub.unsubscribe();
         sub.quit();
