@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const state = getMatch(id);
+  const state = await getMatch(id);
   if (!state) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }

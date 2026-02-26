@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }
 
-    const state = applyAction(id, playerId as PlayerId, type as ActionType);
+    const state = await applyAction(id, playerId as PlayerId, type as ActionType);
     return NextResponse.json({ state });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

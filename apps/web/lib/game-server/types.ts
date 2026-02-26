@@ -20,4 +20,3 @@ export interface MatchState {
   winner: PlayerId | null;
 }
 
-export type SSECallback = (state: MatchState) => void; // Server side events send current matchstate over http

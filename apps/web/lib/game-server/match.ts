@@ -2,13 +2,10 @@ import {
   MatchState,
   PlayerId,
   ActionType,
-  SSECallback,
 } from "./types";
+import redis from "@/lib/redis";
 
 const MAX_HP = 30;
-
-const matches = new Map<string, MatchState>();
-const subscribers = new Map<string, Set<SSECallback>>();
 
 function generateCode(): string { //match id generation
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -19,9 +16,9 @@ function generateCode(): string { //match id generation
   return code;
 }
 
-export function createMatch(hostName: string): MatchState { //setup for match initialization
+export async function createMatch(hostName: string): Promise<MatchState> { //setup for match initialization
   let matchId = generateCode();
-  while (matches.has(matchId)) {
+  while (await redis.exists(`match:${matchId}`)) {
     matchId = generateCode();
   }
 
@@ -37,16 +34,17 @@ export function createMatch(hostName: string): MatchState { //setup for match in
     winner: null,
   };
 
-  matches.set(matchId, state);
+  await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
   return state;
 }
 
-export function getMatch(matchId: string): MatchState | undefined { //map lookup 
-  return matches.get(matchId);
+export async function getMatch(matchId: string): Promise<MatchState | null> { //redis lookup
+  const data = await redis.get(`match:${matchId}`);
+  return data ? JSON.parse(data) : null;
 }
 
-export function joinMatch(matchId: string, guestName: string): MatchState { //handles p2, flips status to active and notifies subscribers 
-  const state = matches.get(matchId);
+export async function joinMatch(matchId: string, guestName: string): Promise<MatchState> { //handles p2, flips status to active and publishes update
+  const state = await getMatch(matchId);
   if (!state) throw new Error("Match not found");
   if (state.status !== "waiting") throw new Error("Match is not accepting players");
   if (state.players.p2 !== null) throw new Error("Match is full");
@@ -55,16 +53,17 @@ export function joinMatch(matchId: string, guestName: string): MatchState { //ha
   state.status = "active";
   state.log.push(`${guestName} joined! ${state.players.p1.name}'s turn.`);
 
-  notifySubscribers(matchId, state);
+  await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
+  await redis.publish(`match:${matchId}`, JSON.stringify(state));
   return state;
 }
 
-export function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, notify subs  
+export async function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, publish update
   matchId: string,
   playerId: PlayerId,
   action: ActionType
-): MatchState {
-  const state = matches.get(matchId);
+): Promise<MatchState> {
+  const state = await getMatch(matchId);
   if (!state) throw new Error("Match not found");
   if (state.status !== "active") throw new Error("Match is not active");
   if (state.turn !== playerId) throw new Error("Not your turn");
@@ -121,33 +120,7 @@ export function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ swit
   // Advance turn
   state.turn = targetId;
 
-  notifySubscribers(matchId, state);
+  await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
+  await redis.publish(`match:${matchId}`, JSON.stringify(state));
   return state;
-}
-
-// --- SSE subscriber management ---
-
-export function subscribe(matchId: string, callback: SSECallback): () => void {
-  if (!subscribers.has(matchId)) {
-    subscribers.set(matchId, new Set());
-  }
-  subscribers.get(matchId)!.add(callback);
-
-  // Return unsubscribe function
-  return () => {
-    const subs = subscribers.get(matchId);
-    if (subs) {
-      subs.delete(callback);
-      if (subs.size === 0) subscribers.delete(matchId);
-    }
-  };
-}
-
-function notifySubscribers(matchId: string, state: MatchState) {
-  const subs = subscribers.get(matchId);
-  if (subs) {
-    for (const cb of subs) {
-      cb(state);
-    }
-  }
 }

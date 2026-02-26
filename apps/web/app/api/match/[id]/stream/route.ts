@@ -1,5 +1,5 @@
-import { getMatch, subscribe } from "@/lib/game-server/match";
-import { MatchState } from "@/lib/game-server/types";
+import { getMatch } from "@/lib/game-server/match";
+import { createSubscriber } from "@/lib/redis";
 
 export const dynamic = "force-dynamic"; //need this to avoid caching game state, would get stale state or break stream
 
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const match = getMatch(id);
+  const match = await getMatch(id);
 
   if (!match) {
     return new Response(JSON.stringify({ error: "Match not found" }), {
@@ -17,32 +17,34 @@ export async function GET(
     });
   }
 
-  const stream = new ReadableStream({ //alllows for data to be pushed over an extended period of time 
+  const sub = createSubscriber();
+  await sub.subscribe(`match:${id}`);
+
+  const stream = new ReadableStream({ //allows for data to be pushed over an extended period of time
     start(controller) { //controller is like a pipe
       const encoder = new TextEncoder(); //converts strings into bytes
 
-      function send(state: MatchState) {
+      function send(data: string) {
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(state)}\n\n`)); //push bytes into stream
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`)); //push bytes into stream
         } catch {
-          // Stream closed, unsubscribe will clean up
+          // Stream closed
         }
       }
 
       // Send current state immediately
-      send(match);
+      send(JSON.stringify(match));
 
-      // Subscribe to future updates
-      const unsubscribe = subscribe(id, send);
+      // Listen for published updates
+      sub.on("message", (_channel: string, message: string) => {
+        send(message);
+      });
 
-      // Clean up when client disconnects
+      // Cleanup on client disconnect
       request.signal.addEventListener("abort", () => {
-        unsubscribe();
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
+        sub.unsubscribe();
+        sub.quit();
+        try { controller.close(); } catch { /* already closed */ }
       });
     },
   });

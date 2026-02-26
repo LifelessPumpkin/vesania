@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "playerName is required" }, { status: 400 });
     }
 
-    const state = joinMatch(matchId.trim().toUpperCase(), playerName.trim());
+    const state = await joinMatch(matchId.trim().toUpperCase(), playerName.trim());
     return NextResponse.json({ matchId: state.matchId, playerId: "p2" });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

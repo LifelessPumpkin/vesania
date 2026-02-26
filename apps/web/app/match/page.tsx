@@ -34,6 +34,7 @@ export default function MatchPage() {
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "reconnecting">("connected");
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -46,20 +47,46 @@ export default function MatchPage() {
       const es = new EventSource(`/api/match/${id}/stream`);
       eventSourceRef.current = es;
 
+      es.onopen = () => setConnectionStatus("connected");
+
       es.onmessage = (event) => {
         const state: MatchState = JSON.parse(event.data);
         setMatchState(state);
         if (state.status === "active" || state.status === "finished") {
           setScreen("game");
         }
+        if (state.status === "finished") {
+          localStorage.removeItem("activeMatch");
+        }
       };
 
       es.onerror = () => {
+        setConnectionStatus("reconnecting");
         es.close();
       };
     },
     []
   );
+
+  // On page load: check localStorage for an in-progress match
+  useEffect(() => {
+    const saved = localStorage.getItem("activeMatch");
+    if (!saved) return;
+    const { matchId: savedMatchId, playerId: savedPlayerId, playerName: savedPlayerName } = JSON.parse(saved);
+    fetch(`/api/match/${savedMatchId}`)
+      .then((res) => {
+        if (res.ok) {
+          setMatchId(savedMatchId);
+          setPlayerId(savedPlayerId);
+          setPlayerName(savedPlayerName);
+          setScreen("game");
+          connectSSE(savedMatchId);
+        } else {
+          localStorage.removeItem("activeMatch");
+        }
+      })
+      .catch(() => localStorage.removeItem("activeMatch"));
+  }, [connectSSE]);
 
   useEffect(() => {
     return () => {
@@ -88,6 +115,7 @@ export default function MatchPage() {
       if (!res.ok) throw new Error(data.error);
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
+      localStorage.setItem("activeMatch", JSON.stringify({ matchId: data.matchId, playerId: "p1", playerName: playerName.trim() }));
       setScreen("waiting");
       connectSSE(data.matchId);
     } catch (e) {
@@ -119,6 +147,7 @@ export default function MatchPage() {
       if (!res.ok) throw new Error(data.error);
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
+      localStorage.setItem("activeMatch", JSON.stringify({ matchId: data.matchId, playerId: "p2", playerName: playerName.trim() }));
       setScreen("game");
       connectSSE(data.matchId);
     } catch (e) {
@@ -225,6 +254,9 @@ export default function MatchPage() {
           <div className="animate-pulse text-gray-500">
             Listening for players...
           </div>
+          {connectionStatus === "reconnecting" && (
+            <p className="text-yellow-400 text-sm">Reconnecting...</p>
+          )}
         </div>
       </main>
     );
@@ -252,6 +284,9 @@ export default function MatchPage() {
         {/* Header */}
         <div className="text-center">
           <p className="text-xs text-gray-500 font-mono">MATCH {matchState.matchId}</p>
+          {connectionStatus === "reconnecting" && (
+            <p className="text-xs text-yellow-400">Reconnecting...</p>
+          )}
           {isFinished ? (
             <p className={`text-2xl font-bold mt-1 ${iWon ? "text-green-400" : "text-red-400"}`}>
               {iWon ? "You Win!" : "You Lose!"}
@@ -353,6 +388,7 @@ export default function MatchPage() {
           <button
             onClick={() => {
               eventSourceRef.current?.close();
+              localStorage.removeItem("activeMatch");
               setMatchState(null);
               setMatchId("");
               setRoomCode("");

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "playerName is required" }, { status: 400 });
     }
 
-    const state = createMatch(playerName.trim());
+    const state = await createMatch(playerName.trim());
     return NextResponse.json({ matchId: state.matchId, playerId: "p1" });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
