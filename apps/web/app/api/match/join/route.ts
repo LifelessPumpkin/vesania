@@ -11,8 +11,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "playerName is required" }, { status: 400 });
     }
 
+    // joinMatch() generates p2Token and stores it in MatchState.
+    // We extract it here — this is the only time it leaves the server.
     const state = await joinMatch(matchId.trim().toUpperCase(), playerName.trim());
-    return NextResponse.json({ matchId: state.matchId, playerId: "p2" });
+    const token = state.p2Token!; // non-null: joinMatch() always sets it before returning
+
+    return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     const status = message === "Match not found" ? 404 : 400;

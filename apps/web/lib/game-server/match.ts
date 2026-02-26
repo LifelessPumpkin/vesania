@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {
   MatchState,
   PlayerId,
@@ -16,6 +17,15 @@ function generateCode(): string { //match id generation
   return code;
 }
 
+// Generates a cryptographically secure random token for a player's match seat.
+// crypto.randomBytes(32) pulls 32 bytes from the OS entropy source (not Math.random).
+// .toString("hex") encodes those 32 bytes as a 64-character hex string.
+// This is the same approach used by session token libraries — unpredictable enough
+// that guessing one is effectively impossible.
+function generateToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
 export async function createMatch(hostName: string): Promise<MatchState> { //setup for match initialization
   let matchId = generateCode();
   while (await redis.exists(`match:${matchId}`)) {
@@ -32,6 +42,11 @@ export async function createMatch(hostName: string): Promise<MatchState> { //set
     turn: "p1",
     log: [`${hostName} created the match. Waiting for opponent...`],
     winner: null,
+    // Token is generated here and stored in MatchState. The create route reads
+    // it from the returned state and includes it in the HTTP response — that is
+    // the one and only time p1Token is sent outside the server.
+    p1Token: generateToken(),
+    p2Token: null, // p2 hasn't joined yet; token is assigned in joinMatch()
   };
 
   await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
@@ -51,11 +66,29 @@ export async function joinMatch(matchId: string, guestName: string): Promise<Mat
 
   state.players.p2 = { name: guestName, hp: MAX_HP, block: 0 };
   state.status = "active";
+  // Token is assigned here once p2's seat is confirmed. The join route reads
+  // it from the returned state and sends it in the HTTP response.
+  state.p2Token = generateToken();
   state.log.push(`${guestName} joined! ${state.players.p1.name}'s turn.`);
 
   await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
   await redis.publish(`match:${matchId}`, JSON.stringify(state));
   return state;
+}
+
+// Looks up which player seat (p1 or p2) a given token belongs to within a match.
+// Returns null if the match doesn't exist or the token doesn't match either seat.
+// The action route calls this to identify who is acting — the server never trusts
+// a playerId sent by the client.
+export async function resolvePlayerByToken(
+  matchId: string,
+  token: string
+): Promise<PlayerId | null> {
+  const match = await getMatch(matchId);
+  if (!match) return null;
+  if (match.p1Token === token) return "p1";
+  if (match.p2Token === token) return "p2";
+  return null;
 }
 
 export async function applyAction( //WHOLE COMBAT ENGINE, apply dmg/heal/block w/ switch, win check, adv turn, publish update

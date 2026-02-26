@@ -21,9 +21,24 @@ interface MatchState {
   turn: PlayerId;
   log: string[];
   winner: PlayerId | null;
+  // Note: p1Token and p2Token are intentionally absent here.
+  // The server strips them before sending, so they never arrive on the client.
 }
 
 type ActionType = "PUNCH" | "KICK" | "BLOCK" | "HEAL";
+
+// Shape of the session object we persist in localStorage.
+// Storing the token here means it survives page refreshes, which is important
+// for the Redis-based disconnect recovery flow (Issue #2). When a player
+// refreshes, we can read this and resume their match without re-joining.
+interface MatchSession {
+  matchId: string;
+  playerId: PlayerId;
+  playerName: string;
+  token: string;
+}
+
+const SESSION_KEY = "matchSession";
 
 export default function MatchPage() {
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
@@ -31,6 +46,9 @@ export default function MatchPage() {
   const [roomCode, setRoomCode] = useState("");
   const [matchId, setMatchId] = useState("");
   const [playerId, setPlayerId] = useState<PlayerId>("p1");
+  // matchToken holds the Bearer token for this player's seat.
+  // It is set once (on create or join) and used on every action request.
+  const [matchToken, setMatchToken] = useState<string>("");
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -68,24 +86,42 @@ export default function MatchPage() {
     []
   );
 
-  // On page load: check localStorage for an in-progress match
+  // On mount: check localStorage for an existing session.
+  // If one is found, fetch the match to confirm it is still alive, then resume.
+  // This handles the page-refresh case — the token survives in localStorage so
+  // the player can continue acting without re-joining.
   useEffect(() => {
-    const saved = localStorage.getItem("activeMatch");
+    const saved = localStorage.getItem(SESSION_KEY);
     if (!saved) return;
-    const { matchId: savedMatchId, playerId: savedPlayerId, playerName: savedPlayerName } = JSON.parse(saved);
-    fetch(`/api/match/${savedMatchId}`)
+
+    let session: MatchSession;
+    try {
+      session = JSON.parse(saved);
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+      return;
+    }
+
+    // Verify the match still exists before restoring state.
+    // With Redis this will succeed as long as the match hasn't expired.
+    fetch(`/api/match/${session.matchId}`)
       .then((res) => {
-        if (res.ok) {
-          setMatchId(savedMatchId);
-          setPlayerId(savedPlayerId);
-          setPlayerName(savedPlayerName);
-          setScreen("game");
-          connectSSE(savedMatchId);
-        } else {
-          localStorage.removeItem("activeMatch");
-        }
+        if (!res.ok) throw new Error("Match gone");
+        return res.json();
       })
-      .catch(() => localStorage.removeItem("activeMatch"));
+      .then((state: MatchState) => {
+        setMatchId(session.matchId);
+        setPlayerId(session.playerId);
+        setPlayerName(session.playerName);
+        setMatchToken(session.token);
+        setMatchState(state);
+        setScreen(state.status === "waiting" ? "waiting" : "game");
+        connectSSE(session.matchId);
+      })
+      .catch(() => {
+        // Match is gone — clear the stale session so the lobby is clean.
+        localStorage.removeItem(SESSION_KEY);
+      });
   }, [connectSSE]);
 
   useEffect(() => {
@@ -113,9 +149,19 @@ export default function MatchPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Persist the session (including token) so it survives a page refresh.
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
-      localStorage.setItem("activeMatch", JSON.stringify({ matchId: data.matchId, playerId: "p1", playerName: playerName.trim() }));
+      setMatchToken(data.token);
       setScreen("waiting");
       connectSSE(data.matchId);
     } catch (e) {
@@ -145,9 +191,20 @@ export default function MatchPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Same persistence as create — token must be in localStorage for
+      // reconnection to work after a refresh.
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
-      localStorage.setItem("activeMatch", JSON.stringify({ matchId: data.matchId, playerId: "p2", playerName: playerName.trim() }));
+      setMatchToken(data.token);
       setScreen("game");
       connectSSE(data.matchId);
     } catch (e) {
@@ -159,17 +216,42 @@ export default function MatchPage() {
 
   async function handleAction(type: ActionType) {
     setError("");
+
+    // Guard: if the token is missing (e.g., extreme edge case on first render
+    // before the reconnect effect runs) bail early rather than sending a bare request.
+    if (!matchToken) {
+      setError("Session not ready — try refreshing");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/match/${matchId}/action`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId, type }),
+        headers: {
+          "Content-Type": "application/json",
+          // Send the token as a standard Bearer token.
+          // The server validates this and resolves playerId server-side.
+          // playerId is no longer sent in the body.
+          "Authorization": `Bearer ${matchToken}`,
+        },
+        body: JSON.stringify({ type }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send action");
     }
+  }
+
+  function handleBackToLobby() {
+    // Clear the session so the next player who opens this tab starts fresh.
+    localStorage.removeItem(SESSION_KEY);
+    eventSourceRef.current?.close();
+    setMatchState(null);
+    setMatchId("");
+    setMatchToken("");
+    setRoomCode("");
+    setScreen("lobby");
   }
 
   // --- LOBBY ---
@@ -386,14 +468,7 @@ export default function MatchPage() {
         {/* Play Again */}
         {isFinished && (
           <button
-            onClick={() => {
-              eventSourceRef.current?.close();
-              localStorage.removeItem("activeMatch");
-              setMatchState(null);
-              setMatchId("");
-              setRoomCode("");
-              setScreen("lobby");
-            }}
+            onClick={handleBackToLobby}
             className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold transition-colors"
           >
             Back to Lobby
