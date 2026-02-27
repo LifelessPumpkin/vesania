@@ -1,0 +1,268 @@
+/* ─── Deck Builder Layout ───────────────────────────────────────────── */
+
+.deckLayout {
+    display: flex;
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.deckSidebar {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.deckMain {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ─── Deck List Card ────────────────────────────────────────────────── */
+
+.deckListCard {
+    background: rgba(20, 20, 40, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.deckListCard:hover {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(25, 25, 50, 0.7);
+}
+
+.deckListCardActive {
+    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.deckListName {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.deckListActions {
+    display: flex;
+    align-items: center;
+}
+
+.deckListCount {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.deckListCountFull {
+    composes: deckListCount;
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+}
+
+/* ─── New Deck Form ─────────────────────────────────────────────────── */
+
+.newDeckForm {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.newDeckInput {
+    flex: 1;
+    padding: 0.6rem 0.85rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.newDeckInput::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.newDeckInput:focus {
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.newDeckBtn {
+    padding: 0.6rem 1rem;
+    border-radius: 0.6rem;
+    border: none;
+    background: rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.newDeckBtn:hover {
+    background: rgba(139, 92, 246, 0.45);
+}
+
+.newDeckBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.deleteDeckBtn {
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: transparent;
+    color: rgba(239, 68, 68, 0.7);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 0.5rem;
+}
+
+.deleteDeckBtn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* ─── Deck Editor ───────────────────────────────────────────────────── */
+
+.deckEditorHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.deckEditorTitle {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #c4b5fd;
+}
+
+.deckEditorCount {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.deckCardsList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+}
+
+.deckCardMini {
+    background: rgba(20, 20, 40, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.6rem;
+    padding: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: border-color 0.2s;
+}
+
+.deckCardMini:hover {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.deckCardMiniInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.deckCardMiniName {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deckCardMiniType {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+}
+
+.deckCardRemoveBtn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.4rem;
+    border: none;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.deckCardRemoveBtn:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Prompts & Loading ─────────────────────────────────────────────── */
+
+.selectDeckPrompt {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.95rem;
+}
+
+.loadingWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 1rem;
+    gap: 1rem;
+}
+
+.spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #a78bfa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingText {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .deckLayout {
+        flex-direction: column;
+    }
+
+    .deckSidebar {
+        width: 100%;
+    }
+
+    .deckCardsList {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}

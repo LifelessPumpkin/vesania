@@ -33,6 +33,20 @@ export async function verifyRequestAuth(
   }
 }
 
+export async function getAuthenticatedUser(
+  req: NextRequest
+): Promise<{ session: DecodedIdToken; user: User } | null> {
+  const session = await verifyRequestAuth(req);
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { firebaseUid: session.uid },
+  });
+  if (!user) return null;
+
+  return { session, user };
+}
+
 export async function verifyAdminAuth(
   req: NextRequest
 ): Promise<{ token: DecodedIdToken; user: User } | null> {

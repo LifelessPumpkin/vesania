@@ -1,0 +1,156 @@
+/* ─── Page Layout ───────────────────────────────────────────────────── */
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a14 0%, #111128 40%, #0d0d1a 100%);
+  color: white;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.header {
+  max-width: 1200px;
+  margin: 0 auto 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #e0e0ff, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Tabs ──────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  max-width: 1200px;
+  margin: 0 auto 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tab {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tabActive {
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+}
+
+/* ─── Loading ───────────────────────────────────────────────────────── */
+
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6rem 1rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Toast Notification ────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: rgba(30, 30, 50, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.6rem;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.85rem;
+  color: white;
+  z-index: 1000;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+  pointer-events: none;
+}
+
+.toastError {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.toastSuccess {
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .page {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+}

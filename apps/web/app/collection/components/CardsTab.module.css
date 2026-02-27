@@ -1,0 +1,160 @@
+/* ─── Toolbar ───────────────────────────────────────────────────────── */
+
+.toolbar {
+    display: flex;
+    gap: 0.75rem;
+    max-width: 1200px;
+    margin: 0 auto 1.5rem;
+    flex-wrap: wrap;
+}
+
+.searchWrapper {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 0.7rem 0.85rem 0.7rem 2.4rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.searchInput::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.searchInput:focus {
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.sortSelect {
+    padding: 0.7rem 1rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    padding-right: 2.5rem;
+    min-width: 160px;
+    transition: border-color 0.2s;
+}
+
+.sortSelect option {
+    background: #1a1a2e;
+    color: white;
+}
+
+.sortSelect:focus {
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+/* ─── Card Grid ─────────────────────────────────────────────────────── */
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ─── Empty / Error State ───────────────────────────────────────────── */
+
+.emptyState {
+    text-align: center;
+    padding: 4rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.emptyIcon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.emptyTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.5rem;
+}
+
+.emptySubtitle {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* ─── Loading ───────────────────────────────────────────────────────── */
+
+.loadingWrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 1rem;
+    gap: 1rem;
+}
+
+.spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #a78bfa;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingText {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .toolbar {
+        flex-direction: column;
+    }
+
+    .sortSelect {
+        width: 100%;
+    }
+}
