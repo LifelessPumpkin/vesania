@@ -14,7 +14,6 @@ model User {
   firebaseUid String   @unique
   role        Role     @default(USER)
   cards       Card[]
-  Run         Run[]
 }
 
 model Card {
@@ -37,38 +36,6 @@ model CardDefinition {
   rarity      CardRarity
   effectJson  Json?
   cards       Card[]
-}
-
-model Character {
-  id          String   @id
-  name        String
-  archetype   String
-  description String
-  createdAt   DateTime @default(now())
-  Item        Item[]
-  Run         Run[]
-}
-
-model Item {
-  id          String    @id
-  characterId String
-  name        String
-  cost        Int
-  rarity      String
-  effectJson  Json
-  createdAt   DateTime  @default(now())
-  Character   Character @relation(fields: [characterId], references: [id])
-}
-
-model Run {
-  id          String    @id
-  ownerId     String
-  characterId String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-  stateJson   Json      @default("{}")
-  Character   Character @relation(fields: [characterId], references: [id])
-  User        User      @relation(fields: [ownerId], references: [id])
 }
 
 enum Role {
