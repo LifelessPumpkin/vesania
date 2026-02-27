@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import { createNoise3D } from "simplex-noise"
 
-export default function Vortex() {
+export default function VortexLocal() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const animationRef = useRef<number | null>(null)
 
@@ -18,8 +18,8 @@ export default function Vortex() {
         canvas.height = window.innerHeight
 
         const noise3D = createNoise3D()
-        const particleCount = 700
-        const particlePropCount = 9
+        const particleCount = 150
+        const particlePropCount = 30
         const particlePropsLength = particleCount * particlePropCount
         const particleProps = new Float32Array(particlePropsLength)
         let tick = 0
@@ -34,14 +34,14 @@ export default function Vortex() {
         const lerp = (n1: number, n2: number, speed: number) => (1 - speed) * n1 + speed * n2
 
         const initParticle = (i: number) => {
-            const x = rand(canvas.width)
-            const y = canvas.height / 2 + randRange(100)
+            const x = (canvas.width / 2) + randRange(350)
+            const y = (canvas.height * 0.40) + randRange(60)
             const vx = 0
             const vy = 0
             const life = 0
-            const ttl = 50 + rand(150)
-            const speed = rand(1.5)
-            const radius = 1 + rand(2)
+            const ttl = 75 + rand(50)
+            const speed = 0.20 + rand(1.25)
+            const radius = 1.25 + rand(1)
             const hue = 35 + rand(20)
             particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
         }
@@ -52,10 +52,8 @@ export default function Vortex() {
 
         const draw = () => {
             tick++
-
-            ctx.fillStyle = "rgba(20, 10, 0, 0.1)"
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-
+            ctx.fillStyle = "rgba(0, 0, 0, 0)"
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
             for (let i = 0; i < particlePropsLength; i += particlePropCount) {
                 const x = particleProps[i]
                 const y = particleProps[i + 1]
@@ -88,7 +86,7 @@ export default function Vortex() {
                 particleProps[i + 3] = vy
                 particleProps[i + 4] = life
 
-                const outOfBounds = x2 > canvas.width || x2 < 0 || y2 > canvas.height || y2 < 0
+                const outOfBounds = x2 > canvas.width || x2 < 0 || y2 > canvas.height || y2 < 0 || y2 < 60
                 if (outOfBounds || life > ttl) initParticle(i)
             }
 
@@ -112,7 +110,8 @@ export default function Vortex() {
     return (
         <canvas
             ref={canvasRef}
-            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
+
         />
     )
 }

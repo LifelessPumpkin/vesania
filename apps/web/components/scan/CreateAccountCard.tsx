@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { cardStyle, inputStyle, labelStyle, primaryButtonStyle, ghostButtonStyle } from '@/styles/cardStyles'
+import { cardStyle, inputStyle, labelStyle, primaryButtonStyle } from '@/styles/cardStyles'
 
 interface CreateAccountCardProps {
     onBack: () => void
@@ -39,8 +39,9 @@ export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCa
             // TODO: replace with real create account API call
             await new Promise(res => setTimeout(res, 800))
             onCreated()
-        } catch (err: any) {
-            setError(err.message || 'Something went wrong')
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : 'Something went wrong'
+            setError(msg)
         } finally {
             setLoading(false)
         }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { apiError } from '@/lib/api-helpers'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Simple database health check - query the database
     await prisma.$queryRaw`SELECT 1`
