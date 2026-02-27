@@ -15,7 +15,6 @@ model User {
   role        Role     @default(USER)
   cards       Card[]
   decks       Deck[]
-  Run         Run[]
 }
 
 model Card {
@@ -61,38 +60,6 @@ model DeckCard {
   card     Card   @relation(fields: [cardId], references: [id])
 
   @@unique([deckId, cardId])
-}
-
-model Character {
-  id          String   @id
-  name        String
-  archetype   String
-  description String
-  createdAt   DateTime @default(now())
-  Item        Item[]
-  Run         Run[]
-}
-
-model Item {
-  id          String    @id
-  characterId String
-  name        String
-  cost        Int
-  rarity      String
-  effectJson  Json
-  createdAt   DateTime  @default(now())
-  Character   Character @relation(fields: [characterId], references: [id])
-}
-
-model Run {
-  id          String    @id
-  ownerId     String
-  characterId String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-  stateJson   Json      @default("{}")
-  Character   Character @relation(fields: [characterId], references: [id])
-  User        User      @relation(fields: [ownerId], references: [id])
 }
 
 enum Role {
