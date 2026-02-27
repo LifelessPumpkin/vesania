@@ -4,12 +4,28 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiRequest } from '@/lib/api-client'
 import type { CardDefinition } from '../types'
 import { RarityBadge } from '../components/Badges'
+import CardEffectWizard from '../CardEffectWizard'
+import {
+    getDefaultEffectForType,
+    getEffectSchemaByType,
+} from '@/lib/card-effect-schemas'
+import { CardType } from '@/lib/enums'
 
 export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | null> }) {
     const [definitions, setDefinitions] = useState<CardDefinition[]>([])
     const [loading, setLoading] = useState(true)
-    const [formData, setFormData] = useState({
-        name: '', type: 'CHARACTER', rarity: 'COMMON', description: '', effectJson: '',
+    const [formData, setFormData] = useState<{
+        name: string
+        type: CardType
+        rarity: string
+        description: string
+        effectJson: Record<string, unknown>
+    }>({
+        name: '',
+        type: CardType.CHARACTER,
+        rarity: 'COMMON',
+        description: '',
+        effectJson: getDefaultEffectForType(CardType.CHARACTER) as Record<string, unknown>,
     })
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
@@ -33,18 +49,30 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
         setMessage(null)
 
         try {
+            const effectSchema = getEffectSchemaByType(formData.type)
+            const validatedEffect = effectSchema.parse(formData.effectJson)
+
             const token = await getToken()
             const data = await apiRequest<{ card: CardDefinition }>('/api/cards', {
                 method: 'POST',
                 token,
                 body: {
-                    ...formData,
-                    effectJson: formData.effectJson ? JSON.parse(formData.effectJson) : {},
+                    name: formData.name,
+                    type: formData.type,
+                    rarity: formData.rarity,
+                    description: formData.description,
+                    effectJson: validatedEffect,
                 },
             })
 
             setMessage({ text: `Created "${data.card.name}" (${data.card.id})`, error: false })
-            setFormData({ name: '', type: 'CHARACTER', rarity: 'COMMON', description: '', effectJson: '' })
+            setFormData({
+                name: '',
+                type: CardType.CHARACTER,
+                rarity: 'COMMON',
+                description: '',
+                effectJson: getDefaultEffectForType(CardType.CHARACTER) as Record<string, unknown>,
+            })
             fetchDefinitions()
         } catch (err: unknown) {
             setMessage({ text: err instanceof Error ? err.message : 'Unknown error', error: true })
@@ -71,10 +99,17 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                         <label className="block text-sm text-gray-400 mb-1">Type</label>
                         <select
                             value={formData.type}
-                            onChange={(e) => setFormData(p => ({ ...p, type: e.target.value }))}
+                            onChange={(e) => {
+                                const nextType = e.target.value as CardType
+                                setFormData(p => ({
+                                    ...p,
+                                    type: nextType,
+                                    effectJson: getDefaultEffectForType(nextType) as Record<string, unknown>,
+                                }))
+                            }}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                         >
-                            {['CHARACTER', 'ITEM', 'SPELL', 'TOOL'].map(t => <option key={t} value={t}>{t}</option>)}
+                            {Object.values(CardType).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
@@ -87,15 +122,6 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                             {['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'].map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm text-gray-400 mb-1">Effect JSON <span className="text-gray-600">(optional)</span></label>
-                        <input
-                            type="text" value={formData.effectJson}
-                            onChange={(e) => setFormData(p => ({ ...p, effectJson: e.target.value }))}
-                            placeholder='{"damage": 10}'
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                        />
-                    </div>
                     <div className="md:col-span-2">
                         <label className="block text-sm text-gray-400 mb-1">Description</label>
                         <textarea
@@ -103,6 +129,13 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                             onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                             rows={2}
                             className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+                        />
+                    </div>
+                    <div className="md:col-span-2">
+                        <CardEffectWizard
+                            cardType={formData.type}
+                            value={formData.effectJson}
+                            onChange={(value) => setFormData(p => ({ ...p, effectJson: value }))}
                         />
                     </div>
                     <div className="md:col-span-2 flex items-center gap-4">
