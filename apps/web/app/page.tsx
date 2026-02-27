@@ -1,29 +1,74 @@
-'use client';
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+'use client'
+
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { useAuth } from '@/context/AuthContext'
+import { useState } from 'react'
+import VortexLocal from '@/components/VortexLocal'
 
 export default function Home() {
-  const { role } = useAuth();
+  const router = useRouter()
+  const { user, loading } = useAuth()
+  const [navigating, setNavigating] = useState(false)
+
+  const handlePlayNow = () => {
+    if (loading || navigating) return
+    setNavigating(true)
+    if (user) {
+      router.push('/home')
+    } else {
+      router.push('/login')
+    }
+  }
 
   return (
-    <main className="p-10 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 text-center text-gray-800 dark:text-black-100">Welcome to Vesania (Alpha)</h1>
-      <div className="flex flex-col gap-4 items-center">
-        <Link href="/scan" className="w-full sm:w-64 block px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white font-medium rounded-lg shadow-sm text-center">
-          Scan a Card
-        </Link>
-        <Link href="/test-auth" className="w-full sm:w-64 block px-6 py-3 bg-gray-200 hover:bg-gray-300 transition-colors text-gray-800 font-medium rounded-lg shadow-sm text-center">
-          Test Auth
-        </Link>
-        <Link href="/api-docs" className="w-full sm:w-64 block px-6 py-3 bg-gray-200 hover:bg-gray-300 transition-colors text-gray-800 font-medium rounded-lg shadow-sm text-center">
-          API Docs
-        </Link>
-        {role === 'ADMIN' && (
-          <Link href="/admin" className="w-full sm:w-64 block mt-4 px-6 py-3 bg-purple-600 hover:bg-purple-700 transition-colors text-white font-medium rounded-lg shadow-sm text-center">
-            Admin Dashboard
-          </Link>
-        )}
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', paddingTop: '12vh' }}>
+      <Image
+        src="/background.jpg"
+        alt="Background"
+        fill
+        style={{ objectFit: 'cover' }}
+      />
+      <button style={{
+        position: 'absolute', top: '1rem', left: '1rem',
+        zIndex: 20, padding: '0.5rem 1rem',
+        background: 'goldenrod', color: 'white',
+        border: 'none', borderRadius: '0.5rem', cursor: 'pointer'
+      }}>
+        About
+      </button>
+
+      <div style={{
+        position: 'relative', zIndex: 10, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+        paddingTop: '2vh', height: '100%', gap: '0'
+      }}>
+
+        <div style={{ position: 'relative', width: 700, height: 250 }}>
+          <VortexLocal />
+          <Image
+            src="/AI_slop.png"
+            alt="Vesania"
+            width={700}
+            height={250}
+            style={{ position: 'relative', zIndex: 10 }}
+          />
+        </div>
+
+        <button
+          onClick={handlePlayNow}
+          disabled={loading || navigating}
+          style={{
+            position: 'relative', zIndex: 20,
+            padding: '1rem 10rem', fontSize: '1rem',
+            background: 'goldenrod', color: 'white',
+            border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
+            opacity: (loading || navigating) ? 0.7 : 1
+          }}
+        >
+          {loading ? '...' : navigating ? '...' : 'Play now'}
+        </button>
       </div>
-    </main>
-  );
+    </div>
+  )
 }

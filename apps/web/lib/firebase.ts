@@ -1,4 +1,4 @@
-import { initializeApp, getApps, deleteApp, type FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 
 let _app: FirebaseApp | null = null;

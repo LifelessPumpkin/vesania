@@ -5,8 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase'
-import Link from 'next/link'
 import type { ScanResult } from '@/lib/api-types'
+
+import Vortex from '@/components/Vortex'
+import ScanCard from '@/components/scan/ScanCard'
+import LoginCard from '@/components/scan/LoginCard'
+import CardSaved from '@/components/scan/CardSaved'
 
 function ScanPageContent() {
   const { user, getToken } = useAuth()
@@ -17,6 +21,7 @@ function ScanPageContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   const hasAutoScanned = useRef(false)
 
@@ -33,6 +38,7 @@ function ScanPageContent() {
       hasAutoScanned.current = true
       performScan(idParam)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, searchParams])
 
   const performScan = async (scanCode: string) => {
@@ -72,6 +78,7 @@ function ScanPageContent() {
     e.preventDefault()
     if (!user) {
       setError('You must be logged in to scan cards.')
+      setShowLogin(true)
       return
     }
     await performScan(code)
@@ -79,9 +86,11 @@ function ScanPageContent() {
 
   const handleSignIn = async () => {
     setSigningIn(true)
+    setError('')
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(getFirebaseAuth(), provider)
+      setShowLogin(false)
     } catch (err: unknown) {
       console.error(err)
       setError('Sign-in failed. Please try again.')
@@ -91,89 +100,39 @@ function ScanPageContent() {
   }
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <Link href="/" className="px-4 py-2 bg-blue-500 text-white rounded inline-block mb-4">
-        Back to Home
-      </Link>
-      <h1 className="text-2xl font-bold mb-4">Scan Card</h1>
-
-      {!user ? (
-        <div className="border border-gray-700 rounded-lg p-6 text-center space-y-4">
-          <p className="text-gray-300">
-            {code
-              ? `Card code detected: "${code}". Sign in to claim it!`
-              : 'Sign in to scan and claim cards.'}
-          </p>
-          <button
-            onClick={handleSignIn}
-            disabled={signingIn}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
-          >
-            {signingIn ? 'Signing in...' : 'Sign in with Google'}
-          </button>
-          {error && <div className="text-red-500 text-sm">{error}</div>}
-        </div>
-      ) : (
-        <>
-          <form onSubmit={handleScan} className="flex gap-2 mb-6">
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter NFC Code"
-              className="border p-2 rounded flex-1 text-black"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-              {loading ? 'Scanning...' : 'Scan'}
-            </button>
-          </form>
-
-          {error && <div className="text-red-500 mb-4">{error}</div>}
-
-          {result && (
-            <div className="border p-6 rounded-xl bg-gray-50 text-black shadow-sm">
-              <h2 className="text-2xl font-bold mb-1">
-                {result.card?.definition?.name || result.definition?.name || 'Unknown Card'}
-              </h2>
-              <p className="text-gray-600 mb-4">
-                {result.card?.definition?.description || result.definition?.description}
-              </p>
-
-              <div className="p-3 bg-green-100 rounded-lg text-green-800 text-sm font-medium">
-                {result.message}
-              </div>
-
-              <div className="text-sm mt-3 text-gray-500">
-                Status: <span className="font-mono font-bold text-gray-800">{result.card?.status || result.status}</span>
-              </div>
-
-              <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                <Link href="/collection" className="flex-1">
-                  <span className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-center">
-                    View My Collection
-                  </span>
-                </Link>
-                <Link href="/" className="flex-1">
-                  <span className="block w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors text-center">
-                    Back to Home
-                  </span>
-                </Link>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      <Vortex />
+      <div style={{
+        position: 'relative', zIndex: 10, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        height: '100%', padding: '1rem', boxSizing: 'border-box'
+      }}>
+        {!user || showLogin ? (
+          <LoginCard
+            onBack={() => setShowLogin(false)}
+            onSignIn={handleSignIn}
+            loading={signingIn}
+            error={error}
+          />
+        ) : result ? (
+          <CardSaved result={result} />
+        ) : (
+          <ScanCard
+            code={code}
+            onChangeCode={setCode}
+            onScan={handleScan}
+            loading={loading}
+            error={error}
+          />
+        )}
+      </div>
     </div>
   )
 }
 
 export default function ScanPage() {
   return (
-    <Suspense fallback={<div className="p-8">Loading...</div>}>
+    <Suspense fallback={<div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}><Vortex /></div>}>
       <ScanPageContent />
     </Suspense>
   )
