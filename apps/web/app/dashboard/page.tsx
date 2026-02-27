@@ -57,7 +57,7 @@ export default function Dashboard() {
                     )}
 
                     <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
-                        <Link href="/" style={{
+                        <Link href="/home" style={{
                             background: 'none', border: 'none',
                             color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none'

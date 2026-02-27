@@ -18,7 +18,7 @@ export default function VortexLocal() {
         canvas.height = window.innerHeight
 
         const noise3D = createNoise3D()
-        const particleCount = 150
+        const particleCount = 300
         const particlePropCount = 30
         const particlePropsLength = particleCount * particlePropCount
         const particleProps = new Float32Array(particlePropsLength)
@@ -41,7 +41,7 @@ export default function VortexLocal() {
             const life = 0
             const ttl = 75 + rand(50)
             const speed = 0.20 + rand(1.25)
-            const radius = 1.25 + rand(1)
+            const radius = 1.75 + rand(1)
             const hue = 35 + rand(20)
             particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
         }

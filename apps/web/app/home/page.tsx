@@ -1,9 +1,11 @@
 'use client'
 
+
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useState } from 'react'
 import VortexLocal from '@/components/VortexLocal'
+import FloatingCards from '@/components/FloatingCards'
 
 export default function HomePage() {
     const router = useRouter()
@@ -23,6 +25,7 @@ export default function HomePage() {
                 fill
                 style={{ objectFit: 'cover' }}
             />
+            <FloatingCards />
 
             {/* menu top right */}
             <button
