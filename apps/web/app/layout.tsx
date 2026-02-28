@@ -30,9 +30,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <nav className="flex items-center justify-between px-6 py-4 bg-gray-950 text-white border-b border-gray-800">
+          {/* <nav className="flex items-center justify-between px-6 py-4 bg-gray-950 text-white border-b border-gray-800">
             <div className="flex items-center gap-8">
-              <Link href="/" className="text-xl font-bold tracking-tight text-white hover:text-gray-200 transition-colors">
+              <Link href="/home" className="text-xl font-bold tracking-tight text-white hover:text-gray-200 transition-colors">
                 Vesania
               </Link>
               <div className="flex items-center gap-6 text-sm font-medium">
@@ -42,7 +42,7 @@ export default function RootLayout({
                 <Link href="/api-docs" className="text-gray-400 hover:text-white transition-colors">API Docs</Link>
               </div>
             </div>
-          </nav>
+          </nav> */}
           {children}
         </AuthProvider>
       </body>
