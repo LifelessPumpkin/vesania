@@ -13,6 +13,15 @@
   margin: 0 auto 2rem;
 }
 
+.backLink {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
 .title {
   font-size: 2rem;
   font-weight: 700;

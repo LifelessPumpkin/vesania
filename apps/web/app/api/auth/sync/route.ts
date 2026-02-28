@@ -29,12 +29,14 @@ export async function POST(req: NextRequest) {
       where: { firebaseUid: uid },
       update: {
         email,
+        lastSeenAt: new Date(),
         ...(isBootstrapAdmin ? { role: 'ADMIN' } : {}),
       },
       create: {
         firebaseUid: uid,
         email: email || '',
         username: email?.split('@')[0] || '',
+        lastSeenAt: new Date(),
         ...(isBootstrapAdmin ? { role: 'ADMIN' } : {}),
       },
     });

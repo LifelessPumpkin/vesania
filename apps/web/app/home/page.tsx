@@ -66,7 +66,7 @@ export default function HomePage() {
                     display: 'flex', gap: '6rem', marginTop: '11rem', zIndex: 20, position: 'relative'
                 }}>
                     {[
-                        { label: 'Play', path: '/game' },
+                        { label: 'Play', path: '/match' },
                         { label: 'Collection', path: '/collection' },
                         { label: 'Friends', path: '/friends' },
                         { label: 'Store', path: '/store' },

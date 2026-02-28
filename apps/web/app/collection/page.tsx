@@ -49,6 +49,10 @@ export default function CollectionPage() {
         <div className={styles.page}>
             {/* Header */}
             <header className={styles.header}>
+                {/* Back button */}
+                <button className={styles.backLink} onClick={() => router.push('/home')}>
+                    ← Back to Home
+                </button>
                 <h1 className={styles.title}>Collection</h1>
             </header>
 

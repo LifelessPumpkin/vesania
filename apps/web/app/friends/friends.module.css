@@ -1,0 +1,204 @@
+.page {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.lastSeen {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+}
+
+.center {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loadingText {
+  color: white;
+}
+
+.overlay {
+  position: relative;
+  z-index: 10;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 1rem;
+}
+
+.panel {
+  width: 100%;
+  max-width: 960px;
+  background: rgba(20, 20, 30, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.title {
+  color: white;
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.backLink {
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input {
+  flex: 1;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: white;
+  outline: none;
+}
+
+.primaryButton {
+  padding: 0.7rem 0.95rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(218, 165, 32, 0.9);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.message {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.error {
+  margin: 0;
+  color: #fca5a5;
+}
+
+.success {
+  margin: 0;
+  color: #86efac;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.friendCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.9rem;
+  padding: 0.9rem;
+}
+
+.friendName {
+  margin: 0;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.friendEmail {
+  margin: 0.3rem 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.9rem;
+}
+
+.status {
+  margin: 0.35rem 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.online {
+  color: #86efac;
+}
+
+.offline {
+  color: #fca5a5;
+}
+
+.friendSince {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+}
+
+.playButton {
+  align-self: flex-start;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(59, 130, 246, 0.85);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.offlineHint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .formRow {
+    flex-direction: column;
+  }
+
+  .primaryButton {
+    width: 100%;
+  }
+}
