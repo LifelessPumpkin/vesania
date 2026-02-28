@@ -153,7 +153,7 @@ export default function MatchPage() {
       <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
         <div className="w-full max-w-md p-8 space-y-6">
           <div className="text-center">
-            <Link href="/" className="text-gray-500 text-sm hover:text-gray-300">
+            <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
               &larr; Home
             </Link>
             <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>

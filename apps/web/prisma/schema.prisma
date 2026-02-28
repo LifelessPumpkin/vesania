@@ -10,11 +10,26 @@ model User {
   id          String   @id @default(cuid())
   username    String   @unique
   createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
   email       String   @unique
   firebaseUid String   @unique
   role        Role     @default(USER)
   cards       Card[]
   decks       Deck[]
+  friendLinksA Friendship[] @relation("FriendshipUserA")
+  friendLinksB Friendship[] @relation("FriendshipUserB")
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+  userA     User     @relation("FriendshipUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User     @relation("FriendshipUserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
 }
 
 model Card {

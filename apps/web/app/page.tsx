@@ -20,7 +20,6 @@ export default function Home() {
       router.push('/login')
     }
   }
-
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', paddingTop: '12vh' }}>
       <Image
@@ -55,6 +54,7 @@ export default function Home() {
           />
         </div>
 
+        {/* Page should automatically route to /home if the user is logged in */}
         <button
           onClick={handlePlayNow}
           disabled={loading || navigating}
