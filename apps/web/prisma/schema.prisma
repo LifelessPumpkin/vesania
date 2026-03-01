@@ -7,17 +7,21 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  createdAt   DateTime @default(now())
-  lastSeenAt  DateTime @default(now())
-  email       String   @unique
-  firebaseUid String   @unique
-  role        Role     @default(USER)
-  cards       Card[]
-  decks       Deck[]
-  friendLinksA Friendship[] @relation("FriendshipUserA")
-  friendLinksB Friendship[] @relation("FriendshipUserB")
+  id              String   @id @default(cuid())
+  username        String   @unique
+  displayName     String?
+  avatarUrl       String?
+  bio             String?
+  profileComplete Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  email           String   @unique
+  firebaseUid     String   @unique
+  role            Role     @default(USER)
+  cards           Card[]
+  decks           Deck[]
+  friendLinksA    Friendship[] @relation("FriendshipUserA")
+  friendLinksB    Friendship[] @relation("FriendshipUserB")
 }
 
 model Friendship {
