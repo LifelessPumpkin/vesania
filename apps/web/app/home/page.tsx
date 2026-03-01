@@ -6,14 +6,29 @@ import Image from 'next/image'
 import { useState } from 'react'
 import VortexLocal from '@/components/VortexLocal'
 import FloatingCards from '@/components/FloatingCards'
+import { useAuth } from '@/context/AuthContext'
 
 export default function HomePage() {
     const router = useRouter()
+    const { user, loading, profileComplete } = useAuth()
     const [navigating, setNavigating] = useState(false)
 
-    const nav = (path: string) => {
+    const nav = (path: string, requiresAuth = false) => {
         if (navigating) return
         setNavigating(true)
+
+        if (requiresAuth && !user) {
+            // Not signed in → send to login with redirect back to home
+            router.push(`/login?redirect=${encodeURIComponent('/home')}`)
+            return
+        }
+
+        if (requiresAuth && user && !profileComplete) {
+            // Signed in but hasn't completed onboarding
+            router.push('/onboarding')
+            return
+        }
+
         router.push(path)
     }
 
@@ -66,19 +81,20 @@ export default function HomePage() {
                     display: 'flex', gap: '6rem', marginTop: '11rem', zIndex: 20, position: 'relative'
                 }}>
                     {[
-                        { label: 'Play', path: '/match' },
-                        { label: 'Collection', path: '/collection' },
-                        { label: 'Friends', path: '/friends' },
-                        { label: 'Store', path: '/store' },
-                    ].map(({ label, path }) => (
+                        { label: 'Play', path: '/match', auth: true },
+                        { label: 'Collection', path: '/collection', auth: true },
+                        { label: 'Friends', path: '/friends', auth: true },
+                        { label: 'Store', path: '/store', auth: false },
+                    ].map(({ label, path, auth }) => (
                         <button
                             key={label}
-                            onClick={() => nav(path)}
+                            onClick={() => nav(path, auth)}
+                            disabled={loading}
                             style={{
                                 padding: '0.75rem 4rem', fontSize: '1rem',
                                 background: 'goldenrod', color: 'white',
                                 border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
-                                opacity: navigating ? 0.7 : 1
+                                opacity: navigating || loading ? 0.7 : 1
                             }}
                         >
                             {label}

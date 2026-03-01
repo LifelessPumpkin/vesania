@@ -96,3 +96,20 @@ export interface ApiErrorResponse {
     error?: string;
 }
 
+// ─── Profile Types ──────────────────────────────────────────────────
+
+export interface UserProfile {
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    createdAt: string;
+    profileComplete?: boolean;
+    role?: string;
+    stats: {
+        cardsOwned: number;
+        decksBuilt: number;
+        friendsCount: number;
+    };
+}
+
