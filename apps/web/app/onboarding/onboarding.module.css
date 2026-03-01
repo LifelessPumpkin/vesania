@@ -1,0 +1,213 @@
+.page {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+
+.card {
+    position: relative;
+    z-index: 10;
+    background: rgba(20, 20, 30, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeIn 0.35s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.title {
+    color: white;
+    font-size: 1.75rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+    display: block;
+}
+
+.input {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.07);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
+    border-color: #6366f1;
+}
+
+.textarea {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.07);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    resize: vertical;
+    min-height: 70px;
+    font-family: inherit;
+}
+
+.charCount {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.75rem;
+    text-align: right;
+    margin-top: 0.2rem;
+}
+
+/* Avatar upload */
+.avatarSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.avatarPreview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.avatarPreview:hover {
+    border-color: #6366f1;
+    transform: scale(1.05);
+}
+
+.avatarPlaceholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px dashed rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 2rem;
+}
+
+.avatarPlaceholder:hover {
+    border-color: #6366f1;
+    transform: scale(1.05);
+}
+
+.avatarHint {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.8rem;
+}
+
+.hiddenInput {
+    display: none;
+}
+
+/* Validation */
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.validationHint {
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+.validationHint.valid {
+    color: #4ade80;
+}
+
+.validationHint.invalid {
+    color: #f87171;
+}
+
+.validationHint.checking {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Submit */
+.submitButton {
+    padding: 0.85rem;
+    border-radius: 0.5rem;
+    border: none;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 0.5rem;
+    transition: opacity 0.2s, transform 0.1s;
+}
+
+.submitButton:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.submitButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.error {
+    color: #f87171;
+    font-size: 0.85rem;
+    text-align: center;
+}

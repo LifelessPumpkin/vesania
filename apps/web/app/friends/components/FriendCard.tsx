@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from '../friends.module.css'
 import type { Friend } from '../types'
@@ -12,7 +13,9 @@ export function FriendCard({ friend }: FriendCardProps) {
   return (
     <article className={styles.friendCard}>
       <div>
-        <h2 className={styles.friendName}>{friend.username}</h2>
+        <Link href={`/profile/${encodeURIComponent(friend.username)}`} style={{ textDecoration: 'none' }}>
+          <h2 className={styles.friendName} style={{ cursor: 'pointer' }}>{friend.username}</h2>
+        </Link>
         <p className={`${styles.status} ${friend.online ? styles.online : styles.offline}`}>
           {friend.online ? 'Online' : 'Offline'}
         </p>
