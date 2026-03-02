@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
+    "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "firebase": "^12.9.0",
     "firebase-admin": "^13.6.1",
@@ -18,8 +19,8 @@
     "pg": "^8.17.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "zod": "^4.3.6",
-    "simplex-noise": "^4.0.3"
+    "simplex-noise": "^4.0.3",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
