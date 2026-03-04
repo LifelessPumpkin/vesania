@@ -6,6 +6,6 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   allowedDevOrigins: ["10.132.54.139"],
-};
-
+  devIndicators: false
+}
 export default nextConfig;
