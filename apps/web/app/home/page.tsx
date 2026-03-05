@@ -91,7 +91,7 @@ export default function HomePage() {
                             onClick={() => nav(path, auth)}
                             disabled={loading}
                             style={{
-                                padding: '0.75rem 4rem', fontSize: '1rem',
+                                padding: '0.5rem 1rem', fontSize: '3rem',
                                 background: 'goldenrod', color: 'white',
                                 border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
                                 opacity: navigating || loading ? 0.7 : 1

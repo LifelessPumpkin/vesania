@@ -49,7 +49,7 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
     return (
         <button
             onClick={handleCopy}
-            className={`text-xs px-2 py-1 rounded transition-all duration-200 ${copied
+            className={`text-lg px-3 py-1 rounded transition-all duration-200 ${copied
                 ? 'bg-green-600/20 text-green-400 border border-green-500/30'
                 : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
                 }`}

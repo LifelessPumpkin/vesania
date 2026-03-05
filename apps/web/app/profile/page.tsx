@@ -183,7 +183,7 @@ export default function ProfilePage() {
                             ) : (
                                 <div className={styles.avatarPlaceholderEdit} onClick={handleAvatarClick}>+</div>
                             )}
-                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem' }}>
+                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '1.2rem' }}>
                                 Click avatar to change
                             </span>
                         </div>

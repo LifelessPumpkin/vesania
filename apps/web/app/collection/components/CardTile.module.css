@@ -35,7 +35,7 @@
 }
 
 .cardPlaceholderIcon {
-    font-size: 3rem;
+    font-size: 4.5rem;
     opacity: 0.2;
 }
 
@@ -45,30 +45,32 @@
     right: 0.5rem;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.65rem;
+    font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
 }
 
 .cardInfo {
-    padding: 0.75rem 0.85rem;
+    padding: 0.5rem 0.65rem;
 }
 
 .cardName {
-    font-size: 0.95rem;
+    font-size: 20px;
     font-weight: 600;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.3rem;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.4);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .cardType {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
 }
 
 /* ─── Rarity Colors ─────────────────────────────────────────────────── */
@@ -168,7 +170,7 @@
     border: 1px solid rgba(139, 92, 246, 0.5);
     background: rgba(139, 92, 246, 0.25);
     color: #c4b5fd;
-    font-size: 0.8rem;
+    font-size: 20px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s, transform 0.1s;
@@ -182,5 +184,5 @@
 .inDeckBadge {
     color: #4ade80;
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 20px;
 }

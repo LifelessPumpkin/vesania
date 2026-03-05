@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+@theme {
+    --font-retganon: var(--font-retganon);
+    --font-sans: var(--font-retganon);
+}
+
+/* ── Font scale ─────────────────────────────────────────────────────────
+   Adjust --font-scale to make ALL text bigger without affecting layout.
+   rem-based padding / gap / width etc. are unaffected.
+   Pixel fonts look crispest at clean multiples: 1.0 (16px), 1.5 (24px), 2.0 (32px)
+──────────────────────────────────────────────────────────────────────── */
+:root {
+    --font-scale: 1;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-retganon), sans-serif;
+    font-size: calc(1rem * var(--font-scale));
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    font-smoothing: none;
+}
