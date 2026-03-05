@@ -19,23 +19,23 @@ export default function AdminDashboard({ adminUser }: { adminUser: AdminUser }) 
             {/* Header */}
             <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    <div className="flex items-center gap-6">
+                        <Link href="/" className="text-gray-400 hover:text-white transition-colors text-2xl">
                             ← Back
                         </Link>
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                             Admin Dashboard
                         </h1>
                     </div>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-lg text-gray-500">
                         {adminUser.email}
                     </span>
                 </div>
             </header>
 
             {/* Tabs */}
-            <div className="max-w-6xl mx-auto px-6 pt-6">
-                <div className="flex gap-1 bg-gray-900 rounded-lg p-1 w-fit">
+            <div className="max-w-6xl mx-auto px-6 pt-8">
+                <div className="flex gap-2 bg-gray-900 rounded-xl p-2 w-fit">
                     {([
                         { key: 'definitions', label: '📋 Card Definitions' },
                         { key: 'mint', label: '🏭 Mint Cards' },
@@ -44,7 +44,7 @@ export default function AdminDashboard({ adminUser }: { adminUser: AdminUser }) 
                         <button
                             key={key}
                             onClick={() => setActiveTab(key)}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === key
+                            className={`px-6 py-3 rounded-lg text-2xl font-medium transition-all ${activeTab === key
                                 ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/25'
                                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
                                 }`}

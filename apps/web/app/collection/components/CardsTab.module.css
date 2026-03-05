@@ -4,7 +4,7 @@
     display: flex;
     gap: 0.75rem;
     max-width: 1200px;
-    margin: 0 auto 1.5rem;
+    margin: 0 auto 1rem;
     flex-wrap: wrap;
 }
 
@@ -26,12 +26,12 @@
 
 .searchInput {
     width: 100%;
-    padding: 0.7rem 0.85rem 0.7rem 2.4rem;
-    border-radius: 0.6rem;
+    padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+    border-radius: 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
     color: white;
-    font-size: 0.9rem;
+    font-size: 18px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
@@ -47,12 +47,12 @@
 }
 
 .sortSelect {
-    padding: 0.7rem 1rem;
-    border-radius: 0.6rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
     color: white;
-    font-size: 0.9rem;
+    font-size: 18px;
     outline: none;
     cursor: pointer;
     appearance: none;
@@ -79,7 +79,7 @@
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: 0.75rem;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -100,14 +100,14 @@
 }
 
 .emptyTitle {
-    font-size: 1.25rem;
+    font-size: 32px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.6);
     margin-bottom: 0.5rem;
 }
 
 .emptySubtitle {
-    font-size: 0.9rem;
+    font-size: 1.35rem;
     color: rgba(255, 255, 255, 0.35);
 }
 
@@ -138,7 +138,7 @@
 }
 
 .loadingText {
-    font-size: 0.9rem;
+    font-size: 1.35rem;
     color: rgba(255, 255, 255, 0.4);
 }
 
