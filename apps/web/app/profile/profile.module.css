@@ -17,7 +17,7 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1.5rem;
-    padding: 2.5rem 2rem;
+    padding: 2rem 1.75rem;
     width: 100%;
     max-width: 500px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -43,7 +43,7 @@
 .backLink {
     color: rgba(255, 255, 255, 0.5);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 24px;
     transition: color 0.2s;
 }
 
@@ -95,7 +95,7 @@
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.3);
-    font-size: 2.5rem;
+    font-size: 60px;
 }
 
 .avatarPlaceholderEdit {
@@ -108,7 +108,7 @@
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.3);
-    font-size: 2.5rem;
+    font-size: 60px;
     cursor: pointer;
     transition: border-color 0.2s, transform 0.2s;
 }
@@ -120,7 +120,8 @@
 
 .displayName {
     color: white;
-    font-size: 1.5rem;
+    font-size: 32px;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
     font-weight: bold;
     text-align: center;
     margin: 0;
@@ -128,13 +129,14 @@
 
 .username {
     color: rgba(255, 255, 255, 0.4);
-    font-size: 0.95rem;
+    font-size: 20px;
     text-align: center;
 }
 
 .bio {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
+    font-size: 20px;
+    line-height: 1.25;
     text-align: center;
     max-width: 320px;
     line-height: 1.4;
@@ -160,13 +162,14 @@
 
 .statValue {
     color: white;
-    font-size: 1.25rem;
+    font-size: 28px;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
     font-weight: 700;
 }
 
 .statLabel {
     color: rgba(255, 255, 255, 0.35);
-    font-size: 0.75rem;
+    font-size: 16px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -185,7 +188,7 @@
 
 .label {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
+    font-size: 18px;
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -198,7 +201,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.07);
     color: white;
-    font-size: 1rem;
+    font-size: 20px;
     outline: none;
     width: 100%;
     box-sizing: border-box;
@@ -215,7 +218,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.07);
     color: white;
-    font-size: 1rem;
+    font-size: 20px;
     outline: none;
     width: 100%;
     box-sizing: border-box;
@@ -227,13 +230,13 @@
 
 .charCount {
     color: rgba(255, 255, 255, 0.35);
-    font-size: 0.75rem;
+    font-size: 16px;
     text-align: right;
     margin-top: 0.15rem;
 }
 
 .validationHint {
-    font-size: 0.78rem;
+    font-size: 16px;
     margin-top: 0.3rem;
 }
 
@@ -266,7 +269,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.05);
     color: white;
-    font-size: 0.9rem;
+    font-size: 20px;
     font-weight: 500;
     cursor: pointer;
     width: 100%;
@@ -284,7 +287,7 @@
     border: none;
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
-    font-size: 0.9rem;
+    font-size: 20px;
     font-weight: 600;
     cursor: pointer;
     flex: 1;
@@ -306,7 +309,7 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: transparent;
     color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
+    font-size: 1.35rem;
     cursor: pointer;
     flex: 1;
     transition: all 0.2s;
@@ -319,13 +322,13 @@
 
 .error {
     color: #f87171;
-    font-size: 0.85rem;
+    font-size: 20px;
     text-align: center;
 }
 
 .success {
     color: #4ade80;
-    font-size: 0.85rem;
+    font-size: 1.25rem;
     text-align: center;
 }
 
@@ -336,7 +339,7 @@
 
 .memberSince {
     color: rgba(255, 255, 255, 0.3);
-    font-size: 0.8rem;
+    font-size: 1.2rem;
     text-align: center;
     margin-top: 0.75rem;
 }

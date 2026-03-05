@@ -30,7 +30,7 @@ export default function Home() {
       />
       <button style={{
         position: 'absolute', top: '1rem', left: '1rem',
-        zIndex: 20, padding: '0.5rem 1rem',
+        zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
         background: 'goldenrod', color: 'white',
         border: 'none', borderRadius: '0.5rem', cursor: 'pointer'
       }}>
@@ -60,7 +60,7 @@ export default function Home() {
           disabled={loading || navigating}
           style={{
             position: 'relative', zIndex: 20,
-            padding: '1rem 10rem', fontSize: '1rem',
+            padding: '0.6rem 3rem', fontSize: '32px',
             background: 'goldenrod', color: 'white',
             border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
             opacity: (loading || navigating) ? 0.7 : 1

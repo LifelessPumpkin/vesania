@@ -204,7 +204,7 @@ export default function FriendsPage() {
                 className={styles.input}
               />
             </div>
-            {searching && <p className={styles.message} style={{ fontSize: '0.85rem' }}>Searching...</p>}
+            {searching && <p className={styles.message} style={{ fontSize: '24px' }}>Searching...</p>}
             {searchResults.length > 0 && (
               <div className={styles.searchResults}>
                 {searchResults.map((result) => {
@@ -226,13 +226,13 @@ export default function FriendsPage() {
                         <span className={styles.searchUsername}>@{result.username}</span>
                       </div>
                       {isFriend ? (
-                        <span style={{ color: '#86efac', fontSize: '0.8rem', fontWeight: 600 }}>Friends ✓</span>
+                        <span style={{ color: '#86efac', fontSize: '20px', fontWeight: 600 }}>Friends ✓</span>
                       ) : (
                         <button
                           onClick={() => addFriendByUsername(result.username)}
                           disabled={isAdding || addingFriend}
                           className={styles.primaryButton}
-                          style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
+                          style={{ padding: '0.45rem 0.75rem', fontSize: '24px' }}
                         >
                           {isAdding ? 'Adding...' : 'Add'}
                         </button>
@@ -243,7 +243,7 @@ export default function FriendsPage() {
               </div>
             )}
             {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
-              <p className={styles.message} style={{ fontSize: '0.85rem' }}>No players found</p>
+              <p className={styles.message} style={{ fontSize: '24px' }}>No players found</p>
             )}
           </div>
 
