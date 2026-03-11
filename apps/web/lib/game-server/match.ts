@@ -35,9 +35,10 @@ async function withMatchLock<T>(matchId: string, fn: () => Promise<T>): Promise<
 
 function generateCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.randomBytes(6);
   let code = "";
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[bytes[i]! % chars.length];
   }
   return code;
 }
@@ -163,9 +164,9 @@ export async function applyAction(
       state.status = "finished";
       state.winner = playerId;
       state.log.push(`${attacker.name} wins!`);
+    } else {
+      state.turn = targetId;
     }
-
-    state.turn = targetId;
 
     await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
     await redis.publish(`match:${matchId}`, JSON.stringify(state));

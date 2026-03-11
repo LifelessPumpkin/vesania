@@ -56,6 +56,8 @@ export default function MatchPage() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
+  const reconnectDelay = useRef(1000);
+
   const connectSSE = useCallback(
     (id: string) => {
       if (eventSourceRef.current) {
@@ -65,7 +67,10 @@ export default function MatchPage() {
       const es = new EventSource(`/api/match/${id}/stream`);
       eventSourceRef.current = es;
 
-      es.onopen = () => setConnectionStatus("connected");
+      es.onopen = () => {
+        setConnectionStatus("connected");
+        reconnectDelay.current = 1000;
+      };
 
       es.onmessage = (event) => {
         const state: MatchState = JSON.parse(event.data);
@@ -81,6 +86,9 @@ export default function MatchPage() {
       es.onerror = () => {
         setConnectionStatus("reconnecting");
         es.close();
+        const delay = reconnectDelay.current;
+        reconnectDelay.current = Math.min(delay * 2, 30000);
+        setTimeout(() => connectSSE(id), delay);
       };
     },
     []
