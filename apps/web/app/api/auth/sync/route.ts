@@ -56,7 +56,6 @@ export async function POST(req: NextRequest) {
       user: {
         id: user.id,
         username: user.username,
-        displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,

@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from 'react'
+import { signOut } from 'firebase/auth'
+import { getFirebaseAuth } from '@/lib/firebase'
 import styles from './dashboard.module.css'
 import SlideUpPage from '@/components/SlideUpPage'
 import DungeonBackground from '@/components/DungeonBackground'
@@ -37,18 +39,31 @@ export default function Dashboard() {
                                 <div className={styles.avatarPlaceholder}>👤</div>
                             )}
                             <h2 className={styles.welcome}>
-                                Welcome, {dbUser?.displayName || dbUser?.username || user?.displayName || 'Traveler'}
+                                Welcome, {dbUser?.username || 'Traveler'}
                             </h2>
                         </div>
 
                         <Link href="/profile" className={`${styles.link} rumble`} style={{ animationDelay: '0s' }}>Profile</Link>
                         <Link href="/scan" className={`${styles.link} rumble`} style={{ animationDelay: '0.3s' }}>Scan a Card</Link>
-                        <Link href="/test-auth" className={`${styles.link} rumble`} style={{ animationDelay: '0.6s' }}>Test Auth</Link>
-                        <Link href="/api-docs" className={`${styles.link} rumble`} style={{ animationDelay: '0.9s' }}>API Docs</Link>
                         {role === 'ADMIN' && (
-                            <Link href="/admin" className={`${styles.link} ${styles.linkAdmin} rumble`} style={{ animationDelay: '1.2s' }}>
+                            <Link href="/admin" className={`${styles.link} ${styles.linkAdmin} rumble`} style={{ animationDelay: '0.6s' }}>
                                 Admin Dashboard
                             </Link>
+                        )}
+
+                        {user ? (
+                            <button
+                                onClick={async () => {
+                                    await signOut(getFirebaseAuth())
+                                    router.push('/home')
+                                }}
+                                className={`${styles.link} ${styles.linkSignOut} rumble`}
+                                style={{ animationDelay: '0.9s' }}
+                            >
+                                Sign Out
+                            </button>
+                        ) : (
+                            <Link href="/login" className={`${styles.link} rumble`} style={{ animationDelay: '0.9s' }}>Sign In</Link>
                         )}
 
                         <div className={styles.backRow}>

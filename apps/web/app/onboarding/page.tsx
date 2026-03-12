@@ -16,7 +16,7 @@ function OnboardingContent() {
     const searchParams = useSearchParams()
     const redirectTo = searchParams.get('redirect') || '/home'
 
-    const [displayName, setDisplayName] = useState('')
+
     const [bio, setBio] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
@@ -76,7 +76,6 @@ function OnboardingContent() {
                 },
                 body: JSON.stringify({
                     username: trimmedUsername,
-                    displayName: displayName.trim() || null,
                     bio: bio.trim() || null,
                     ...(avatarUrl ? { avatarUrl } : {}),
                 }),
@@ -174,18 +173,6 @@ function OnboardingContent() {
                         )}
                     </div>
 
-                    {/* Display Name */}
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}>Display Name</label>
-                        <input
-                            type="text"
-                            placeholder="How others will see you (optional)"
-                            value={displayName}
-                            onChange={e => setDisplayName(e.target.value)}
-                            className={styles.input}
-                            maxLength={50}
-                        />
-                    </div>
 
                     {/* Bio */}
                     <div className={styles.fieldGroup}>
@@ -208,6 +195,14 @@ function OnboardingContent() {
                         className={styles.submitButton}
                     >
                         {saving ? 'Setting up...' : 'Start Your Journey →'}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => router.push(redirectTo)}
+                        className={styles.skipButton}
+                    >
+                        Skip for now
                     </button>
                 </form>
             </div>

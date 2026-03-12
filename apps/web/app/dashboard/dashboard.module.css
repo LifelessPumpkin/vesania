@@ -117,3 +117,10 @@
     gap: 0.4rem;
     text-decoration: none;
 }
+
+.linkSignOut {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    cursor: pointer;
+    font-family: inherit;
+}

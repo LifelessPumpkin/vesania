@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth-session";
 import { apiError } from "@/lib/api-helpers";
-import { USERNAME_REGEX, MAX_DISPLAY_NAME_LENGTH, MAX_BIO_LENGTH } from "@/lib/constants";
+import { USERNAME_REGEX, MAX_BIO_LENGTH } from "@/lib/constants";
 import { USER_PROFILE_SELECT, mapUserToProfile } from "@/lib/profile-helpers";
 
 export async function GET(req: NextRequest) {
@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { username, displayName, bio, avatarUrl } = body;
+        const { username, bio, avatarUrl } = body;
 
         // Validate username if provided
         if (username !== undefined) {
@@ -63,14 +63,6 @@ export async function PATCH(req: NextRequest) {
             }
         }
 
-        // Validate displayName
-        if (displayName !== undefined && typeof displayName === "string" && displayName.length > MAX_DISPLAY_NAME_LENGTH) {
-            return NextResponse.json(
-                { message: `Display name must be ${MAX_DISPLAY_NAME_LENGTH} characters or less.` },
-                { status: 400 }
-            );
-        }
-
         // Validate bio
         if (bio !== undefined && typeof bio === "string" && bio.length > MAX_BIO_LENGTH) {
             return NextResponse.json(
@@ -81,7 +73,7 @@ export async function PATCH(req: NextRequest) {
 
         const updateData: Record<string, unknown> = {};
         if (username !== undefined) updateData.username = username;
-        if (displayName !== undefined) updateData.displayName = displayName || null;
+
         if (bio !== undefined) updateData.bio = bio || null;
         if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
         updateData.profileComplete = true;
@@ -92,7 +84,6 @@ export async function PATCH(req: NextRequest) {
             select: {
                 id: true,
                 username: true,
-                displayName: true,
                 avatarUrl: true,
                 bio: true,
                 profileComplete: true,

@@ -3,7 +3,6 @@ import type { Prisma } from '@prisma/client';
 /** Shared Prisma select object for user profile queries (with _count for stats). */
 export const USER_PROFILE_SELECT = {
     username: true,
-    displayName: true,
     avatarUrl: true,
     bio: true,
     createdAt: true,

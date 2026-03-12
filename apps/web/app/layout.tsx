@@ -1,6 +1,5 @@
 import { AuthProvider } from '@/context/AuthContext';
 import type { Metadata } from "next";
-import Link from "next/link";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -25,19 +24,6 @@ export default function RootLayout({
         className={`${customFont.variable} antialiased`}
       >
         <AuthProvider>
-          {/* <nav className="flex items-center justify-between px-6 py-4 bg-gray-950 text-white border-b border-gray-800">
-            <div className="flex items-center gap-8">
-              <Link href="/home" className="text-xl font-bold tracking-tight text-white hover:text-gray-200 transition-colors">
-                Vesania
-              </Link>
-              <div className="flex items-center gap-6 text-sm font-medium">
-                <Link href="/collection" className="text-gray-400 hover:text-white transition-colors">Collection</Link>
-                <Link href="/match" className="text-gray-400 hover:text-white transition-colors">PvP</Link>
-                <Link href="/scan" className="text-gray-400 hover:text-white transition-colors">Scan</Link>
-                <Link href="/api-docs" className="text-gray-400 hover:text-white transition-colors">API Docs</Link>
-              </div>
-            </div>
-          </nav> */}
           {children}
         </AuthProvider>
       </body>
