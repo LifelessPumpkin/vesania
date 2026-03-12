@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { getFirebaseAuth } from '@/lib/firebase'
 import { cardStyle, inputStyle, labelStyle, primaryButtonStyle } from '@/styles/cardStyles'
 
 interface CreateAccountCardProps {
@@ -9,9 +11,6 @@ interface CreateAccountCardProps {
 }
 
 export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCardProps) {
-    const [firstName, setFirstName] = useState('')
-    const [lastName, setLastName] = useState('')
-    const [age, setAge] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
@@ -26,20 +25,24 @@ export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCa
 
     const handleSubmit = async () => {
         setError('')
-        if (password !== confirmPassword) {
-            setError('Passwords do not match')
+        if (!email || !password) {
+            setError('Please fill in all fields.')
             return
         }
-        if (parseInt(age) < 13) {
-            setError('You must be at least 13 to play')
+        if (password !== confirmPassword) {
+            setError('Passwords do not match.')
+            return
+        }
+        if (password.length < 6) {
+            setError('Password must be at least 6 characters.')
             return
         }
         setLoading(true)
         try {
-            // TODO: replace with real create account API call
-            await new Promise(res => setTimeout(res, 800))
+            await createUserWithEmailAndPassword(getFirebaseAuth(), email, password)
             onCreated()
         } catch (err: unknown) {
+            console.error(err)
             const msg = err instanceof Error ? err.message : 'Something went wrong'
             setError(msg)
         } finally {
@@ -60,7 +63,7 @@ export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCa
                 onClick={onBack}
                 style={{
                     background: 'none', border: 'none',
-                    color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem',
+                    color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem',
                     cursor: 'pointer', padding: '0 0 1.25rem 0',
                     display: 'flex', alignItems: 'center', gap: '0.4rem',
                 }}
@@ -68,61 +71,20 @@ export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCa
                 ← Back
             </button>
 
-            <h2 style={{ color: 'white', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>
+            <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>
                 Create Account
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', textAlign: 'center', marginBottom: '1.75rem' }}>
+            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', textAlign: 'center', marginBottom: '1.75rem' }}>
                 Join Vesania and start your adventure
             </p>
 
             {error && (
-                <div style={{ color: '#f87171', fontSize: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
+                <div style={{ color: '#f87171', fontSize: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
                     {error}
                 </div>
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                        <label style={labelStyle}>FIRST NAME</label>
-                        <input
-                            type="text"
-                            placeholder="John"
-                            value={firstName}
-                            onChange={e => setFirstName(e.target.value)}
-                            style={inputStyle}
-                            onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
-                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-                        />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <label style={labelStyle}>LAST NAME</label>
-                        <input
-                            type="text"
-                            placeholder="Doe"
-                            value={lastName}
-                            onChange={e => setLastName(e.target.value)}
-                            style={inputStyle}
-                            onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
-                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    <label style={labelStyle}>AGE</label>
-                    <input
-                        type="number"
-                        placeholder="18"
-                        value={age}
-                        onChange={e => setAge(e.target.value)}
-                        style={inputStyle}
-                        onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
-                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-                    />
-                </div>
-
                 <div>
                     <label style={labelStyle}>EMAIL</label>
                     <input
@@ -154,7 +116,7 @@ export default function CreateAccountCard({ onBack, onCreated }: CreateAccountCa
                                 position: 'absolute', right: '0.75rem', top: '50%',
                                 transform: 'translateY(-50%)', background: 'none',
                                 border: 'none', color: 'rgba(255,255,255,0.4)',
-                                cursor: 'pointer', fontSize: '0.85rem', padding: 0,
+                                cursor: 'pointer', fontSize: '1rem', padding: 0,
                             }}
                         >
                             {showPassword ? 'Hide' : 'Show'}

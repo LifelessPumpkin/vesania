@@ -100,7 +100,6 @@ export interface ApiErrorResponse {
 
 export interface UserProfile {
     username: string;
-    displayName: string | null;
     avatarUrl: string | null;
     bio: string | null;
     createdAt: string;

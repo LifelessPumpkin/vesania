@@ -40,7 +40,7 @@ export default function CardSaved({ result }: CardSavedProps) {
             </h2>
 
             {cardDesc && (
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
                     {cardDesc}
                 </p>
             )}

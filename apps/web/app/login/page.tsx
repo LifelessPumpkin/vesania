@@ -5,7 +5,11 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LoginCard from '@/components/scan/LoginCard'
 import CreateAccountCard from '@/components/scan/CreateAccountCard'
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import {
+    signInWithPopup,
+    signInWithEmailAndPassword,
+    GoogleAuthProvider,
+} from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
 
@@ -19,6 +23,10 @@ function LoginPageContent() {
     const [error, setError] = useState('')
     const { user, profileComplete } = useAuth()
 
+    // Email/password state
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+
     useEffect(() => {
         if (user) {
             if (!profileComplete) {
@@ -29,13 +37,12 @@ function LoginPageContent() {
         }
     }, [user, profileComplete, router, redirectTo])
 
-    const handleSignIn = async () => {
+    const handleGoogleSignIn = async () => {
         setLoading(true)
         setError('')
         try {
             const provider = new GoogleAuthProvider()
             await signInWithPopup(getFirebaseAuth(), provider)
-            // Redirect is handled by the useEffect above after auth context updates
         } catch (err: unknown) {
             console.error(err)
             const msg = err instanceof Error ? err.message : 'Sign-in failed. Please try again.'
@@ -44,6 +51,25 @@ function LoginPageContent() {
             setLoading(false)
         }
     }
+
+    const handleEmailSignIn = async () => {
+        if (!email || !password) {
+            setError('Please enter email and password.')
+            return
+        }
+        setLoading(true)
+        setError('')
+        try {
+            await signInWithEmailAndPassword(getFirebaseAuth(), email, password)
+        } catch (err: unknown) {
+            console.error(err)
+            const msg = err instanceof Error ? err.message : 'Sign-in failed. Please try again.'
+            setError(msg)
+        } finally {
+            setLoading(false)
+        }
+    }
+
 
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -55,7 +81,13 @@ function LoginPageContent() {
                 {mode === 'login' && (
                     <LoginCard
                         onBack={() => router.push('/')}
-                        onSignIn={handleSignIn}
+                        onGoogleSignIn={handleGoogleSignIn}
+                        onEmailSignIn={handleEmailSignIn}
+                        email={email}
+                        setEmail={setEmail}
+                        password={password}
+                        setPassword={setPassword}
+                        onCreateMode={() => { setMode('create'); setError('') }}
                         loading={loading}
                         error={error}
                         title="Sign In To Play!"
@@ -63,8 +95,8 @@ function LoginPageContent() {
                 )}
                 {mode === 'create' && (
                     <CreateAccountCard
-                        onBack={() => setMode('login')}
-                        onCreated={() => router.push(redirectTo)}
+                        onBack={() => { setMode('login'); setError('') }}
+                        onCreated={() => { /* redirect handled by useEffect */ }}
                     />
                 )}
             </div>
