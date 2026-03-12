@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 
 interface Card {
     distance: number
@@ -83,7 +84,7 @@ export default function FloatingCards() {
     const OVERLAP_RATIO = 1 / 8 // 12.5% overlap
     const overlapPixels = CARD_WIDTH * OVERLAP_RATIO
     const spacing = CARD_WIDTH - overlapPixels // 70px effective spacing
-    const speed = 1.5
+    const speed = 2
 
     // calculate required cards to always cover path
     const cardCount = Math.ceil(TOTAL_LENGTH / spacing) - 1
@@ -132,7 +133,10 @@ export default function FloatingCards() {
     }, [cardCount, spacing])
 
     return (
-        <div
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
             style={{
                 position: 'absolute',
                 top: 0,
@@ -173,6 +177,6 @@ export default function FloatingCards() {
                     />
                 </div>
             ))}
-        </div>
+        </motion.div>
     )
 }

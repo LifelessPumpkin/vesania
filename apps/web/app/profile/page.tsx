@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
@@ -11,6 +10,8 @@ import { uploadAvatar } from '@/lib/avatar-upload'
 import { USERNAME_RULES, MAX_BIO_LENGTH } from '@/lib/constants'
 import type { UserProfile } from '@/lib/api-types'
 import styles from './profile.module.css'
+import SlideUpPage from '@/components/SlideUpPage'
+import DungeonBackground from '@/components/DungeonBackground'
 
 export default function ProfilePage() {
     const { user, loading: authLoading, getToken, refreshProfile } = useAuth()
@@ -138,7 +139,7 @@ export default function ProfilePage() {
     if (authLoading || !user) {
         return (
             <main className={styles.page}>
-                <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} priority />
+                <DungeonBackground />
                 <div className={styles.card}>
                     <p className={styles.loadingText}>Loading...</p>
                 </div>
@@ -148,132 +149,132 @@ export default function ProfilePage() {
 
     return (
         <main className={styles.page}>
-            <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} priority />
+            <DungeonBackground />
 
-            <div className={styles.card}>
-                <header className={styles.header}>
-                    <Link href="/home" className={styles.backLink}>← Home</Link>
-                </header>
+            <SlideUpPage>
+                <div className={styles.card}>
+                    <header className={styles.header}>
+                        <Link href="/home" className={styles.backLink}>← Home</Link>
+                    </header>
 
-                {loadingProfile ? (
-                    <p className={styles.loadingText}>Loading profile...</p>
-                ) : !profile ? (
-                    <p className={styles.error}>Could not load profile.</p>
-                ) : editing ? (
-                    /* ── Edit Mode ── */
-                    <form className={styles.editForm} onSubmit={handleSave}>
-                        <div className={styles.profileHeader}>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif"
-                                onChange={handleFileChange}
-                                className={styles.hiddenInput}
-                            />
-                            {avatarPreviewUrl ? (
-                                <img
-                                    src={avatarPreviewUrl}
-                                    alt="Avatar"
-                                    className={styles.avatarLargeEdit}
-                                    onClick={handleAvatarClick}
+                    {loadingProfile ? (
+                        <p className={styles.loadingText}>Loading profile...</p>
+                    ) : !profile ? (
+                        <p className={styles.error}>Could not load profile.</p>
+                    ) : editing ? (
+                        /* ── Edit Mode ── */
+                        <form className={styles.editForm} onSubmit={handleSave}>
+                            <div className={styles.profileHeader}>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                    onChange={handleFileChange}
+                                    className={styles.hiddenInput}
                                 />
-                            ) : (
-                                <div className={styles.avatarPlaceholderEdit} onClick={handleAvatarClick}>+</div>
-                            )}
-                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '1.2rem' }}>
-                                Click avatar to change
-                            </span>
-                        </div>
-
-                        <div className={styles.fieldGroup}>
-                            <label className={styles.label}>Username</label>
-                            <input
-                                type="text"
-                                value={editUsername}
-                                onChange={e => handleUsernameChange(e.target.value)}
-                                className={styles.input}
-                                maxLength={20}
-                                required
-                            />
-                            {usernameStatus === 'checking' && (
-                                <span className={`${styles.validationHint} ${styles.checking}`}>Checking...</span>
-                            )}
-                            {usernameStatus === 'available' && (
-                                <span className={`${styles.validationHint} ${styles.valid}`}>✓ Available</span>
-                            )}
-                            {usernameStatus === 'taken' && (
-                                <span className={`${styles.validationHint} ${styles.invalid}`}>✗ Taken</span>
-                            )}
-                            {usernameStatus === 'invalid' && (
-                                <span className={`${styles.validationHint} ${styles.invalid}`}>{USERNAME_RULES}</span>
-                            )}
-                        </div>
-
-
-                        <div className={styles.fieldGroup}>
-                            <label className={styles.label}>Bio</label>
-                            <textarea
-                                value={editBio}
-                                onChange={e => setEditBio(e.target.value)}
-                                className={styles.textarea}
-                                maxLength={MAX_BIO_LENGTH}
-                                placeholder="Tell others about yourself"
-                            />
-                            <span className={styles.charCount}>{editBio.length}/{MAX_BIO_LENGTH}</span>
-                        </div>
-
-                        {error && <p className={styles.error}>{error}</p>}
-
-                        <div className={styles.buttonRow}>
-                            <button type="button" onClick={cancelEditing} className={styles.cancelButton}>Cancel</button>
-                            <button type="submit" disabled={saving} className={styles.saveButton}>
-                                {saving ? 'Saving...' : 'Save Changes'}
-                            </button>
-                        </div>
-                    </form>
-                ) : (
-                    /* ── View Mode ── */
-                    <>
-                        <div className={styles.profileHeader}>
-                            {profile.avatarUrl ? (
-                                <img src={profile.avatarUrl} alt="Avatar" className={styles.avatarLarge} />
-                            ) : (
-                                <div className={styles.avatarPlaceholder}>👤</div>
-                            )}
-                            <h1 className={styles.displayName}>
-                                {profile.username}
-                            </h1>
-                            <span className={styles.username}>@{profile.username}</span>
-                            {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
-                        </div>
-
-                        <div className={styles.statsRow}>
-                            <div className={styles.stat}>
-                                <span className={styles.statValue}>{profile.stats.cardsOwned}</span>
-                                <span className={styles.statLabel}>Cards</span>
+                                {avatarPreviewUrl ? (
+                                    <img
+                                        src={avatarPreviewUrl}
+                                        alt="Avatar"
+                                        className={styles.avatarLargeEdit}
+                                        onClick={handleAvatarClick}
+                                    />
+                                ) : (
+                                    <div className={styles.avatarPlaceholderEdit} onClick={handleAvatarClick}>+</div>
+                                )}
+                                <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '1.2rem' }}>
+                                    Click avatar to change
+                                </span>
                             </div>
-                            <div className={styles.stat}>
-                                <span className={styles.statValue}>{profile.stats.decksBuilt}</span>
-                                <span className={styles.statLabel}>Decks</span>
+
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>Username</label>
+                                <input
+                                    type="text"
+                                    value={editUsername}
+                                    onChange={e => handleUsernameChange(e.target.value)}
+                                    className={styles.input}
+                                    maxLength={20}
+                                    required
+                                />
+                                {usernameStatus === 'checking' && (
+                                    <span className={`${styles.validationHint} ${styles.checking}`}>Checking...</span>
+                                )}
+                                {usernameStatus === 'available' && (
+                                    <span className={`${styles.validationHint} ${styles.valid}`}>✓ Available</span>
+                                )}
+                                {usernameStatus === 'taken' && (
+                                    <span className={`${styles.validationHint} ${styles.invalid}`}>✗ Taken</span>
+                                )}
+                                {usernameStatus === 'invalid' && (
+                                    <span className={`${styles.validationHint} ${styles.invalid}`}>{USERNAME_RULES}</span>
+                                )}
                             </div>
-                            <div className={styles.stat}>
-                                <span className={styles.statValue}>{profile.stats.friendsCount}</span>
-                                <span className={styles.statLabel}>Friends</span>
+
+                            <div className={styles.fieldGroup}>
+                                <label className={styles.label}>Bio</label>
+                                <textarea
+                                    value={editBio}
+                                    onChange={e => setEditBio(e.target.value)}
+                                    className={styles.textarea}
+                                    maxLength={MAX_BIO_LENGTH}
+                                    placeholder="Tell others about yourself"
+                                />
+                                <span className={styles.charCount}>{editBio.length}/{MAX_BIO_LENGTH}</span>
                             </div>
-                        </div>
 
-                        <p className={styles.memberSince}>
-                            Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                        </p>
+                            {error && <p className={styles.error}>{error}</p>}
 
-                        {error && <p className={styles.error}>{error}</p>}
-                        {success && <p className={styles.success}>{success}</p>}
+                            <div className={styles.buttonRow}>
+                                <button type="button" onClick={cancelEditing} className={styles.cancelButton}>Cancel</button>
+                                <button type="submit" disabled={saving} className={styles.saveButton}>
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        /* ── View Mode ── */
+                        <>
+                            <div className={styles.profileHeader}>
+                                {profile.avatarUrl ? (
+                                    <img src={profile.avatarUrl} alt="Avatar" className={styles.avatarLarge} />
+                                ) : (
+                                    <div className={styles.avatarPlaceholder}>👤</div>
+                                )}
+                                <h1 className={styles.displayName}>
+                                    {profile.username}
+                                </h1>
+                                <span className={styles.username}>@{profile.username}</span>
+                                {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
+                            </div>
 
-                        <button onClick={startEditing} className={styles.editButton}>Edit Profile</button>
-                    </>
-                )}
-            </div>
+                            <div className={styles.statsRow}>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.cardsOwned}</span>
+                                    <span className={styles.statLabel}>Cards</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.decksBuilt}</span>
+                                    <span className={styles.statLabel}>Decks</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.friendsCount}</span>
+                                    <span className={styles.statLabel}>Friends</span>
+                                </div>
+                            </div>
+
+                            <p className={styles.memberSince}>
+                                Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                            </p>
+
+                            {error && <p className={styles.error}>{error}</p>}
+                            {success && <p className={styles.success}>{success}</p>}
+
+                            <button onClick={startEditing} className={styles.editButton}>Edit Profile</button>
+                        </>
+                    )}
+                </div>
+            </SlideUpPage>
         </main>
     )
 }
-

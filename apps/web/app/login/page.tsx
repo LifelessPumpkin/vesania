@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LoginCard from '@/components/scan/LoginCard'
@@ -12,6 +11,7 @@ import {
 } from 'firebase/auth'
 import { getFirebaseAuth } from '@/lib/firebase'
 import { useAuth } from '@/context/AuthContext'
+import DungeonBackground from '@/components/DungeonBackground'
 
 function LoginPageContent() {
     const router = useRouter()
@@ -70,10 +70,9 @@ function LoginPageContent() {
         }
     }
 
-
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-            <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} />
+            <DungeonBackground />
             <div style={{
                 position: 'relative', zIndex: 10, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', height: '100%'
@@ -108,7 +107,7 @@ export default function LoginPage() {
     return (
         <Suspense fallback={
             <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-                <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} />
+                <DungeonBackground />
             </div>
         }>
             <LoginPageContent />

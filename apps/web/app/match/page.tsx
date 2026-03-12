@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import SlideUpPage from "@/components/SlideUpPage";
 import { GAME } from "@/lib/game-server/constants";
 
 type PlayerId = "p1" | "p2";
@@ -150,67 +151,69 @@ export default function MatchPage() {
   // --- LOBBY ---
   if (screen === "lobby") {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="w-full max-w-md p-8 space-y-6">
-          <div className="text-center">
-            <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
-              &larr; Home
-            </Link>
-            <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>
-            <p className="text-gray-400 mt-1">Turn-based combat</p>
-          </div>
+      <SlideUpPage>
+        <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+          <div className="w-full max-w-md p-8 space-y-6">
+            <div className="text-center">
+              <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
+                &larr; Home
+              </Link>
+              <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>
+              <p className="text-gray-400 mt-1">Turn-based combat</p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Your Name
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
-              maxLength={20}
-              className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={20}
+                className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
 
-          <button
-            onClick={handleCreate}
-            disabled={loading}
-            className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-50 transition-colors"
-          >
-            Create Match
-          </button>
-
-          <div className="flex items-center gap-3">
-            <hr className="flex-1 border-gray-700" />
-            <span className="text-gray-500 text-sm">or join</span>
-            <hr className="flex-1 border-gray-700" />
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder="ROOM CODE"
-              maxLength={6}
-              className="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 uppercase tracking-widest text-center font-mono"
-            />
             <button
-              onClick={handleJoin}
+              onClick={handleCreate}
               disabled={loading}
-              className="px-6 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50 transition-colors"
+              className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-50 transition-colors"
             >
-              Join
+              Create Match
             </button>
-          </div>
 
-          {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          )}
-        </div>
-      </main>
+            <div className="flex items-center gap-3">
+              <hr className="flex-1 border-gray-700" />
+              <span className="text-gray-500 text-sm">or join</span>
+              <hr className="flex-1 border-gray-700" />
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="ROOM CODE"
+                maxLength={6}
+                className="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 uppercase tracking-widest text-center font-mono"
+              />
+              <button
+                onClick={handleJoin}
+                disabled={loading}
+                className="px-6 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50 transition-colors"
+              >
+                Join
+              </button>
+            </div>
+
+            {error && (
+              <p className="text-red-400 text-sm text-center">{error}</p>
+            )}
+          </div>
+        </main>
+      </SlideUpPage>
     );
   }
 
