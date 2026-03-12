@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyAdminAuth } from "@/lib/auth-session";
+import { apiError } from "@/lib/api-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Unauthorized or Failed",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 401 }
-    );
+    return apiError("Unauthorized or Failed", 401, error);
   }
 }
 
@@ -78,12 +72,6 @@ export async function PATCH(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error updating user role:", error);
-    return NextResponse.json(
-      {
-        message: "Error updating user role",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return apiError("Error updating user role", 500, error);
   }
 }

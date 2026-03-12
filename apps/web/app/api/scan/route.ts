@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyRequestAuth } from '@/lib/auth-session'
+import { apiError } from '@/lib/api-helpers'
 
 export async function POST(req: NextRequest) {
   try {
@@ -78,9 +79,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Scan error:', error)
-    return NextResponse.json(
-      { message: 'Internal Server Error', error: error instanceof Error ? error.message : 'Unknown' },
-      { status: 500 }
-    )
+    return apiError('Internal Server Error', 500, error)
   }
 }

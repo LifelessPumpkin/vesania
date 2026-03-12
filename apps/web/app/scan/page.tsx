@@ -1,28 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import Link from 'next/link'
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth'
+import { getFirebaseAuth } from '@/lib/firebase'
+import type { ScanResult } from '@/lib/api-types'
 
-export default function ScanPage() {
+import Vortex from '@/components/Vortex'
+import ScanCard from '@/components/scan/ScanCard'
+import LoginCard from '@/components/scan/LoginCard'
+import CardSaved from '@/components/scan/CardSaved'
+
+function ScanPageContent() {
   const { user, getToken } = useAuth()
+  const searchParams = useSearchParams()
 
   const [code, setCode] = useState('')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<ScanResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [signingIn, setSigningIn] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const hasAutoScanned = useRef(false)
+
+  useEffect(() => {
+    const idParam = searchParams.get('id')
+    if (idParam) {
+      setCode(idParam)
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const idParam = searchParams.get('id')
+    if (user && idParam && !hasAutoScanned.current) {
+      hasAutoScanned.current = true
+      performScan(idParam)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, searchParams])
+
+  const performScan = async (scanCode: string) => {
     setLoading(true)
     setError('')
     setResult(null)
-
-    if (!user) {
-      setError('You must be logged in to scan cards.')
-      setLoading(false)
-      return
-    }
 
     try {
       const token = await getToken()
@@ -33,7 +55,7 @@ export default function ScanPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code: scanCode }),
       })
 
       const data = await res.json()
@@ -43,64 +65,75 @@ export default function ScanPage() {
       }
 
       setResult(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong'
       console.error(err)
-      setError(err.message)
+      setError(message)
     } finally {
       setLoading(false)
     }
   }
 
-  if (!user) {
-    return <div className="p-8">Please log in to access the scanner.</div>
+  const handleScan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) {
+      setError('You must be logged in to scan cards.')
+      setShowLogin(true)
+      return
+    }
+    await performScan(code)
+  }
+
+  const handleSignIn = async () => {
+    setSigningIn(true)
+    setError('')
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(getFirebaseAuth(), provider)
+      setShowLogin(false)
+    } catch (err: unknown) {
+      console.error(err)
+      setError('Sign-in failed. Please try again.')
+    } finally {
+      setSigningIn(false)
+    }
   }
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <Link href="/" className="text-blue-500 underline mb-4 inline-block">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Back to Home
-        </button>
-      </Link>
-      <h1 className="text-2xl font-bold mb-4">Scan Card</h1>
-
-      <form onSubmit={handleScan} className="flex gap-2 mb-6">
-        <input
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="Enter NFC Code"
-          className="border p-2 rounded flex-1 text-black"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {loading ? 'Scanning...' : 'Scan'}
-        </button>
-      </form>
-
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-
-      {result && (
-        <div className="border p-4 rounded bg-gray-50 text-black">
-          <h2 className="text-xl font-bold">
-            {result.card?.definition?.name || result.definition?.name || 'Unknown Card'}
-          </h2>
-          <p className="text-gray-600 mb-2">
-            {result.card?.definition?.description || result.definition?.description}
-          </p>
-
-          <div className="mt-4 p-2 bg-green-100 rounded text-green-800 text-sm">
-            {result.message}
-          </div>
-
-          <div className="text-sm mt-2 text-gray-500">
-            Status: <span className="font-mono font-bold">{result.card?.status || result.status}</span>
-          </div>
-        </div>
-      )}
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      <Vortex />
+      <div style={{
+        position: 'relative', zIndex: 10, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        height: '100%', padding: '1rem', boxSizing: 'border-box'
+      }}>
+        {!user || showLogin ? (
+          <LoginCard
+            onBack={() => setShowLogin(false)}
+            onGoogleSignIn={handleSignIn}
+            loading={signingIn}
+            error={error}
+          />
+        ) : result ? (
+          <CardSaved result={result} />
+        ) : (
+          <ScanCard
+            code={code}
+            onChangeCode={setCode}
+            onScan={handleScan}
+            loading={loading}
+            error={error}
+          />
+        )}
+      </div>
     </div>
+  )
+}
+
+export default function ScanPage() {
+  return (
+    <Suspense fallback={<div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}><Vortex /></div>}>
+      <ScanPageContent />
+    </Suspense>
   )
 }

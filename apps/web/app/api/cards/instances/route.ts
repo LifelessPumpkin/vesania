@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth-session'
+import { apiError } from '@/lib/api-helpers'
 
 export async function GET(req: NextRequest) {
     try {
@@ -26,10 +27,7 @@ export async function GET(req: NextRequest) {
         })
     } catch (error) {
         console.error('Error fetching card instances:', error)
-        return NextResponse.json({
-            message: 'Error fetching card instances',
-            error: error instanceof Error ? error.message : String(error)
-        }, { status: 500 })
+        return apiError('Error fetching card instances', 500, error)
     }
 }
 
@@ -41,16 +39,19 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json()
-        let { definitionId, publicCode } = body
+        const { definitionId, publicCode } = body
+        const quantity = Math.min(Math.max(parseInt(body.quantity) || 1, 1), 50)
 
-        if (!definitionId || !publicCode) {
+        if (!definitionId) {
             return NextResponse.json({
-                message: 'Missing required fields: definitionId and publicCode are required.'
+                message: 'Missing required field: definitionId is required.'
             }, { status: 400 })
         }
 
-        if (!publicCode.startsWith('ves_')) {
-            publicCode = `ves_${publicCode}`
+        if (quantity === 1 && !publicCode) {
+            return NextResponse.json({
+                message: 'Missing required field: publicCode is required for single mint.'
+            }, { status: 400 })
         }
 
         const definition = await prisma.cardDefinition.findUnique({
@@ -61,36 +62,54 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Invalid definitionId. Card Definition not found.' }, { status: 404 })
         }
 
-        const existingCard = await prisma.card.findUnique({
-            where: { publicCode }
-        })
-        if (existingCard) {
-            return NextResponse.json({ message: 'A card with this publicCode already exists.' }, { status: 409 })
+        if (quantity === 1 && publicCode) {
+            const code = publicCode.startsWith('ves_') ? publicCode : `ves_${publicCode}`
+            const existingCard = await prisma.card.findUnique({ where: { publicCode: code } })
+            if (existingCard) {
+                return NextResponse.json({ message: 'A card with this publicCode already exists.' }, { status: 409 })
+            }
         }
 
-        const customId = `inst_${Math.random().toString(36).substring(2, 10)}`
+        const mintedCards = await prisma.$transaction(async (tx) => {
+            const cards: Awaited<ReturnType<typeof tx.card.create>>[] = []
 
-        const newCard = await prisma.card.create({
-            data: {
-                id: customId,
-                publicCode,
-                definitionId,
-            },
-            include: {
-                definition: true
+            for (let i = 0; i < quantity; i++) {
+                let code: string
+                if (quantity === 1 && publicCode) {
+                    code = publicCode.startsWith('ves_') ? publicCode : `ves_${publicCode}`
+                } else {
+                    code = `ves_${crypto.randomUUID().slice(0, 8)}`
+                    while (await tx.card.findUnique({ where: { publicCode: code } })) {
+                        code = `ves_${crypto.randomUUID().slice(0, 8)}`
+                    }
+                }
+
+                const newCard = await tx.card.create({
+                    data: {
+                        id: `inst_${crypto.randomUUID()}`,
+                        publicCode: code,
+                        definitionId,
+                    },
+                    include: {
+                        definition: true,
+                        owner: true,
+                    }
+                })
+
+                cards.push(newCard)
             }
+
+            return cards
         })
 
         return NextResponse.json({
-            message: 'New physical card minted successfully',
-            card: newCard
+            message: `Successfully minted ${mintedCards.length} card(s)`,
+            cards: mintedCards,
+            card: mintedCards[0],
         }, { status: 201 })
 
     } catch (error) {
         console.error('Mint error:', error)
-        return NextResponse.json({
-            message: 'Error minting card',
-            error: error instanceof Error ? error.message : 'Unknown'
-        }, { status: 500 })
+        return apiError('Error minting card', 500, error)
     }
 }

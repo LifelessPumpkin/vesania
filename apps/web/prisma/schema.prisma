@@ -7,14 +7,33 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  createdAt   DateTime @default(now())
-  email       String   @unique
-  firebaseUid String   @unique
-  role        Role     @default(USER)
-  cards       Card[]
-  Run         Run[]
+  id              String   @id @default(cuid())
+  username        String   @unique
+  displayName     String?
+  avatarUrl       String?
+  bio             String?
+  profileComplete Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  email           String   @unique
+  firebaseUid     String   @unique
+  role            Role     @default(USER)
+  cards           Card[]
+  decks           Deck[]
+  friendLinksA    Friendship[] @relation("FriendshipUserA")
+  friendLinksB    Friendship[] @relation("FriendshipUserB")
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  createdAt DateTime @default(now())
+  userA     User     @relation("FriendshipUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB     User     @relation("FriendshipUserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
 }
 
 model Card {
@@ -27,48 +46,39 @@ model Card {
   createdAt    DateTime       @default(now())
   definition   CardDefinition @relation(fields: [definitionId], references: [id])
   owner        User?          @relation(fields: [ownerId], references: [id])
+  deckCards    DeckCard[]
 }
 
 model CardDefinition {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   type        CardType
   name        String
   description String
   rarity      CardRarity
   effectJson  Json?
+  imageUrl    String?
   cards       Card[]
 }
 
-model Character {
-  id          String   @id
-  name        String
-  archetype   String
-  description String
-  createdAt   DateTime @default(now())
-  Item        Item[]
-  Run         Run[]
+model Deck {
+  id        String     @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id])
+  cards     DeckCard[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
-model Item {
-  id          String    @id
-  characterId String
-  name        String
-  cost        Int
-  rarity      String
-  effectJson  Json
-  createdAt   DateTime  @default(now())
-  Character   Character @relation(fields: [characterId], references: [id])
-}
+model DeckCard {
+  id       String @id @default(cuid())
+  deckId   String
+  cardId   String
+  position Int    @default(0)
+  deck     Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  card     Card   @relation(fields: [cardId], references: [id])
 
-model Run {
-  id          String    @id
-  ownerId     String
-  characterId String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-  stateJson   Json      @default("{}")
-  Character   Character @relation(fields: [characterId], references: [id])
-  User        User      @relation(fields: [ownerId], references: [id])
+  @@unique([deckId, cardId])
 }
 
 enum Role {

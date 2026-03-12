@@ -1,39 +1,89 @@
-'use client';
-import Link from "next/link";
-import { useAuth } from "@/context/AuthContext";
+'use client'
+
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { useAuth } from '@/context/AuthContext'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import VortexLocal from '@/components/VortexLocal'
+import DungeonBackground from '@/components/DungeonBackground'
 
 export default function Home() {
-  const { role } = useAuth();
+  const router = useRouter()
+  const { user, loading } = useAuth()
+  const [navigating, setNavigating] = useState(false)
 
+  const handlePlayNow = () => {
+    if (loading || navigating) return
+    setNavigating(true)
+    if (user) {
+      router.push('/home')
+    } else {
+      router.push('/login')
+    }
+  }
   return (
-    <main className="p-10">
-      <Link href="/scan" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to Scan Page
-        </button>
-      </Link>
-      <br />
-      <Link href="/test-auth" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to Test Auth Page
-        </button>
-      </Link>
-      <br />
-      <Link href="/api-docs" className="text-blue-500 underline">
-        <button className="px-4 py-2 bg-blue-500 text-white rounded">
-          Go to API Docs Page
-        </button>
-      </Link>
-      {role === 'ADMIN' && (
-        <>
-          <br />
-          <Link href="/admin" className="text-purple-500 underline">
-            <button className="px-4 py-2 bg-purple-600 text-white rounded">
-              Admin Dashboard
-            </button>
-          </Link>
-        </>
-      )}
-    </main>
-  );
+    <div style={{ position: 'relative', minHeight: '100vh', width: '100%', overflow: 'hidden', paddingTop: '12vh' }}>
+      <DungeonBackground />
+      <motion.button
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        style={{
+          position: 'absolute', top: '1rem', left: '1rem',
+          zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
+          background: 'goldenrod', color: 'white',
+          border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+          animationDelay: '0.2s'
+        }}
+        className="rumble"
+      >
+        About
+      </motion.button>
+
+      <div style={{
+        position: 'relative', zIndex: 10, display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+        paddingTop: '2vh', height: '100%', gap: '0'
+      }}>
+
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          style={{ position: 'relative', width: 700, height: 250 }}
+          className="logo-float"
+        >
+          <VortexLocal />
+          <Image
+            src="/AI_slop.png"
+            alt="Vesania"
+            width={700}
+            height={250}
+            style={{ position: 'relative', zIndex: 10 }}
+          />
+        </motion.div>
+
+        {/* Page should automatically route to /home if the user is logged in */}
+        <motion.button
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+          onClick={handlePlayNow}
+          disabled={loading || navigating}
+          style={{
+            position: 'relative', zIndex: 20,
+            padding: '0.6rem 3rem', fontSize: '32px',
+            background: 'goldenrod', color: 'white',
+            border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
+            opacity: (loading || navigating) ? 0.7 : 1,
+            animationDelay: '0.5s'
+          }}
+          className="rumble"
+        >
+          {loading ? '...' : navigating ? '...' : 'Play now'}
+        </motion.button>
+      </div>
+    </div>
+  )
 }

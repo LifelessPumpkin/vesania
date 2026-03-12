@@ -13,6 +13,8 @@ export default async function AdminPage() {
         redirect('/')
     }
 
+    let adminUser: { id: string; username: string; email: string } | null = null;
+
     try {
         const adminAuth = getAdminAuth()
         const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true)
@@ -25,8 +27,10 @@ export default async function AdminPage() {
             redirect('/')
         }
 
-        return <AdminDashboard adminUser={{ id: user.id, username: user.username, email: user.email }} />
+        adminUser = { id: user.id, username: user.username, email: user.email }
     } catch {
         redirect('/')
     }
+
+    return <AdminDashboard adminUser={adminUser} />
 }

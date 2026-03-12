@@ -5,8 +5,7 @@ import {
   ActionType,
 } from "./types";
 import redis from "@/lib/redis";
-
-const MAX_HP = 30;
+import { GAME } from "./constants";
 
 // Lua script to release a lock only if we still own it (atomic check-and-delete).
 const RELEASE_LOCK_LUA = `
@@ -57,7 +56,7 @@ export async function createMatch(hostName: string): Promise<MatchState> {
     matchId,
     status: "waiting",
     players: {
-      p1: { name: hostName, hp: MAX_HP, block: 0 },
+      p1: { name: hostName, hp: GAME.MAX_HP, block: 0 },
       p2: null,
     },
     turn: "p1",
@@ -83,7 +82,7 @@ export async function joinMatch(matchId: string, guestName: string): Promise<Mat
     if (state.status !== "waiting") throw new Error("Match is not accepting players");
     if (state.players.p2 !== null) throw new Error("Match is full");
 
-    state.players.p2 = { name: guestName, hp: MAX_HP, block: 0 };
+    state.players.p2 = { name: guestName, hp: GAME.MAX_HP, block: 0 };
     state.status = "active";
     state.p2Token = generateToken();
     state.log.push(`${guestName} joined! ${state.players.p1.name}'s turn.`);
@@ -124,10 +123,10 @@ export async function applyAction(
 
     switch (action) {
       case "PUNCH": {
-        const dmg = Math.max(0, 5 - target.block);
-        const blocked = 5 - dmg;
+        const dmg = Math.max(0, GAME.PUNCH_DAMAGE - target.block);
+        const blocked = GAME.PUNCH_DAMAGE - dmg;
         target.hp = Math.max(0, target.hp - dmg);
-        target.block = Math.max(0, target.block - 5);
+        target.block = Math.max(0, target.block - GAME.PUNCH_DAMAGE);
         state.log.push(
           blocked > 0
             ? `${attacker.name} punched ${target.name} for ${dmg} damage (${blocked} blocked)`
@@ -136,10 +135,10 @@ export async function applyAction(
         break;
       }
       case "KICK": {
-        const dmg = Math.max(0, 8 - target.block);
-        const blocked = 8 - dmg;
+        const dmg = Math.max(0, GAME.KICK_DAMAGE - target.block);
+        const blocked = GAME.KICK_DAMAGE - dmg;
         target.hp = Math.max(0, target.hp - dmg);
-        target.block = Math.max(0, target.block - 8);
+        target.block = Math.max(0, target.block - GAME.KICK_DAMAGE);
         state.log.push(
           blocked > 0
             ? `${attacker.name} kicked ${target.name} for ${dmg} damage (${blocked} blocked)`
@@ -148,12 +147,12 @@ export async function applyAction(
         break;
       }
       case "BLOCK": {
-        attacker.block += 5;
-        state.log.push(`${attacker.name} raised their guard (+5 block)`);
+        attacker.block += GAME.BLOCK_AMOUNT;
+        state.log.push(`${attacker.name} raised their guard (+${GAME.BLOCK_AMOUNT} block)`);
         break;
       }
       case "HEAL": {
-        const healed = Math.min(3, MAX_HP - attacker.hp);
+        const healed = Math.min(GAME.HEAL_AMOUNT, GAME.MAX_HP - attacker.hp);
         attacker.hp += healed;
         state.log.push(`${attacker.name} healed for ${healed} HP`);
         break;
