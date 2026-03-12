@@ -8,16 +8,26 @@ export interface PlayerState {
   block: number;
 }
 
+// Full server-side match state. Token fields must never be sent to clients —
+// use PublicMatchState for all API responses and SSE frames.
 export interface MatchState {
   matchId: string;
   status: "waiting" | "active" | "finished";
   players: {
-    p1: PlayerState; //host
-    p2: PlayerState | null; //connecting
+    p1: PlayerState;
+    p2: PlayerState | null;
   };
   turn: PlayerId;
   log: string[];
   winner: PlayerId | null;
+  p1Token: string;
+  p2Token: string | null;
 }
 
-export type SSECallback = (state: MatchState) => void; // Server side events send current matchstate over http
+// MatchState with token fields removed. Safe to send to clients.
+export type PublicMatchState = Omit<MatchState, "p1Token" | "p2Token">;
+
+export function toPublicState(match: MatchState): PublicMatchState {
+  const { p1Token, p2Token, ...pub } = match;
+  return pub;
+}

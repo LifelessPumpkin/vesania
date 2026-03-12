@@ -10,9 +10,15 @@ export async function POST(request: Request) {
     if (!playerName || typeof playerName !== "string") {
       return NextResponse.json({ error: "playerName is required" }, { status: 400 });
     }
+    const trimmedName = playerName.trim();
+    if (trimmedName.length > 20) {
+      return NextResponse.json({ error: "playerName must be 20 characters or fewer" }, { status: 400 });
+    }
 
-    const state = joinMatch(matchId.trim().toUpperCase(), playerName.trim());
-    return NextResponse.json({ matchId: state.matchId, playerId: "p2" });
+    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName);
+    const token = state.p2Token!; // non-null: joinMatch() always assigns p2Token before returning
+
+    return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     const status = message === "Match not found" ? 404 : 400;

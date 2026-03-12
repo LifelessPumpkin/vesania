@@ -1,0 +1,498 @@
+================================================================
+CHANGE LOG: Per-Match Auth Tokens (PvP Issue #1)
+================================================================
+Date: 2026-02-25
+Branch: server-zts
+================================================================
+
+
+----------------------------------------------------------------
+BACKGROUND CONCEPTS
+----------------------------------------------------------------
+
+WHAT IS A BEARER TOKEN?
+  A Bearer token is a short string (usually random bytes, encoded
+  as hex or base64) that acts like a key. Whoever "bears" (holds)
+  the token is granted access. The server generates it, hands it
+  to the right person once, and from then on uses it to identify
+  that person on future requests.
+
+  In HTTP, it is sent in the Authorization header:
+    Authorization: Bearer abc123def456...
+
+  It is called "Bearer" because the protocol does not care who
+  you are — it only cares whether you have the key. This is
+  different from a username/password check.
+
+WHAT IS crypto.randomBytes?
+  JavaScript's Math.random() is NOT safe for security purposes —
+  it is designed to be fast, not unpredictable, and some
+  environments make it partially predictable.
+
+  Node's crypto.randomBytes(n) pulls n bytes directly from the
+  operating system's entropy source (keyboard timing, hardware
+  noise, etc.). It is the same source that password managers and
+  SSL use. The output is computationally unpredictable.
+
+  crypto.randomBytes(32).toString("hex") gives us 64 hex
+  characters representing 256 bits of randomness. The number of
+  possible tokens is 2^256 — brute-forcing one is effectively
+  impossible.
+
+WHAT IS THE AUTHORIZATION HEADER?
+  HTTP headers are key-value pairs sent with every request.
+  The Authorization header is the standard place to send
+  credentials. The format is:
+    Authorization: <scheme> <credentials>
+  The scheme we use is "Bearer". Others include "Basic" (username
+  and password, base64-encoded) and "Digest".
+
+WHAT IS TYPE OMIT IN TYPESCRIPT?
+  Omit<T, K> is a TypeScript utility that creates a new type
+  equal to T but with the keys named in K removed.
+  Example:
+    type Full = { id: string; secret: string; name: string };
+    type Safe = Omit<Full, "secret">;
+    // Safe = { id: string; name: string }
+  We use Omit<MatchState, "p1Token" | "p2Token"> to create
+  PublicMatchState — a type that structurally cannot include
+  the token fields, so TypeScript will catch us if we try to
+  access them on a stripped object.
+
+WHAT IS localStorage?
+  localStorage is a key-value store built into the browser.
+  Unlike variables in JavaScript (which disappear on page
+  refresh), localStorage persists across:
+    - Page refreshes
+    - Tab close and reopen
+    - Browser restart
+  It is scoped to the origin (domain + port), so our data is
+  not accessible to other websites. It is synchronous and stores
+  strings only — we use JSON.stringify/JSON.parse to store
+  objects. We use it here to keep the match token alive across
+  refreshes so players can reconnect.
+
+WHY NOT sessionStorage?
+  sessionStorage is similar to localStorage but scoped to a
+  single browser tab and cleared when the tab closes. The
+  original plan used sessionStorage, but we switched to
+  localStorage to align with the Redis reconnection plan
+  (Issue #2). With Redis keeping match state alive through
+  server restarts, localStorage lets us recover a full session
+  even after closing and reopening a tab.
+
+WHAT IS THE SERVER-SENT EVENTS (SSE) STRIP CONCERN?
+  SSE is the real-time push channel from server to all
+  connected clients. Any JSON we push over SSE goes to every
+  browser tab subscribed to that match — including potential
+  spectators. If we accidentally included a player's token in
+  an SSE frame, any other subscriber (or anyone who inspects
+  network traffic) could steal it. This is why we strip tokens
+  at the moment of serialization, in one place, rather than
+  trusting individual routes to remember to do it.
+
+
+----------------------------------------------------------------
+FILE 1: apps/web/lib/game-server/types.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Defined PlayerId, ActionType, PlayerState, MatchState, and
+  SSECallback. MatchState had 6 fields: matchId, status, players,
+  turn, log, winner.
+
+WHAT CHANGED:
+  1. Added two new fields to MatchState:
+       p1Token: string
+       p2Token: string | null
+     These hold the auth tokens for each player seat. p2Token is
+     null until a second player joins. Both are server-only.
+
+  2. Added PublicMatchState type:
+       type PublicMatchState = Omit<MatchState, "p1Token" | "p2Token">
+     This is the safe, client-facing version of match state.
+     It is structurally identical to MatchState except the two
+     token fields do not exist on it. TypeScript enforces this —
+     you cannot accidentally read a token from a PublicMatchState.
+
+  3. Added toPublicState() function:
+       export function toPublicState(match: MatchState): PublicMatchState {
+         const { p1Token, p2Token, ...pub } = match;
+         return pub;
+       }
+     This is the single place token-stripping happens. Every route
+     and SSE frame calls this before sending data to clients. By
+     centralizing it here (in the types file, right next to the
+     type definitions), there is one obvious place to look and one
+     place to audit. The rest-spread operator (...pub) creates a
+     new object containing every field except the two we pulled out.
+
+WHY WE MADE THESE CHANGES:
+  We needed a way to store tokens alongside match state without
+  risking them leaking to clients. The Omit approach means the
+  TypeScript compiler will error if any code tries to access
+  p1Token or p2Token on a PublicMatchState — the compiler is our
+  safety net, not just discipline.
+
+
+----------------------------------------------------------------
+FILE 2: apps/web/lib/game-server/match.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Contained createMatch(), getMatch(), joinMatch(), applyAction(),
+  subscribe(), and notifySubscribers(). No token logic. Match state
+  stored only game data.
+
+WHAT CHANGED:
+
+  1. Added import crypto from "crypto"
+     Node's built-in cryptography module. No install needed.
+
+  2. Added generateToken():
+       function generateToken(): string {
+         return crypto.randomBytes(32).toString("hex");
+       }
+     32 bytes = 256 bits of randomness, encoded as 64 hex chars.
+     This is private to match.ts — routes never call it directly.
+
+  3. createMatch() now initializes both token fields:
+       p1Token: generateToken(),
+       p2Token: null,
+     The token is generated at the exact moment the match is
+     created and lives inside the MatchState object from that
+     point forward. The route extracts it from the returned state
+     before the state is stored privately.
+
+  4. joinMatch() now sets p2Token:
+       state.p2Token = generateToken();
+     Called just before returning, so the route can extract it
+     the same way the create route handles p1Token.
+
+  5. Added resolvePlayerByToken():
+       export function resolvePlayerByToken(
+         matchId: string,
+         token: string
+       ): PlayerId | null {
+         const match = matches.get(matchId);
+         if (!match) return null;
+         if (match.p1Token === token) return "p1";
+         if (match.p2Token === token) return "p2";
+         return null;
+       }
+     This is the identity lookup the action route uses. It takes
+     a matchId and a raw token string, looks up the match, and
+     compares the token against both seats. Returns the seat ID
+     ("p1" or "p2") or null if nothing matches.
+
+     The function is exported so the action route can call it.
+     It is marked with a REDIS INTEGRATION POINT comment because
+     it currently uses matches.get() (the in-memory Map), which
+     will become an async Redis GET when Issue #2 lands. The
+     comparison logic inside is unchanged by that migration.
+
+  6. Nothing else changed in this file. applyAction(), subscribe(),
+     notifySubscribers(), and generateCode() are identical. The
+     combat engine is untouched.
+
+WHY WE MADE THESE CHANGES:
+  Token generation and lookup belong in match.ts because that is
+  where match state lives. Keeping it here means the tokens are
+  always co-located with the state they protect, and the Redis
+  migration will be a single-function change.
+
+
+----------------------------------------------------------------
+FILE 3: apps/web/app/api/match/create/route.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Called createMatch(playerName), returned { matchId, playerId: "p1" }.
+
+WHAT CHANGED:
+  1. createMatch() now returns a MatchState that includes p1Token.
+     The route reads the token before the state object goes out
+     of scope:
+       const state = createMatch(playerName.trim());
+       const token = state.p1Token;
+
+  2. The response now includes token:
+       return NextResponse.json({ matchId: state.matchId, playerId: "p1", token });
+
+  3. We intentionally return only these three fields (not the
+     whole state object) so there is no risk of a future developer
+     adding fields to the response and accidentally including
+     token data from a spread.
+
+WHY WE MADE THESE CHANGES:
+  The token must reach the client exactly once, at the moment the
+  match is created. There is no other path for it. After this
+  response, the token exists only in the server's MatchState.
+
+
+----------------------------------------------------------------
+FILE 4: apps/web/app/api/match/join/route.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Called joinMatch(matchId, playerName), returned { matchId, playerId: "p2" }.
+
+WHAT CHANGED:
+  Same pattern as the create route:
+    const state = joinMatch(matchId.trim().toUpperCase(), playerName.trim());
+    const token = state.p2Token!; // non-null: joinMatch() always sets it
+    return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });
+
+  The ! non-null assertion is safe because joinMatch() always
+  assigns p2Token before returning — TypeScript just can not
+  prove that from the type signature alone.
+
+WHY WE MADE THESE CHANGES:
+  Same reason as the create route. p2Token is issued once and
+  only here.
+
+
+----------------------------------------------------------------
+FILE 5: apps/web/app/api/match/[id]/action/route.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Read { playerId, type } from the request body. Validated that
+  playerId was "p1" or "p2". Called applyAction(id, playerId, type).
+  The server trusted whatever playerId the client sent.
+
+WHAT CHANGED (core security change):
+
+  1. Removed playerId from body parsing entirely.
+     BEFORE: const { playerId, type } = await request.json();
+     AFTER:  const { type } = await request.json();
+     The client no longer has any say in which player is acting.
+
+  2. Added Bearer token extraction:
+       const authHeader = request.headers.get("Authorization");
+       if (!authHeader?.startsWith("Bearer ")) {
+         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+       }
+       const token = authHeader.slice(7);
+     authHeader.slice(7) strips the literal "Bearer " prefix
+     (7 characters) to get the raw token.
+
+  3. Added token-to-player resolution:
+       const playerId = resolvePlayerByToken(id, token);
+       if (!playerId) {
+         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+       }
+     The server now determines playerId. If the token is missing,
+     fabricated, or belongs to a different match, playerId is null
+     and we return 401. The request never reaches applyAction().
+
+  4. Removed VALID_PLAYERS array and its check.
+     Previously needed to validate the client-supplied playerId.
+     Now that the server resolves playerId, the array is pointless.
+
+  5. applyAction() is called with the server-resolved playerId:
+       const state = applyAction(id, playerId, type as ActionType);
+     The turn check inside applyAction() ("Not your turn") still
+     fires correctly — it just now uses a verified identity.
+
+  6. Response uses toPublicState():
+       return NextResponse.json({ state: toPublicState(state) });
+     Tokens are stripped before the state is sent back.
+
+WHY WE MADE THESE CHANGES:
+  This was the core vulnerability. Any client could send any
+  playerId and the server would accept it. Moving identity
+  resolution to the server — and making the token the sole
+  credential — closes that hole completely.
+
+
+----------------------------------------------------------------
+FILE 6: apps/web/app/api/match/[id]/route.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  Returned the full MatchState object from getMatch().
+
+WHAT CHANGED:
+  Wrapped the return in toPublicState():
+    return NextResponse.json(toPublicState(state));
+
+WHY WE MADE THIS CHANGE:
+  Before this change, a GET request to /api/match/{id} would
+  have included p1Token and p2Token in the response (once we
+  added those fields to MatchState). Anyone can call this
+  endpoint — it requires no auth. A single GET request would
+  have exposed both tokens to any caller.
+
+
+----------------------------------------------------------------
+FILE 7: apps/web/app/api/match/[id]/stream/route.ts
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  The send() function pushed the raw MatchState directly:
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(state)}\n\n`));
+
+WHAT CHANGED:
+  The send() function now strips tokens before encoding:
+    controller.enqueue(
+      encoder.encode(`data: ${JSON.stringify(toPublicState(state))}\n\n`)
+    );
+
+  This is the only line that changed. The SSE architecture,
+  ReadableStream setup, subscriber pattern, and cleanup logic
+  are all identical to before.
+
+  A comment explains the REDIS INTEGRATION POINT: when the
+  subscriber callback receives a raw JSON string from Redis
+  PUBLISH (instead of a MatchState object), the send function
+  will need to parse it first before calling toPublicState().
+
+WHY WE MADE THIS CHANGE:
+  SSE frames are pushed to every subscriber of a match — any
+  browser tab that opens the stream URL receives all frames.
+  If tokens appeared in SSE data, any spectator (or an attacker
+  who just opens the stream URL) would see both players' tokens
+  and could immediately impersonate either player.
+
+
+----------------------------------------------------------------
+FILE 8: apps/web/app/match/page.tsx
+----------------------------------------------------------------
+
+WHAT IT WAS:
+  On create: stored matchId and playerId in React state.
+  On join: same.
+  handleAction: sent { playerId, type } in request body. No auth header.
+  Back to Lobby: reset React state only. No localStorage cleanup.
+
+WHAT CHANGED:
+
+  1. Added MatchSession interface:
+       interface MatchSession {
+         matchId: string;
+         playerId: PlayerId;
+         playerName: string;
+         token: string;
+       }
+     Defines the shape of the object we write to localStorage.
+     Having a named interface makes it easier to understand and
+     extend (e.g., when the Firebase integration is added later,
+     firebaseUid would go here).
+
+  2. Added SESSION_KEY constant:
+       const SESSION_KEY = "matchSession";
+     One string used for all localStorage reads and writes so
+     there is no risk of a typo mismatch between them.
+
+  3. Added matchToken state:
+       const [matchToken, setMatchToken] = useState<string>("");
+     Holds the current player's Bearer token in React state.
+     Read from here by handleAction().
+
+  4. handleCreate() now:
+     - Reads data.token from the API response.
+     - Writes a MatchSession to localStorage (matchId, playerId,
+       playerName, token).
+     - Sets matchToken state.
+
+  5. handleJoin() now does the same.
+
+  6. handleAction() changed significantly:
+     BEFORE:
+       body: JSON.stringify({ playerId, type })
+       (no auth header)
+     AFTER:
+       headers: { "Authorization": `Bearer ${matchToken}` }
+       body: JSON.stringify({ type })
+       (playerId removed from body entirely)
+     Also added a guard for the edge case where matchToken is
+     empty (can happen during the brief moment between mount and
+     the reconnect useEffect completing).
+
+  7. Added a useEffect for reconnection on mount:
+     On mount, reads localStorage for a saved session. If found:
+     - Fetches GET /api/match/{matchId} to confirm the match is
+       still alive.
+     - If alive: restores all state (matchId, playerId,
+       playerName, matchToken, matchState) and reconnects SSE.
+     - If gone (404 or error): clears the stale localStorage
+       entry so the lobby is clean.
+     This is the disconnect recovery path that works with Redis
+     (Issue #2) — Redis keeps match state alive through server
+     restarts, so this fetch will succeed even after a redeploy.
+
+  8. Extracted Back to Lobby logic into handleBackToLobby():
+     Now also calls localStorage.removeItem(SESSION_KEY) so the
+     finished match session is cleared. Previously it just reset
+     React state, leaving a stale session in localStorage.
+
+WHAT DID NOT CHANGE IN THE UI:
+  The visual design is completely identical. All Tailwind classes,
+  the lobby layout, the waiting screen, the combat grid, HP bars,
+  the combat log, and the game-over screen are unchanged. This
+  was a security change to the data layer only, not a UI change.
+
+
+----------------------------------------------------------------
+SECURITY PROPERTIES AFTER THESE CHANGES
+----------------------------------------------------------------
+
+WHAT IS NOW TRUE:
+  - A client cannot choose which player it acts as. The server
+    resolves identity from the token.
+  - A client that only knows the matchId cannot forge actions for
+    either player. It gets 401 on every action request.
+  - Tokens never appear in GET /api/match/{id} responses.
+  - Tokens never appear in SSE stream data.
+  - TypeScript's type system (PublicMatchState) makes it a
+    compile error to accidentally pass a token-bearing object
+    where a public state is expected.
+  - Token storage survives page refresh (localStorage) but is
+    cleared on match end or on finding a stale/expired match.
+
+WHAT IS STILL LIMITED (known, out of scope for this issue):
+  - If two people share a physical device and tab, one could act
+    as the other. Preventing that requires Firebase auth.
+  - The matchId join race (someone sniping the p2 seat) is a
+    separate invite-link issue.
+  - No rate limiting on action requests.
+  - With the in-memory Map: tokens and matches are lost on server
+    restart. This is resolved by Issue #2 (Redis).
+
+
+----------------------------------------------------------------
+REDIS INTEGRATION POINTS SUMMARY
+(from comments in code — for when Issue #2 is ready to merge)
+----------------------------------------------------------------
+
+  match.ts — resolvePlayerByToken():
+    Replace: const match = matches.get(matchId);
+    With:    const match = await redis.get(`match:${matchId}`)
+                             .then(d => d ? JSON.parse(d) : null);
+    Also: make function async, add await in action route.
+
+  create/route.ts:
+    Add await to createMatch() call.
+
+  join/route.ts:
+    Add await to joinMatch() call.
+
+  [id]/route.ts:
+    Add await to getMatch() call.
+
+  [id]/action/route.ts:
+    Add await to resolvePlayerByToken() call.
+
+  [id]/stream/route.ts:
+    The subscriber callback will receive a JSON string from Redis
+    PUBLISH. Parse before calling toPublicState():
+      sub.on("message", (_ch, msg) => {
+        send(JSON.parse(msg) as MatchState);
+      })
+    The send() function already calls toPublicState() — no change
+    to the stripping logic.
+
+================================================================
+END OF CHANGE LOG
+================================================================

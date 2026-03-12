@@ -1,0 +1,710 @@
+================================================================
+IMPLEMENTATION PLAN: Per-Match Auth Tokens (PvP Issue #1)
+Prevent Player Impersonation in PvP Matches
+================================================================
+Date: 2026-02-25
+Branch: server-zts
+================================================================
+
+NOTE ON REDIS DEPENDENCY
+  Issue #2 (match-persistence-plan.md) replaces the in-memory
+  Map with Redis GET/SET for state and Redis Pub/Sub for SSE.
+  This plan is written against the TARGET architecture where
+  Redis is present. Sections that touch Redis directly are
+  marked [REDIS INTEGRATION POINT] so they can be implemented
+  as stubs/comments until your group mate's Redis branch lands.
+
+  The token logic itself (generation, validation, stripping) is
+  pure TypeScript with no Redis dependency and can be implemented
+  and tested today against the current in-memory system.
+
+
+----------------------------------------------------------------
+SECTION 1: CURRENT STATE
+----------------------------------------------------------------
+
+The PvP match system is entirely unauthenticated. Any client
+that knows a matchId can send actions on behalf of either player.
+
+HOW MATCHES WORK TODAY:
+  - POST /api/match/create  → body: { playerName }
+      response: { matchId, playerId: "p1" }
+
+  - POST /api/match/join    → body: { matchId, playerName }
+      response: { matchId, playerId: "p2" }
+
+  - POST /api/match/[id]/action → body: { playerId: "p1"|"p2", type: ActionType }
+      response: { state: MatchState }
+
+The client is trusted to self-report which playerId it is.
+The server does no verification. The only protection is the
+turn-check: "if (state.turn !== playerId) throw error". But
+this only prevents out-of-turn actions — it does not prevent
+a rogue client from impersonating a player on their own turn.
+
+THE VULNERABILITY:
+  1. Alice creates a match. Server assigns her "p1". matchId: "XYZ789".
+  2. Bob joins. Server assigns him "p2".
+  3. Eve discovers the matchId "XYZ789" (e.g., from the URL bar,
+     network tab, shared link, or by guessing).
+  4. It is Alice's turn (p1). Eve sends:
+       POST /api/match/XYZ789/action
+       body: { playerId: "p1", type: "HEAL" }
+  5. The server executes the action as Alice. Alice never moved.
+  6. Eve can also spoof Bob's moves when it is p2's turn.
+
+No cryptographic token, session cookie, or identity check
+exists on any match endpoint.
+
+KEY FILES (CURRENT):
+  - apps/web/lib/game-server/match.ts       → match state + combat logic
+  - apps/web/lib/game-server/types.ts       → MatchState, PlayerState types
+  - apps/web/app/api/match/create/route.ts  → creates match, assigns p1
+  - apps/web/app/api/match/join/route.ts    → assigns p2
+  - apps/web/app/api/match/[id]/action/route.ts → applies action (no auth)
+  - apps/web/app/api/match/[id]/stream/route.ts → SSE stream (no auth)
+  - apps/web/app/match/page.tsx             → frontend PvP UI
+  - apps/web/lib/auth-session.ts            → existing auth utilities
+  - apps/web/prisma/schema.prisma           → no Match model exists
+
+STATE STORAGE TODAY:
+  All match state lives in two in-memory Maps inside match.ts:
+    const matches     = new Map<string, MatchState>();
+    const subscribers = new Map<string, Set<SSECallback>>();
+  These are lost on server restart. The Redis migration (Issue #2)
+  will replace both Maps. Tokens will move to Redis as part of
+  that migration — they live inside the MatchState JSON blob.
+
+THE EXISTING AUTH SYSTEM (for reference):
+  - Firebase Auth + session cookies for the main app.
+  - verifyRequestAuth(req) checks session cookie or Bearer token.
+  - This is used on /api/my-cards and admin routes only.
+  - Match routes do not call verifyRequestAuth at all.
+
+WHAT WE ARE NOT DOING:
+  - We are NOT requiring a Firebase login to play PvP. The
+    current design allows guest play (playerName only). We
+    will keep that. Per-match tokens are separate from
+    Firebase identity.
+
+
+----------------------------------------------------------------
+SECTION 2: TARGET STATE (WHAT WE WANT)
+----------------------------------------------------------------
+
+When a player creates or joins a match, the server generates a
+cryptographically random token unique to that player's seat in
+that match. The token is returned once and stored server-side
+(in MatchState, which Redis will persist). Every subsequent
+action request must include that token. The server validates
+the token before processing any action.
+
+NEW FLOW:
+  - POST /api/match/create
+      request:  { playerName: string }
+      response: { matchId: string, playerId: "p1", token: string }
+
+  - POST /api/match/join
+      request:  { matchId: string, playerName: string }
+      response: { matchId: string, playerId: "p2", token: string }
+
+  - POST /api/match/[id]/action
+      request:  { type: ActionType }
+      header:   Authorization: Bearer <token>
+      (playerId is no longer in the request body — the server
+       resolves it from the token stored in MatchState)
+
+  - GET /api/match/[id]/stream
+      No auth required. Stream pushes PublicMatchState, which
+      never contains tokens.
+
+HOW TOKENS ARE STORED:
+  Tokens are fields on MatchState. They are serialized as part
+  of the match JSON blob wherever state is stored:
+    - TODAY:    inside the in-memory matches Map
+    - WITH REDIS: inside Redis key "match:{id}" (same JSON,
+                  same fields — no separate token key needed)
+
+  A token is a 32-byte random hex string (64 characters).
+  The server stores one token per player seat: p1Token, p2Token.
+
+WHAT CHANGES IN MatchState:
+  Before:
+    interface MatchState {
+      matchId: string;
+      status: "waiting" | "active" | "finished";
+      players: { p1: PlayerState; p2: PlayerState | null };
+      turn: PlayerId;
+      log: string[];
+      winner: PlayerId | null;
+    }
+
+  After:
+    interface MatchState {
+      matchId: string;
+      status: "waiting" | "active" | "finished";
+      players: { p1: PlayerState; p2: PlayerState | null };
+      turn: PlayerId;
+      log: string[];
+      winner: PlayerId | null;
+      p1Token: string;          // ← NEW: never sent to clients
+      p2Token: string | null;   // ← NEW: null until p2 joins
+    }
+
+  A second type, PublicMatchState, is identical to MatchState
+  except p1Token and p2Token are omitted. All responses to
+  clients (GET, SSE, action response) use PublicMatchState.
+  This stripping happens in a helper function, not in the
+  individual routes, so it cannot be accidentally skipped.
+
+WHAT CHANGES IN THE ACTION ENDPOINT:
+  Before:
+    body: { playerId: "p1" | "p2", type: ActionType }
+    → server trusts the provided playerId
+
+  After:
+    header: Authorization: Bearer <token>
+    body: { type: ActionType }
+    → server calls resolvePlayerByToken(matchId, token)
+    → resolvePlayerByToken reads MatchState and compares token
+      to p1Token / p2Token
+    → server uses the resolved playerId, never the client's claim
+
+WHAT CHANGES ON THE FRONTEND:
+  - After create/join, token is stored in localStorage (not
+    sessionStorage — localStorage survives page refresh, which
+    aligns with the Redis disconnect-recovery plan in Issue #2).
+  - localStorage key: "matchSession" holds JSON:
+      { matchId, playerId, playerName, token }
+    This matches the reconnection object from match-persistence-plan.md
+    with token added.
+  - Every action fetch includes:
+      headers: { "Authorization": "Bearer " + token }
+  - On page load, if "matchSession" exists in localStorage, the
+    app attempts to reconnect to that match (fetch match state,
+    re-subscribe to SSE). The token is recovered from localStorage
+    and action requests resume normally.
+  - On match finish (winner !== null), clear localStorage:
+      localStorage.removeItem("matchSession")
+
+DISCONNECT RECOVERY WITH TOKENS:
+  Because Redis keeps match state alive through server restarts,
+  and because localStorage keeps the token alive through page
+  refreshes, a player can fully recover a match:
+
+    Player closes tab or server restarts:
+      1. Player reopens tab.
+      2. App reads localStorage → finds { matchId, token, ... }.
+      3. App fetches GET /api/match/{matchId}.
+      4. Match exists in Redis → app reconnects SSE → game resumes.
+      5. On next action, the saved token is sent in the header.
+      6. Server validates token from MatchState in Redis → OK.
+
+  No re-authentication, no re-join. The token that was issued
+  at create/join time remains valid for the life of the match.
+
+
+----------------------------------------------------------------
+SECTION 3: IMPLEMENTATION STEPS
+----------------------------------------------------------------
+
+STEP 1: Update Type Definitions
+  File: apps/web/lib/game-server/types.ts
+
+  - Add p1Token: string and p2Token: string | null to MatchState.
+  - Add PublicMatchState type: all MatchState fields except the
+    two token fields. Use Omit<MatchState, "p1Token" | "p2Token">
+    or define it explicitly.
+  - Export helper function:
+      export function toPublicState(match: MatchState): PublicMatchState {
+        const { p1Token, p2Token, ...pub } = match;
+        return pub;
+      }
+  - This function is the single place token-stripping happens.
+    All routes call it before sending data to clients.
+
+  NO REDIS DEPENDENCY. Safe to implement now.
+
+
+STEP 2: Add Token Generation and Resolution to Match Logic
+  File: apps/web/lib/game-server/match.ts
+
+  - Import crypto (Node built-in):
+      import crypto from "crypto";
+
+  - Add generateToken():
+      function generateToken(): string {
+        return crypto.randomBytes(32).toString("hex");
+      }
+
+  - In createMatch(): generate p1Token, set p2Token to null.
+    Store both in the initial MatchState object.
+
+  - In joinMatch(): generate p2Token. Set it in the state before
+    persisting/publishing.
+
+  - Add resolvePlayerByToken():
+      // [REDIS INTEGRATION POINT]
+      // TODAY (in-memory): synchronous Map lookup.
+      //   const match = matches.get(matchId);
+      // WITH REDIS: this becomes async — await getMatch(matchId).
+      // The logic inside is identical either way.
+      function resolvePlayerByToken(
+        matchId: string,
+        token: string
+      ): PlayerId | null {
+        const match = matches.get(matchId); // stub: replace with getMatch()
+        if (!match) return null;
+        if (match.p1Token === token) return "p1";
+        if (match.p2Token === token) return "p2";
+        return null;
+      }
+
+  - Mark resolvePlayerByToken as async-ready: add a comment
+    noting it must become async when Redis lands, since getMatch()
+    will be async. The action route will need to await it.
+
+  - Ensure createMatch() and joinMatch() call toPublicState()
+    on any MatchState they return to their callers (routes).
+    The raw MatchState with tokens stays internal.
+
+  PARTIAL REDIS DEPENDENCY: The function body needs a one-line
+  change when Redis lands (Map lookup → await redis.get).
+  Mark with // [REDIS INTEGRATION POINT] comment.
+
+
+STEP 3: Update Create Route
+  File: apps/web/app/api/match/create/route.ts
+
+  - createMatch() now returns a MatchState that includes p1Token.
+  - Read the token from the returned state BEFORE it is stripped:
+      const rawState = createMatch(playerName);  // has p1Token
+      const token = rawState.p1Token;
+      const pub = toPublicState(rawState);        // strip tokens
+  - Return token in the response:
+      return NextResponse.json({
+        matchId: pub.matchId,
+        playerId: "p1",
+        token,
+      });
+  - Note: the full pub state is NOT returned here (just the three
+    fields above) so there is no risk of accidentally including
+    tokens in a broader state dump.
+
+  [REDIS INTEGRATION POINT]: When createMatch() becomes async,
+  add await. No other change in this route.
+
+
+STEP 4: Update Join Route
+  File: apps/web/app/api/match/join/route.ts
+
+  - joinMatch() now returns a MatchState that includes p2Token.
+  - Same pattern as create route: read token before stripping.
+      const rawState = joinMatch(matchId, playerName);
+      const token = rawState.p2Token!;
+      const pub = toPublicState(rawState);
+  - Return token in the response:
+      return NextResponse.json({
+        matchId: pub.matchId,
+        playerId: "p2",
+        token,
+      });
+
+  [REDIS INTEGRATION POINT]: When joinMatch() becomes async,
+  add await. No other change in this route.
+
+
+STEP 5: Update Action Route (Core Security Change)
+  File: apps/web/app/api/match/[id]/action/route.ts
+
+  - Remove playerId from request body parsing.
+  - Read Authorization header:
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const token = authHeader.slice(7);
+
+  - Resolve playerId server-side:
+      // [REDIS INTEGRATION POINT]: add await when Redis lands
+      const playerId = resolvePlayerByToken(id, token);
+      if (!playerId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+  - Pass the resolved playerId (not from request body) to applyAction().
+  - Return toPublicState(result) in the response.
+
+  This is the core security change. The client no longer has any
+  say in which player is acting. The token is the identity.
+
+
+STEP 6: Update GET Match State Route
+  File: apps/web/app/api/match/[id]/route.ts
+
+  - Wrap the returned match with toPublicState():
+      const match = getMatch(id);   // or await getMatch(id) with Redis
+      if (!match) return 404;
+      return NextResponse.json(toPublicState(match));
+
+  [REDIS INTEGRATION POINT]: add await when Redis lands.
+
+
+STEP 7: Update SSE Stream Route
+  File: apps/web/app/api/match/[id]/stream/route.ts
+
+  - Every state pushed to the SSE stream must be stripped:
+      send(JSON.stringify(toPublicState(state)));
+
+  TODAY: the in-process subscriber callback receives a MatchState.
+  Call toPublicState() on it before encoding.
+
+  WITH REDIS (per match-persistence-plan.md): the Redis SUBSCRIBE
+  callback receives a raw JSON message string. Parse it, call
+  toPublicState(), then re-stringify before sending. Example:
+    sub.on("message", (_channel, message) => {
+      const raw: MatchState = JSON.parse(message);
+      send(JSON.stringify(toPublicState(raw)));
+    });
+
+  [REDIS INTEGRATION POINT]: the subscriber source changes but
+  the toPublicState() call is the same either way.
+
+
+STEP 8: Update Frontend — Match Page
+  File: apps/web/app/match/page.tsx
+
+  - Merge the token into the matchSession localStorage object
+    that match-persistence-plan.md already calls for:
+
+      // On create:
+      const data = await res.json();  // { matchId, playerId, token }
+      localStorage.setItem("matchSession", JSON.stringify({
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName,
+        token: data.token,           // ← NEW
+      }));
+
+      // On join:
+      const data = await res.json();  // { matchId, playerId, token }
+      localStorage.setItem("matchSession", JSON.stringify({
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName,
+        token: data.token,           // ← NEW
+      }));
+
+  - In the action handler, read token from the stored session:
+      const session = JSON.parse(localStorage.getItem("matchSession") ?? "{}");
+      const token = session.token;
+      if (!token) { /* handle — show "session lost" error */ return; }
+
+      await fetch(`/api/match/${matchId}/action`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: actionType }),  // no more playerId
+      });
+
+  - Remove playerId from the action fetch body entirely.
+
+  - On match finish, clear the session:
+      localStorage.removeItem("matchSession");
+
+  - On page load, if matchSession exists, attempt reconnect:
+      const saved = localStorage.getItem("matchSession");
+      if (saved) {
+        const { matchId, token } = JSON.parse(saved);
+        const res = await fetch(`/api/match/${matchId}`);
+        if (res.ok) {
+          // Match still alive. Restore state, reconnect SSE.
+          // Token is already in localStorage — actions will work.
+        } else {
+          // Match expired. Clear session.
+          localStorage.removeItem("matchSession");
+        }
+      }
+
+  NO REDIS DEPENDENCY. Safe to implement now. The localStorage
+  shape is compatible with both the in-memory and Redis versions.
+
+
+----------------------------------------------------------------
+SECTION 4: REDIS INTEGRATION POINTS — SUMMARY
+----------------------------------------------------------------
+
+When your group mate's Redis branch (Issue #2) is ready to merge,
+these are the exact lines that need to change. Everything else in
+this feature is already Redis-compatible as written.
+
+  1. match.ts — resolvePlayerByToken():
+       BEFORE: const match = matches.get(matchId);
+       AFTER:  const match = await redis.get(`match:${matchId}`)
+                              .then(d => d ? JSON.parse(d) : null);
+       Also: make function async, callers add await.
+
+  2. match.ts — createMatch() / joinMatch():
+       Tokens are already part of the MatchState object.
+       No change to token logic — just add await to the redis.set()
+       calls that the Redis migration adds.
+
+  3. stream/route.ts — SSE push:
+       BEFORE: callback receives MatchState object
+       AFTER:  callback receives JSON string from Redis PUBLISH
+               Parse → toPublicState → re-stringify before send.
+
+  4. All routes — async/await:
+       getMatch(), createMatch(), joinMatch(), applyAction() all
+       become async with Redis. Routes need await on each call.
+       Token extraction and validation logic is unchanged.
+
+Mark each of these in code with:
+  // [REDIS INTEGRATION POINT] — update when Issue #2 merges
+
+
+----------------------------------------------------------------
+SECTION 5: SECURITY NOTES
+----------------------------------------------------------------
+
+TOKEN SCOPE:
+  Tokens are match-scoped and player-scoped. A p1 token for
+  match "ABC123" cannot be used in match "XYZ789" or to act
+  as p2 in the same match. resolvePlayerByToken() checks both
+  the match existence AND the specific seat.
+
+TOKEN LIFETIME:
+  TODAY:    Token lives as long as the in-memory match lives.
+  WITH REDIS: Token lives as long as the Redis key lives (15-min
+              TTL, refreshed on every action per the Redis plan).
+              If the match expires from Redis, the token is also
+              gone — clients will get 404 on reconnect and clear
+              localStorage automatically.
+
+TOKEN SECRECY:
+  - Tokens are returned ONCE at create/join time.
+  - Tokens are never in GET /api/match/[id] responses.
+  - Tokens are never in SSE stream data.
+  - toPublicState() is the single enforcement point for this.
+  - localStorage is accessible to JavaScript on the same origin.
+    This is acceptable for this trust model (we are not adding
+    Firebase auth to matches). Same risk as any session token
+    stored in localStorage.
+
+WHAT THIS DOES NOT FIX:
+  - It does not prevent two players sharing a device from sharing
+    a localStorage token (physical access is out of scope).
+  - It does not prevent the join race (someone sniping p2 slot).
+    That is a separate invite-link concern.
+  - It does not add rate limiting on actions.
+
+WHAT THIS DOES FIX:
+  - Eve cannot impersonate Alice even if she knows the matchId.
+  - A browser can only act as the player it was assigned at
+    create/join time. The server, not the client, resolves identity.
+  - Survives disconnects and page refreshes — the token is
+    recovered from localStorage and remains valid in Redis.
+
+
+----------------------------------------------------------------
+SECTION 6: TESTING PLAN
+----------------------------------------------------------------
+
+--- UNIT TESTS (no Redis required) ---
+
+  T1: generateToken() returns a 64-character hex string.
+      - Call generateToken() ten times.
+      - Assert each result is 64 chars, matches /^[a-f0-9]{64}$/,
+        and no two results are equal.
+
+  T2: createMatch() stores p1Token in MatchState.
+      - Call createMatch("Alice").
+      - Retrieve the raw MatchState (before toPublicState).
+      - Assert match.p1Token is a non-empty string (64 chars).
+      - Assert match.p2Token is null.
+
+  T3: joinMatch() stores p2Token in MatchState.
+      - Create a match, then call joinMatch(matchId, "Bob").
+      - Assert match.p2Token is a non-empty string.
+      - Assert match.p1Token is unchanged from create.
+      - Assert p1Token !== p2Token.
+
+  T4: resolvePlayerByToken() returns correct seat.
+      - Create and join a match. Note p1Token, p2Token.
+      - resolvePlayerByToken(matchId, p1Token)  → "p1"
+      - resolvePlayerByToken(matchId, p2Token)  → "p2"
+      - resolvePlayerByToken(matchId, "bad")    → null
+      - resolvePlayerByToken("badid", p1Token)  → null
+
+  T5: toPublicState() strips tokens and preserves all other fields.
+      - Create a match (has p1Token, p2Token is null).
+      - pub = toPublicState(match).
+      - Assert "p1Token" not in Object.keys(pub).
+      - Assert "p2Token" not in Object.keys(pub).
+      - Assert pub.matchId, pub.status, pub.players, pub.turn,
+        pub.log, pub.winner all match the source match values.
+
+--- API ENDPOINT TESTS ---
+
+  T6: POST /api/match/create response includes token.
+      - Send: { playerName: "Alice" }
+      - Assert response: { matchId (6 chars), playerId: "p1",
+        token: /^[a-f0-9]{64}$/ }
+      - Assert response does NOT contain p1Token or p2Token keys
+        at the top level or anywhere in the body.
+
+  T7: POST /api/match/join response includes token.
+      - Create a match first.
+      - Send: { matchId, playerName: "Bob" }
+      - Assert response: { matchId, playerId: "p2", token: string }
+      - Assert p2 token !== p1 token from T6.
+
+  T8: POST /api/match/[id]/action succeeds with valid token (p1).
+      - Create and join a match (p1's turn first).
+      - Send:
+          Authorization: Bearer <p1Token>
+          body: { type: "PUNCH" }
+      - Assert 200. Assert log contains PUNCH entry.
+      - Assert response does not contain token fields.
+
+  T9: POST /api/match/[id]/action succeeds with valid token (p2).
+      - After T8, it is p2's turn.
+      - Send:
+          Authorization: Bearer <p2Token>
+          body: { type: "KICK" }
+      - Assert 200. Assert log contains KICK entry.
+
+  T10: POST /api/match/[id]/action — no Authorization header.
+      - Send action with no Authorization header.
+      - Assert 401 Unauthorized.
+
+  T11: POST /api/match/[id]/action — malformed Bearer token.
+      - Send: Authorization: Bearer notahextoken
+      - Assert 401 Unauthorized.
+
+  T12: POST /api/match/[id]/action — wrong player's token.
+      - It is p1's turn. Send p2's token.
+      - resolvePlayerByToken returns "p2".
+      - applyAction called with playerId "p2" → "Not your turn".
+      - Assert 400/403 with "Not your turn" error.
+      - NOTE: The turn check now correctly fires because we passed
+        the SERVER-RESOLVED "p2" to applyAction, not a client claim.
+
+  T13: POST /api/match/[id]/action — fabricated token.
+      - Send a valid-format 64-char hex string that was not issued
+        by the server.
+      - resolvePlayerByToken returns null.
+      - Assert 401 Unauthorized.
+
+  T14: GET /api/match/[id] does not expose tokens.
+      - Fetch match state.
+      - Assert response JSON has no "p1Token" or "p2Token" keys.
+
+  T15: SSE stream does not expose tokens.
+      - Connect to /api/match/[id]/stream.
+      - Parse first SSE data frame.
+      - Assert parsed JSON has no "p1Token" or "p2Token" keys.
+      - Trigger an action to produce a second SSE frame.
+      - Assert second frame also has no token keys.
+
+--- END-TO-END BROWSER TEST ---
+
+  T16: Full match — happy path with token auth.
+      - Tab A: create match → store session in localStorage.
+        Verify localStorage contains matchId, playerId, token.
+      - Tab B: join match → store session in localStorage.
+      - Tab A: click a move button.
+        Verify network request has Authorization: Bearer header.
+        Verify both tabs update via SSE.
+      - Tab B: click a move button. Verify same.
+      - Play to completion. Verify winner shown. Verify
+        localStorage cleared after match ends.
+
+  T17: Impersonation attempt is blocked.
+      - Tab A and Tab B are in an active match.
+      - Tab C (attacker) knows the matchId.
+      - Tab C sends POST /api/match/[id]/action with no token.
+        Assert 401. Match state unchanged.
+      - Tab C sends with a fabricated 64-char hex token.
+        Assert 401. Match state unchanged.
+      - Tabs A and B continue their match normally.
+
+  T18: Disconnect recovery retains token.
+      (Requires Redis to be fully in place for full coverage.
+       For now, test the localStorage layer in isolation.)
+      - Tab A creates a match. Note the token in localStorage.
+      - Simulate a page refresh on Tab A.
+      - App reads localStorage → finds matchSession with token.
+      - App fetches GET /api/match/{matchId} → match still alive.
+      - Tab A reconnects SSE.
+      - Tab A sends an action with the recovered token.
+      - Assert 200. Action applied correctly.
+
+  T19: Token does not survive match expiry.
+      (Requires Redis TTL to be testable — can mock or use a
+       very short TTL in a test environment.)
+      - Create a match. Note the token.
+      - Expire the match in Redis (or clear the in-memory Map).
+      - Send an action with the original token.
+      - resolvePlayerByToken → match not found → null → 401.
+      - App reads 401, fetches GET /api/match/{matchId} → 404.
+      - App clears localStorage.
+
+
+----------------------------------------------------------------
+SECTION 7: FILES MODIFIED SUMMARY
+----------------------------------------------------------------
+
+  MODIFIED:
+    apps/web/lib/game-server/types.ts           → add token fields,
+                                                  PublicMatchState, toPublicState
+    apps/web/lib/game-server/match.ts           → generateToken,
+                                                  resolvePlayerByToken [REDIS],
+                                                  token fields in create/join
+    apps/web/app/api/match/create/route.ts      → return token in response
+    apps/web/app/api/match/join/route.ts        → return token in response
+    apps/web/app/api/match/[id]/action/route.ts → read + validate Bearer token,
+                                                  remove playerId from body
+    apps/web/app/api/match/[id]/route.ts        → wrap response in toPublicState
+    apps/web/app/api/match/[id]/stream/route.ts → wrap pushes in toPublicState
+    apps/web/app/match/page.tsx                 → token in localStorage session,
+                                                  send in action headers
+
+  NEW FILES:
+    None required.
+
+  DATABASE:
+    No schema changes. Tokens are in MatchState — stored in Redis
+    as part of the match JSON blob (Issue #2), or in memory today.
+
+----------------------------------------------------------------
+FUTURE CONSIDERATION: Firebase + Match Token Integration
+----------------------------------------------------------------
+
+NOT part of this feature. Tracked separately.
+
+When we eventually require Firebase login to play PvP (e.g. to
+award card rewards, track win/loss records, or gate match access
+to registered users), the integration point would be:
+
+  - Require a valid Firebase session (verifyRequestAuth) on the
+    create and join routes before issuing a match token.
+  - Store the player's firebaseUid alongside their match token
+    in MatchState so the server can associate a match seat with
+    a real user account.
+  - On match finish, use the stored firebaseUid to look up the
+    Prisma User record and apply rewards.
+
+The match token mechanism itself does not need to change — it
+still acts as the per-match identity for action validation.
+Firebase auth would just become a prerequisite gate at
+create/join time.
+
+This is a separate feature from token-based impersonation
+prevention and should be planned and implemented independently.
+
+================================================================
+END OF PLAN
+================================================================
