@@ -63,7 +63,7 @@ export default function PublicProfilePage() {
                                 <div className={styles.avatarPlaceholder}>👤</div>
                             )}
                             <h1 className={styles.displayName}>
-                                {profile.displayName || profile.username}
+                                {profile.username}
                             </h1>
                             <span className={styles.username}>@{profile.username}</span>
                             {profile.bio && <p className={styles.bio}>{profile.bio}</p>}

@@ -5,6 +5,8 @@ import Image from "next/image"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from 'react'
+import { signOut } from 'firebase/auth'
+import { getFirebaseAuth } from '@/lib/firebase'
 import styles from './dashboard.module.css'
 
 export default function Dashboard() {
@@ -35,18 +37,30 @@ export default function Dashboard() {
                             <div className={styles.avatarPlaceholder}>👤</div>
                         )}
                         <h2 className={styles.welcome}>
-                            Welcome, {dbUser?.displayName || dbUser?.username || user?.displayName || 'Traveler'}
+                            Welcome, {dbUser?.username || 'Traveler'}
                         </h2>
                     </div>
 
                     <Link href="/profile" className={styles.link}>Profile</Link>
                     <Link href="/scan" className={styles.link}>Scan a Card</Link>
-                    <Link href="/test-auth" className={styles.link}>Test Auth</Link>
-                    <Link href="/api-docs" className={styles.link}>API Docs</Link>
                     {role === 'ADMIN' && (
                         <Link href="/admin" className={`${styles.link} ${styles.linkAdmin}`}>
                             Admin Dashboard
                         </Link>
+                    )}
+
+                    {user ? (
+                        <button
+                            onClick={async () => {
+                                await signOut(getFirebaseAuth())
+                                router.push('/home')
+                            }}
+                            className={`${styles.link} ${styles.linkSignOut}`}
+                        >
+                            Sign Out
+                        </button>
+                    ) : (
+                        <Link href="/login" className={styles.link}>Sign In</Link>
                     )}
 
                     <div className={styles.backRow}>

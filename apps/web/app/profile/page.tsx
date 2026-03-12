@@ -21,7 +21,6 @@ export default function ProfilePage() {
     const [editing, setEditing] = useState(false)
 
     // Edit state
-    const [editDisplayName, setEditDisplayName] = useState('')
     const [editBio, setEditBio] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
@@ -73,7 +72,6 @@ export default function ProfilePage() {
     const startEditing = () => {
         if (!profile) return
         setEditUsername(profile.username)
-        setEditDisplayName(profile.displayName || '')
         setEditBio(profile.bio || '')
         setAvatarPreviewUrl(profile.avatarUrl || null)
         setError('')
@@ -117,7 +115,6 @@ export default function ProfilePage() {
                 },
                 body: JSON.stringify({
                     username: trimmedUsername,
-                    displayName: editDisplayName.trim() || null,
                     bio: editBio.trim() || null,
                     ...(avatarUrl ? { avatarUrl } : {}),
                 }),
@@ -212,17 +209,6 @@ export default function ProfilePage() {
                             )}
                         </div>
 
-                        <div className={styles.fieldGroup}>
-                            <label className={styles.label}>Display Name</label>
-                            <input
-                                type="text"
-                                value={editDisplayName}
-                                onChange={e => setEditDisplayName(e.target.value)}
-                                className={styles.input}
-                                maxLength={50}
-                                placeholder="Optional display name"
-                            />
-                        </div>
 
                         <div className={styles.fieldGroup}>
                             <label className={styles.label}>Bio</label>
@@ -255,7 +241,7 @@ export default function ProfilePage() {
                                 <div className={styles.avatarPlaceholder}>👤</div>
                             )}
                             <h1 className={styles.displayName}>
-                                {profile.displayName || profile.username}
+                                {profile.username}
                             </h1>
                             <span className={styles.username}>@{profile.username}</span>
                             {profile.bio && <p className={styles.bio}>{profile.bio}</p>}

@@ -213,3 +213,18 @@
     font-size: 20px;
     text-align: center;
 }
+
+.skipButton {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: color 0.2s;
+    text-align: center;
+}
+
+.skipButton:hover {
+    color: rgba(255, 255, 255, 0.7);
+}

@@ -6,7 +6,6 @@ import { getFirebaseAuth } from '@/lib/firebase';
 export interface DbUser {
   id: string;
   username: string;
-  displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
   role: string;
