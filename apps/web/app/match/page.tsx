@@ -263,8 +263,12 @@ export default function MatchPage() {
     eventSourceRef.current?.close();
     setMatchState(null);
     setMatchId("");
+    setError("");
+    setLoading(false);
     setMatchToken("");
     setRoomCode("");
+    setConnectionStatus("connected");
+    setConnectionLost(false);
     setScreen("lobby");
   }
 
@@ -341,7 +345,7 @@ export default function MatchPage() {
   if (screen === "waiting") {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-6 px-6">
           <h1 className="text-2xl font-bold">Waiting for opponent...</h1>
           <div className="space-y-2">
             <p className="text-gray-400">Share this room code:</p>
@@ -355,6 +359,12 @@ export default function MatchPage() {
           {connectionStatus === "reconnecting" && (
             <p className="text-yellow-400 text-sm">Reconnecting...</p>
           )}
+          <button
+            onClick={handleBackToLobby}
+            className="w-full rounded border border-gray-700 px-4 py-3 font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:bg-gray-800"
+          >
+            Cancel Match
+          </button>
         </div>
       </main>
     );
