@@ -11,19 +11,19 @@ interface CardInstancesTableProps {
 
 export function CardInstancesTable({ instances, loading }: CardInstancesTableProps) {
     return (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-8">
-            <h2 className="text-3xl font-semibold mb-6">
-                All Card Instances <span className="text-gray-500 text-xl font-normal">({instances.length})</span>
+        <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
+            <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
+                All Card Instances <span className="text-sm font-normal" style={{ color: 'var(--color-text-faint)' }}>({instances.length})</span>
             </h2>
             {loading ? (
-                <p className="text-gray-500 text-xl">Loading...</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>Loading...</p>
             ) : instances.length === 0 ? (
-                <p className="text-gray-500 text-xl">No card instances minted yet.</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>No card instances minted yet.</p>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full text-2xl">
+                    <table className="w-full text-base">
                         <thead>
-                            <tr className="text-gray-400 border-b border-gray-800">
+                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
                                 <th className="text-left py-3 px-4 whitespace-nowrap">Public Code</th>
                                 <th className="text-left py-3 px-4">Definition</th>
                                 <th className="text-left py-3 px-4">Status</th>
@@ -35,8 +35,8 @@ export function CardInstancesTable({ instances, loading }: CardInstancesTablePro
                         </thead>
                         <tbody>
                             {instances.map((inst) => (
-                                <tr key={inst.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                                    <td className="py-3 px-4 whitespace-nowrap text-lg text-gray-400">{inst.publicCode}</td>
+                                <tr key={inst.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border)' }}>
+                                    <td className="py-3 px-4 whitespace-nowrap text-xs" style={{ color: 'var(--color-text-muted)' }}>{inst.publicCode}</td>
                                     <td className="py-3 px-4">{inst.definition.name}</td>
                                     <td className="py-3 px-4">
                                         <StatusBadge status={inst.status} />
@@ -52,7 +52,7 @@ export function CardInstancesTable({ instances, loading }: CardInstancesTablePro
                                     </td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-base text-gray-500 truncate max-w-[300px]">
+                                            <span className="text-xs truncate max-w-[300px]" style={{ color: 'var(--color-text-faint)' }}>
                                                 {getScanUrl(inst.publicCode)}
                                             </span>
                                             <CopyButton text={getScanUrl(inst.publicCode)} />

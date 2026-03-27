@@ -3,71 +3,76 @@
 .page {
   position: relative;
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a14 0%, #111128 40%, #0d0d1a 100%);
-  color: white;
-  padding: 1.5rem 1.5rem 2.5rem;
+  background:
+    linear-gradient(135deg, rgba(17, 8, 4, 0.65) 0%, rgba(40, 20, 12, 0.5) 40%, rgba(17, 8, 4, 0.65) 100%),
+    url('/PlankTexture.png');
+  background-size: cover, 600px;
+  background-repeat: no-repeat, repeat;
+  image-rendering: pixelated;
+  color: var(--color-text);
+  padding: var(--space-xl) var(--space-xl) var(--space-2xl);
 }
 
 .header {
   max-width: 1200px;
-  margin: 0 auto 1.25rem;
+  margin: 0 auto var(--space-xl);
 }
 
 .backLink {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 20px;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color var(--ease-default);
 }
 
 .title {
-  font-size: 40px;
+  font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #e0e0ff, #a78bfa);
+  background: linear-gradient(135deg, var(--color-text), var(--color-accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 /* ─── Tabs ──────────────────────────────────────────────────────────── */
 
 .tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   max-width: 1200px;
-  margin: 0 auto 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 0.75rem;
-  padding: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin: 0 auto var(--space-xl);
+  background: rgba(17, 8, 4, 0.4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-border);
 }
 
 .tab {
   flex: 1;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 20px;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--ease-default);
 }
 
 .tab:hover {
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  background: var(--color-surface-alpha);
 }
 
 .tabActive {
-  background: rgba(139, 92, 246, 0.2);
-  color: #c4b5fd;
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+  background: var(--color-accent-alpha);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
 }
 
 /* ─── Loading ───────────────────────────────────────────────────────── */
@@ -77,15 +82,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6rem 1rem;
-  gap: 1rem;
+  padding: var(--space-3xl) var(--space-lg);
+  gap: var(--space-lg);
 }
 
 .spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #a78bfa;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -97,25 +102,25 @@
 }
 
 .loadingText {
-  font-size: 24px;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
 }
 
 /* ─── Toast Notification ────────────────────────────────────────────── */
 
 .toast {
   position: fixed;
-  bottom: 1.5rem;
+  bottom: var(--space-xl);
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  background: rgba(30, 30, 50, 0.95);
+  background: var(--color-bg-deep-alpha);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.6rem;
-  padding: 0.7rem 1.25rem;
-  font-size: 20px;
-  color: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-base);
+  color: var(--color-text);
   z-index: 1000;
   animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
   pointer-events: none;
@@ -123,12 +128,12 @@
 
 .toastError {
   border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
+  color: var(--color-error);
 }
 
 .toastSuccess {
   border-color: rgba(74, 222, 128, 0.3);
-  color: #4ade80;
+  color: var(--color-success);
 }
 
 @keyframes toastIn {
@@ -157,7 +162,7 @@
 
 @media (max-width: 768px) {
   .page {
-    padding: 1.25rem 1rem 3rem;
+    padding: var(--space-xl) var(--space-lg) var(--space-3xl);
   }
 
   .title {

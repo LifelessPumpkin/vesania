@@ -27,8 +27,8 @@ textarea {
 }
 
 body {
-    background-color: #030712;
-    color: #f3f4f6;
+    background-color: var(--color-bg-deep, #110804);
+    color: var(--color-text, #f3e8d8);
 }
 
 /* ── Balatro-style rumble for nav buttons ─────────────────────────── */

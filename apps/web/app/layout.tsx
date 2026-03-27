@@ -2,6 +2,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./components.css";
 
 const customFont = localFont({
   src: "./fonts/exepixelperfect.medium.ttf",
