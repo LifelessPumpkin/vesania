@@ -9,6 +9,7 @@ import VortexLocal from '@/components/VortexLocal'
 import FloatingCards from '@/components/FloatingCards'
 import { useAuth } from '@/context/AuthContext'
 import DungeonBackground from '@/components/DungeonBackground'
+import { playSound } from '@/components/ButtonAudio'
 
 // Module-level flag: survives SPA navigations, resets on full page reload
 let _homeAnimated = false
@@ -107,7 +108,10 @@ export default function HomePage() {
                             initial={shouldAnimate ? { y: 50, opacity: 0 } : false}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ duration: 0.5, ease: "easeOut", delay: 0.5 + (index * 0.1) }}
-                            onClick={() => nav(path, auth)}
+                            onClick={() => {
+                                nav(path, auth)
+                                playSound('/sounds/button_sound.wav')
+                            }}
                             disabled={loading}
                             style={{
                                 padding: '0.5rem 1rem', fontSize: '3rem',
