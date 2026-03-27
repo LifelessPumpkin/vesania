@@ -32,7 +32,7 @@ export default function Home() {
         style={{
           position: 'absolute', top: '1rem', left: '1rem',
           zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
-          background: 'goldenrod', color: 'white',
+          background: '#daa520', color: 'white',
           border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
           animationDelay: '0.2s'
         }}
@@ -74,7 +74,7 @@ export default function Home() {
           style={{
             position: 'relative', zIndex: 20,
             padding: '0.6rem 3rem', fontSize: '32px',
-            background: 'goldenrod', color: 'white',
+            background: '#daa520', color: 'white',
             border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
             opacity: (loading || navigating) ? 0.7 : 1,
             animationDelay: '0.5s'

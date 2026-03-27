@@ -6,7 +6,7 @@ export function RarityBadge({ rarity }: { rarity: string }) {
         COMMON: 'bg-gray-600/20 text-gray-300',
         UNCOMMON: 'bg-green-500/10 text-green-400',
         RARE: 'bg-blue-500/10 text-blue-400',
-        EPIC: 'bg-purple-500/10 text-purple-400',
+        EPIC: 'bg-yellow-500/10 text-yellow-500',
         LEGENDARY: 'bg-yellow-500/10 text-yellow-400',
     }
     return (
