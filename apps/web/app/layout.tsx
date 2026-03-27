@@ -1,4 +1,5 @@
 import { AuthProvider } from '@/context/AuthContext';
+import BackgroundAudio from '@/components/BackgroundAudio';
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -25,6 +26,7 @@ export default function RootLayout({
         className={`${customFont.variable} antialiased`}
       >
         <AuthProvider>
+          <BackgroundAudio src="/sounds/background_ambience.wav" />
           {children}
         </AuthProvider>
       </body>
