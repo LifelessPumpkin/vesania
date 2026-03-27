@@ -143,7 +143,7 @@ export default function CardEffectWizard({ cardType, value, onChange }: CardEffe
                             type="checkbox"
                             checked={Boolean(effect.isConsumable)}
                             onChange={(e) => handleFieldChange('isConsumable', e.target.checked)}
-                            className="w-4 h-4 bg-gray-800 border border-gray-700 rounded focus:ring-2 focus:ring-purple-500"
+                            className="w-4 h-4 rounded" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
                         />
                         <span className="text-base text-gray-400">Is Consumable</span>
                     </label>
@@ -201,10 +201,10 @@ export default function CardEffectWizard({ cardType, value, onChange }: CardEffe
     )
 
     return (
-        <div className="space-y-3 bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+        <div className="space-y-3 p-6 rounded-lg" style={{ background: 'var(--color-bg-alpha)', border: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl font-medium text-purple-400">✨ Effect Wizard</span>
-                <span className="text-xl text-gray-500">({cardType})</span>
+                <span className="text-lg font-medium" style={{ color: '#daa520' }}>✨ Effect Wizard</span>
+                <span className="text-sm" style={{ color: 'var(--color-text-faint)' }}>({cardType})</span>
             </div>
 
             {cardType === 'CHARACTER' && renderCharacterFields(value as CharacterEffect)}
@@ -230,14 +230,14 @@ function NumberField({
 }) {
     return (
         <div>
-            <label className="block text-2xl text-gray-400 mb-1">{label}</label>
+            <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
             <input
                 type="number"
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
                 min={min}
                 max={max}
-                className="w-full max-w-[140px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                className="w-full max-w-[140px] rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
             />
         </div>
     )
@@ -266,7 +266,7 @@ function OptionalNumberField({
                 min={min}
                 max={max}
                 placeholder="0"
-                className="w-full max-w-[140px] bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                className="w-full max-w-[140px] rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
             />
         </div>
     )
@@ -289,7 +289,7 @@ function SelectField({
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                className="w-full rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
             >
                 {options.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -320,7 +320,7 @@ function TextField({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                className="w-full rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
             />
         </div>
     )

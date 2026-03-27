@@ -12,9 +12,9 @@ export function MintResultsPanel({ cards, onDismiss }: MintResultsPanelProps) {
     if (cards.length === 0) return null
 
     return (
-        <div className="bg-gray-900 rounded-xl border border-green-800/50 p-6">
+        <div className="rounded-xl border p-6" style={{ background: 'var(--color-bg-alpha)', borderColor: 'rgba(74,222,128,0.3)' }}>
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-semibold text-green-400">
+                <h2 className="text-base font-semibold text-green-400">
                     ✓ Minted {cards.length} Card{cards.length > 1 ? 's' : ''}
                 </h2>
                 {cards.length > 1 && (
@@ -24,13 +24,13 @@ export function MintResultsPanel({ cards, onDismiss }: MintResultsPanelProps) {
                     />
                 )}
             </div>
-            <p className="text-xl text-gray-400 mb-3">
+            <p className="text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
                 Copy these URLs to program into NFC cards:
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
                 {cards.map((card) => (
                     <div key={card.id} className="flex items-center gap-3 bg-gray-800/50 rounded-lg px-3 py-2">
-                        <span className="font-mono text-lg text-gray-300 flex-1 truncate">
+                        <span className="font-mono text-xs flex-1 truncate" style={{ color: 'var(--color-text-muted)' }}>
                             {getScanUrl(card.publicCode)}
                         </span>
                         <CopyButton text={getScanUrl(card.publicCode)} />
@@ -39,7 +39,7 @@ export function MintResultsPanel({ cards, onDismiss }: MintResultsPanelProps) {
             </div>
             <button
                 onClick={onDismiss}
-                className="mt-3 text-lg text-gray-500 hover:text-gray-400 transition-colors"
+                className="mt-3 text-xs transition-colors" style={{ color: 'var(--color-text-faint)' }}
             >
                 Dismiss
             </button>
