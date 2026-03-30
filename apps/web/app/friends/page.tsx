@@ -191,7 +191,9 @@ export default function FriendsPage() {
           <section className={styles.panel}>
             <header className={styles.header}>
               <h1 className={styles.title}>Friends</h1>
-              <Link href="/home" className={styles.backLink}>← Home</Link>
+              <button onClick={() => router.push('/home')} className={styles.backLink}>
+                &larr; Back to Home
+              </button>
             </header>
 
             {/* Search for players */}
