@@ -15,6 +15,10 @@ interface ScanCardProps {
 export default function ScanCard({ code, onChangeCode, onScan, loading, error }: ScanCardProps) {
     return (
         <div className={styles.card}>
+            {/* Go back to home page */}
+            <button onClick={() => window.location.href = '/home'} className={styles.backButton}>
+                &larr; Back to Home
+            </button>
             <h1 className={styles.scanTitle}>Vesania</h1>
 
             <Image
