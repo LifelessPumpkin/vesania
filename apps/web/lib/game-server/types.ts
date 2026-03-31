@@ -22,12 +22,19 @@ export interface MatchState {
   winner: PlayerId | null;
   p1Token: string;
   p2Token: string | null;
+  p1UserId: string | null;
+  p2UserId: string | null;
+  p1DeckCardIds: string[];
+  p2DeckCardIds: string[];
 }
 
-// MatchState with token fields removed. Safe to send to clients.
-export type PublicMatchState = Omit<MatchState, "p1Token" | "p2Token">;
+// MatchState with private auth/identity/loadout fields removed. Safe to send to clients.
+export type PublicMatchState = Omit<
+  MatchState,
+  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1DeckCardIds" | "p2DeckCardIds"
+>;
 
 export function toPublicState(match: MatchState): PublicMatchState {
-  const { p1Token, p2Token, ...pub } = match;
+  const { p1Token, p2Token, p1UserId, p2UserId, p1DeckCardIds, p2DeckCardIds, ...pub } = match;
   return pub;
 }
