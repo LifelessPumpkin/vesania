@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createMatch } from "@/lib/game-server/match";
+import { getAuthenticatedUser } from "@/lib/auth-session";
+import { resolveDeckCardIdsForUser } from "@/lib/game-server/loadout";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { playerName } = await request.json();
+    const { playerName, deckId } = await request.json();
     if (!playerName || typeof playerName !== "string") {
       return NextResponse.json({ error: "playerName is required" }, { status: 400 });
     }
@@ -12,7 +14,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "playerName must be 20 characters or fewer" }, { status: 400 });
     }
 
-    const state = await createMatch(trimmed);
+    const auth = await getAuthenticatedUser(request);
+    const deckCardIds = auth ? await resolveDeckCardIdsForUser(auth.user.id, deckId) : [];
+
+    const state = await createMatch(trimmed, {
+      userId: auth?.user.id,
+      deckCardIds,
+    });
 
     // p1Token is only sent here — it never appears in subsequent API responses.
     return NextResponse.json({ matchId: state.matchId, playerId: "p1", token: state.p1Token });

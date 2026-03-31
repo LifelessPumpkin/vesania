@@ -250,16 +250,44 @@ export default function ProfilePage() {
 
                             <div className={styles.statsRow}>
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.cardsOwned}</span>
+                                    <span className={styles.statValue}>{profile.stats.cardsOwned ?? 0}</span>
                                     <span className={styles.statLabel}>Cards</span>
                                 </div>
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.decksBuilt}</span>
+                                    <span className={styles.statValue}>{profile.stats.decksBuilt ?? 0}</span>
                                     <span className={styles.statLabel}>Decks</span>
                                 </div>
                                 <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.friendsCount}</span>
+                                    <span className={styles.statValue}>{profile.stats.friendsCount ?? 0}</span>
                                     <span className={styles.statLabel}>Friends</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.gamesPlayed ?? 0}</span>
+                                    <span className={styles.statLabel}>Games</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.wins ?? 0}</span>
+                                    <span className={styles.statLabel}>Wins</span>
+                                </div>
+                                <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.losses ?? 0}</span>
+                                    <span className={styles.statLabel}>Losses</span>
+                                </div>
+                            </div>
+                            {/* Top 3 Most Used Cards */}
+                            <div className={styles.topCards}>
+                                <h2 className={styles.sectionTitle}>Top Cards</h2>
+                                <div className={styles.topCardsList}>
+                                    {profile.topCards.length > 0 ? (
+                                        profile.topCards.map((card) => (
+                                            <div key={card.cardId} className={styles.topCardPlaceholder}>
+                                                <strong>{card.definition.name}</strong>
+                                                <span>{card.playCount} game{card.playCount === 1 ? '' : 's'}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className={styles.noData}>Play a match with a deck to start tracking top cards.</p>
+                                    )}
                                 </div>
                             </div>
 

@@ -18,8 +18,8 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-2xl);
     padding: var(--space-2xl) var(--space-xl);
-    width: 100%;
-    max-width: 600px;
+    min-width: 500px;
+    max-width: 500px;
     box-shadow: var(--shadow-card);
     opacity: 0;
     transform: translateY(16px);
