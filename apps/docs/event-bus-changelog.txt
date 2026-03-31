@@ -1,0 +1,695 @@
+Event Bus — Step 1: Expand MatchState & PlayerState with Card Slots
+====================================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Made the match state card-aware so that subsequent event bus steps have
+typed card data to hook into. All changes are backward-compatible —
+matches created without a deckId work exactly as before.
+
+Files Changed
+-------------
+
+lib/enums.ts
+  - Renamed enum `Rarity` -> `CardRarity` to align with Prisma schema naming.
+
+lib/card-effect-schemas.ts
+  - Updated import from `Rarity` to `CardRarity` (mechanical follow-up).
+
+lib/game-server/types.ts
+  - Added `MatchCard` interface: card snapshot frozen into Redis at match
+    start (cardId, definitionId, name, type, rarity, description, imageUrl,
+    effectJson). No DB queries during gameplay.
+  - Added `ActiveStatusEffect` interface: tracks live status effects with
+    remaining turn count and source card attribution.
+  - Expanded `PlayerState`: added maxHp, energy, maxEnergy, character slot,
+    equippedItems[], equippedTools[], hand[], graveyard[], statusEffects[].
+  - Expanded `MatchState`: added turnNumber, p1DeckId, p2DeckId.
+
+lib/game-server/constants.ts
+  - Added DEFAULT_ENERGY (4), MAX_STATUS_EFFECTS (5), MAX_EVENT_CHAIN_DEPTH (10).
+
+lib/game-server/match.ts
+  - Added `defaultPlayerState(name)`: returns a full PlayerState with safe
+    defaults when no deck is provided.
+  - Added `loadDeckIntoPlayerState(playerName, deckId)`: queries Prisma for
+    deck contents, converts to MatchCard snapshots, derives stats from the
+    CHARACTER card, sorts remaining cards into item/tool/spell zones
+    respecting slot limits.
+  - Updated `createMatch(hostName, deckId?)`: optional deck support.
+  - Updated `joinMatch(matchId, guestName, deckId?)`: optional deck support.
+
+app/api/match/create/route.ts
+  - Accepts optional `deckId` in request body, passes to createMatch().
+
+app/api/match/join/route.ts
+  - Accepts optional `deckId` in request body, passes to joinMatch().
+
+Files Added
+-----------
+
+test-scripts/mock-prisma.ts
+  - Minimal Prisma stub so match.ts can be imported in tests without a
+    live database.
+
+test-scripts/run.ts
+  - Extended module resolution interceptor to mock @/lib/prisma alongside
+    the existing @/lib/redis mock.
+
+Test Results
+------------
+45/45 existing tests passing, 0 failures. Full backward compatibility.
+
+Next Step
+---------
+Step 2: Define GameEvent discriminated union and TriggerType -> GameEvent
+mapping in lib/game-server/events.ts.
+
+
+Event Bus — Step 2: Define Game Events & Trigger Mapping
+========================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Created the typed event system that represents every meaningful thing that
+can happen during a match. Also built the mapping table that connects the
+existing TriggerType enum (from card effect data) to these new game events.
+No existing files were modified — this is purely additive.
+
+Behavior Changes
+----------------
+None. This file defines types, a mapping table, and helpers. No existing
+code imports it yet. Zero runtime impact until Step 3 (event bus) wires
+it in.
+
+Files Added
+-----------
+
+lib/game-server/events.ts
+  - GameEventType enum (13 event types):
+      TURN_START, TURN_END, DAMAGE_DEALT, HEAL_APPLIED, BLOCK_APPLIED,
+      STATUS_EFFECT_APPLIED, STATUS_EFFECT_EXPIRED, STATUS_EFFECT_TICK,
+      CARD_PLAYED, CARD_EQUIPPED, CARD_DESTROYED, PLAYER_DIED, ENERGY_SPENT
+
+  - 13 typed event payload interfaces, combined into a discriminated union
+    (GameEvent). Directional events (DAMAGE_DEALT) carry sourcePlayerId
+    and targetPlayerId. Non-directional events carry a single playerId.
+    Most events carry sourceCard (MatchCard | null) to attribute the cause.
+
+  - TRIGGER_MAP: Record<TriggerType, TriggerMapping[]>
+    Maps each of the 12 TriggerType values to the GameEventType(s) that
+    activate it, plus a perspective ("source", "target", "self", "any")
+    that determines whose equipped cards are checked.
+    Key mappings:
+      ON_HIT         -> DAMAGE_DEALT (source perspective)
+      ON_DAMAGE_TAKEN -> DAMAGE_DEALT (target perspective)
+      ON_REBOUND     -> DAMAGE_DEALT (target perspective)
+      START_OF_TURN  -> TURN_START (self)
+      END_OF_TURN    -> TURN_END (self)
+      ON_DEATH       -> PLAYER_DIED (self)
+      ON_HEAL        -> HEAL_APPLIED (self)
+      ON_BUFF        -> STATUS_EFFECT_APPLIED (target)
+      ON_EQUIP       -> CARD_EQUIPPED (self)
+      ON_USE         -> CARD_PLAYED (self)
+      ON_SUMMON      -> CARD_PLAYED (self)
+      PASSIVE        -> TURN_START (self)
+
+  - getTriggersForEvent(event): given a GameEvent, returns all TriggerTypes
+    that should fire and from which perspective. Used by the event bus to
+    know which cards to check.
+
+  - resolveTriggeredPlayer(event, perspective): given an event and a
+    perspective, returns which player's cards to scan. Maps "source" to
+    sourcePlayerId, "target" to targetPlayerId, "self" to playerId,
+    "any" to "both".
+
+Test Results
+------------
+45/45 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 3: Build the event bus — the in-process dispatcher in
+lib/game-server/event-bus.ts that emits GameEvents, resolves triggers
+from TRIGGER_MAP, and invokes card effects.
+
+
+Event Bus — Step 3: Build the Event Bus Dispatcher
+===================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Built the in-process event dispatcher that sits between "something happened
+in the match" and "card effects should fire." The bus takes a GameEvent and
+the current MatchState, scans equipped cards for matching triggers, rolls
+against trigger chances, and returns what fired. It does NOT mutate state —
+it returns TriggeredEffect[] for the effect resolver (Step 5) to apply.
+
+Behavior Changes
+----------------
+None. Purely additive — no existing code imports or calls event-bus.ts yet.
+Will be wired into applyAction() in Step 4, and the resolveEffects callback
+will be provided by the effect resolver in Step 5.
+
+Files Added
+-----------
+
+lib/game-server/event-bus.ts
+
+  Types:
+  - TriggeredEffect: describes a card effect that fired (card, owner,
+    triggerType, sourceEvent). Consumed by the effect resolver.
+  - EmitResult: returned by emit() — list of triggered effects + event log.
+
+  Card Scanning:
+  - scanPlayerCards(player, playerId, triggerType, sourceEvent):
+    iterates equippedItems (checks effectJson.trigger + triggerChance)
+    and equippedTools (checks effectJson.conditionTrigger + conditionChance).
+    Field names match the existing Zod schemas in card-effect-schemas.ts.
+  - rollChance(chance): percentage roll (0-100). 100 = always, 0 = never,
+    between = Math.random() * 100 < chance.
+
+  Core Dispatch:
+  - emit(event, state, depth?): main entry point.
+    1. Checks depth < MAX_EVENT_CHAIN_DEPTH (10) — prevents infinite loops
+    2. Checks match is active with both players
+    3. Calls getTriggersForEvent() to find matching TriggerTypes
+    4. Calls resolveTriggeredPlayer() to determine whose cards to scan
+    5. Calls scanPlayerCards() for each player
+    6. Returns TriggeredEffect[] and event log
+
+  Cascade Loop:
+  - emitWithCascade(event, state, resolveEffects, depth?): full chain handler.
+    Accepts a resolveEffects callback (dependency injection for Step 5).
+    1. Calls emit() to collect triggers
+    2. Passes triggers to resolveEffects callback
+    3. Callback returns updated state + any new GameEvents produced
+    4. Recursively cascades new events at depth + 1
+    5. Accumulates all effects/events across the chain
+    6. Returns finalState, allEffects, eventLog
+
+  Design Decisions:
+  - Bus is pure (no state mutation) — separation from effect resolution
+    keeps it testable and prevents ordering bugs
+  - resolveEffects is a callback, not a direct import — avoids circular
+    dependency between event-bus.ts and effect-resolver.ts (Step 5)
+  - Depth counter is threaded through recursion, not stored as mutable
+    state, so concurrent matches can't interfere
+
+Test Results
+------------
+45/45 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 4: Refactor applyAction() to emit events through the bus, adding
+TURN_START/TURN_END bookends and converting PUNCH/KICK/BLOCK/HEAL into
+event emissions.
+
+
+Event Bus — Step 4: Refactor applyAction() to Emit Events
+==========================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Rewired applyAction() so every game action produces typed GameEvents that
+flow through the event bus from Step 3. The state mutation arithmetic is
+unchanged — same damage, same block, same heal — but now each mutation
+emits an event and collects any card triggers that fire. A TODO marks
+where Step 5 (effect resolver) will process those triggers.
+
+Behavior Changes
+----------------
+For card-less matches: identical. emit() scans empty card arrays, finds
+nothing, returns no triggers. All 45 tests pass unchanged.
+
+For card-based matches: events now flow through the bus. Equipped items
+with ON_HIT, ON_DAMAGE_TAKEN, START_OF_TURN, etc. will be detected and
+returned as TriggeredEffects. Not yet applied (Step 5).
+
+New: turnNumber increments by 1 on each turn swap (was static at 1).
+New: HEAL caps at attacker.maxHp instead of GAME.MAX_HP (identical for
+     default matches where maxHp === 30).
+
+Files Changed
+-------------
+
+lib/game-server/match.ts
+  New imports:
+  - DamageType from enums (for DAMAGE_DEALT events)
+  - GameEvent, GameEventType from events.ts
+  - emit, TriggeredEffect from event-bus.ts
+
+  applyAction() rewritten with this flow:
+    1. Validation (unchanged)
+    2. Emit TURN_START → collect triggers via emit()
+    3. Apply action with same arithmetic → emit corresponding event:
+       PUNCH/KICK → DAMAGE_DEALT (PHYSICAL, sourceCard: null)
+       BLOCK     → BLOCK_APPLIED
+       HEAL      → HEAL_APPLIED (capped at maxHp, not GAME.MAX_HP)
+    4. Win check:
+       - hp <= 0: emit PLAYER_DIED (before setting finished, so ON_DEATH
+         triggers fire while match is still active), then set winner
+       - alive: emit TURN_END, swap turn, increment turnNumber
+    5. TODO: process collectedEffects through effect resolver (Step 5)
+    6. Persist + publish (unchanged)
+
+  Event ordering per action:
+    TURN_START → [ACTION_EVENT] → TURN_END (or PLAYER_DIED)
+
+  collectedEffects is populated but not yet consumed — the array is
+  built and ready for the effect resolver callback in Step 5.
+
+Test Results
+------------
+45/45 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 5: Build the effect resolver — takes TriggeredEffect[] and applies
+card effects (damage, healing, status effects, stat bonuses) to the
+match state.
+
+
+Event Bus — Step 4.5: Remove HEAL as Basic Action
+==================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Removed HEAL from the basic action set (PUNCH/KICK/BLOCK). Healing is
+now exclusively a card-driven mechanic via spell effects and item/tool
+triggers. HEAL_AMOUNT constant, HEAL_APPLIED event, ON_HEAL trigger,
+and HEALING spell type all retained for card use.
+
+Files Changed
+-------------
+  lib/game-server/types.ts    — ActionType: "PUNCH" | "KICK" | "BLOCK"
+  lib/game-server/match.ts    — Removed case "HEAL" from applyAction()
+  app/api/match/[id]/action/route.ts — Removed "HEAL" from VALID_ACTIONS
+  app/match/page.tsx           — Removed "HEAL" from client type + button
+  test-scripts/t6-apply-action.test.ts — Removed 2 HEAL test cases
+
+Test Results: 43/43 passing (2 removed).
+
+
+Event Bus — Step 5: Build the Effect Resolver
+==============================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Built the module that takes TriggeredEffects from the event bus and turns
+them into actual state mutations: dealing damage, applying healing, adding
+status effects, granting stat bonuses, and producing secondary events for
+cascading. Wired it into applyAction() to complete the full pipeline.
+
+Behavior Changes
+----------------
+For card-less matches: none. collectedEffects is always empty so the
+resolver never runs. 43/43 tests pass identically.
+
+For card-based matches: the full pipeline is now live. Equipped items and
+tools that trigger on game events will have their effects applied to the
+match state, with secondary events cascading back through the bus.
+
+Files Added
+-----------
+
+lib/game-server/effect-resolver.ts
+
+  Target Resolution:
+  - resolveTargets(targetType, ownerPlayerId): maps TargetType enum to
+    actual PlayerIds. SELF/ALLY→owner, ENEMY→opponent, ALL→both.
+
+  State Mutation Helpers:
+  - applyDamage(): calculates block absorption, reduces HP, logs with
+    card name attribution, produces DAMAGE_DEALT + PLAYER_DIED events.
+  - applyHealing(): caps at maxHp, logs, produces HEAL_APPLIED event.
+  - applyStatusEffect(): respects MAX_STATUS_EFFECTS cap (5), refreshes
+    duration if already active (no stacking), produces STATUS_EFFECT_APPLIED.
+
+  Card Type Resolvers:
+  - resolveItemEffect(): applies damage, healing, status effects, stat
+    bonuses (healthBonus→maxHp+hp, defenseBonus→block). Moves consumable
+    items to graveyard + emits CARD_DESTROYED.
+  - resolveToolEffect(): applies damage, healing, status effects (simpler
+    than items — no stat bonuses or consumable flag).
+
+  Entry Point:
+  - resolveTriggeredEffects(effects, state): routes each TriggeredEffect
+    to item or tool resolver based on card.type. Returns updatedState +
+    newEvents. This is the callback for emitWithCascade().
+
+Files Changed
+-------------
+
+lib/game-server/match.ts
+  - Added imports: emitWithCascade, resolveTriggeredEffects
+  - Replaced TODO comment with actual effect resolution:
+    1. Calls resolveTriggeredEffects(collectedEffects, state)
+    2. Cascades secondary events via emitWithCascade()
+    3. Re-checks win condition (card effects can kill either player)
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 6: Add match setup flow (deck selection before match start) and new
+action types (PLAY_SPELL, EQUIP_ITEM, USE_TOOL).
+
+
+Event Bus — Step 6: Add Match Setup Flow (Deck → Match)
+========================================================
+Branch: event-bus-zts
+Date:   2026-03-30
+
+Overview
+--------
+Connected the deck-building system to match creation so players can select
+a deck before creating or joining a match. Added Firebase auth verification
+for deck ownership, a deck selector dropdown in the lobby, and full card
+state display during gameplay. Three sub-parts: backend validation (6A),
+lobby UI (6B), and in-game card display (6C).
+
+Behavior Changes
+----------------
+For card-less matches: unchanged. No login required, no deck UI shown.
+43/43 tests pass identically.
+
+For deck-based matches: players must be authenticated to use a deck. The
+API verifies deck ownership before loading it into the match state. The
+match page renders character cards, equipped items/tools, spells in hand,
+energy bars, and status effect badges.
+
+Files Changed
+-------------
+
+lib/game-server/match.ts
+  - loadDeckIntoPlayerState(): added optional userId parameter for
+    ownership verification. Throws "Deck does not belong to you" when
+    userId is provided and doesn't match deck.ownerId.
+  - createMatch(hostName, deckId?, userId?): passes userId through.
+  - joinMatch(matchId, guestName, deckId?, userId?): passes userId through.
+
+app/api/match/create/route.ts
+  - Changed Request → NextRequest (required for getAuthenticatedUser).
+  - Added conditional auth: when deckId is provided, calls
+    getAuthenticatedUser() and extracts userId. Returns 401 if not
+    authenticated. Returns 400 for deck validation errors.
+  - Imported getAuthenticatedUser from lib/auth-session.
+
+app/api/match/join/route.ts
+  - Same conditional auth pattern as create route.
+  - Changed Request → NextRequest.
+  - Imported getAuthenticatedUser from lib/auth-session.
+
+app/match/page.tsx
+  - Added useAuth() hook import for Firebase user + getToken().
+  - New state: decks[], selectedDeckId, decksLoading.
+  - New useEffect: fetches GET /api/decks on mount when user is logged in.
+  - Lobby: deck selector dropdown (shown only for authenticated users).
+    Three states: loading, no decks (with link to /collection), dropdown.
+    Default option: "No deck (casual mode)".
+  - handleCreate()/handleJoin(): attach Firebase ID token as Authorization
+    header when selectedDeckId is set; include deckId in POST body.
+  - MatchSession type: added optional deckId field.
+  - Client-side types: added full MatchCard, ActiveStatusEffect,
+    PlayerState (with maxHp, energy, maxEnergy, character, equippedItems,
+    equippedTools, hand, graveyard, statusEffects), MatchState (with
+    turnNumber).
+  - New PlayerPanel component: character card name (purple), HP bar using
+    maxHp for percentage, energy bar (yellow, shown when character exists),
+    block shield display, status effect badges with remaining turns,
+    active turn indicator (green border/tint).
+  - New MiniCard component: compact card tile color-coded by type
+    (ITEM=amber, TOOL=cyan, SPELL=violet). Shows name + type, description
+    on hover.
+  - Card zones section: renders YOUR ITEMS, YOUR TOOLS, YOUR SPELLS
+    below player panels when character card exists.
+  - Match header: shows turn number alongside match ID.
+  - Action grid: 3-column layout (was 4 before HEAL removal).
+  - ActionType: "PUNCH" | "KICK" | "BLOCK" (matches server).
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 7: Add new action types (PLAY_SPELL, USE_TOOL) allowing players to
+actively use spell cards from their hand and equipped tools.
+
+
+Event Bus — Step 7: Add New Action Types (PLAY_SPELL, USE_TOOL)
+================================================================
+Branch: event-bus-zts
+Date:   2026-03-31
+
+Design Decisions Made
+---------------------
+  D1. Energy regeneration: Full refill each turn
+  D2. Spell costs: Rarity-scaled defaults (COMMON=1, UNCOMMON=1, RARE=2,
+      EPIC=2, LEGENDARY=3), per-card manaCost overrides, minimum 1
+  D3. Tool active use: Free, once per turn
+  D4. Spell consumption: Moves to graveyard on use
+  D5. Actions per turn: Multiple actions limited by energy. Spells and
+      tools don't end the turn. Basic actions (PUNCH/KICK/BLOCK) end
+      the turn. Players can cast spells and use tools before finishing
+      with a basic action.
+
+Overview
+--------
+Added PLAY_SPELL and USE_TOOL as new action types. Players can now play
+spell cards from their hand (costs energy, spell goes to graveyard) and
+actively use equipped tools (free, once per turn). Both happen within a
+turn without ending it — the turn ends when the player uses a basic
+action (PUNCH/KICK/BLOCK). Energy fully refills at the start of each
+turn.
+
+Behavior Changes
+----------------
+For card-less matches: identical. No spells in hand, no tools equipped,
+basic actions work exactly as before. 43/43 tests pass unchanged.
+
+For card-based matches: players can now cast multiple spells per turn
+(limited by energy) and use one tool before finishing with a basic
+action. Spell effects apply based on spellClass (DAMAGE, HEALING, BUFF,
+DEBUFF, UTILITY, SUMMON, ENVIRONMENTAL). Tool active use always fires
+(no chance roll — that's for passive triggers only).
+
+Files Changed
+-------------
+
+lib/game-server/types.ts
+  - ActionType: added "PLAY_SPELL" | "USE_TOOL"
+  - PlayerState: added toolUsedThisTurn: boolean
+
+lib/game-server/constants.ts
+  - Added SPELL_COST_BY_RARITY map: COMMON=1, UNCOMMON=1, RARE=2,
+    EPIC=2, LEGENDARY=3
+  - Added CardRarity import
+
+lib/game-server/match.ts
+  - applyAction() signature: added optional cardId parameter
+  - Added imports: SPELL_COST_BY_RARITY, resolveSpellEffect, getSpellCost
+  - TURN_START now only fires once per turn (first action detection via
+    energy + toolUsedThisTurn state)
+  - Energy refills to maxEnergy at turn start (D1: full refill)
+  - PLAY_SPELL case: validates cardId, finds spell in hand, checks
+    energy, deducts cost, emits ENERGY_SPENT + CARD_PLAYED, calls
+    resolveSpellEffect(), moves spell to graveyard, emits CARD_DESTROYED
+  - USE_TOOL case: validates cardId, checks once-per-turn, emits
+    CARD_PLAYED, applies tool effect via resolveTriggeredEffects()
+  - Turn swap only happens on basic actions (PUNCH/KICK/BLOCK)
+  - toolUsedThisTurn resets when turn swaps
+  - Win condition check extracted into reusable checkWin() closure
+  - defaultPlayerState(): added toolUsedThisTurn: false
+  - loadDeckIntoPlayerState(): added toolUsedThisTurn: false
+
+lib/game-server/effect-resolver.ts
+  - Added imports: CardRarity, SpellType, SPELL_COST_BY_RARITY
+  - New export: getSpellCost(card) — returns energy cost from
+    effectJson.manaCost or SPELL_COST_BY_RARITY fallback, min 1
+  - New export: resolveSpellEffect(card, casterPlayerId, state) —
+    routes spell effects by spellClass:
+      DAMAGE: applyDamage to targets
+      HEALING: applyHealing to targets
+      BUFF/DEBUFF: applyStatusEffect to targets
+      UTILITY: apply blockBonus/attackBonus to targets
+      SUMMON: apply damage/healing (CARD_PLAYED event triggers ON_SUMMON)
+      ENVIRONMENTAL: apply damage/healing/status to ALL players
+
+app/api/match/[id]/action/route.ts
+  - VALID_ACTIONS: added "PLAY_SPELL", "USE_TOOL"
+  - New CARD_ACTIONS list for cardId validation
+  - Extracts cardId from request body
+  - Returns 400 if cardId missing for PLAY_SPELL/USE_TOOL
+  - Passes cardId to applyAction()
+
+app/match/page.tsx
+  - ActionType: added "PLAY_SPELL" | "USE_TOOL"
+  - PlayerState: added toolUsedThisTurn: boolean
+  - handleAction(): accepts optional cardId, includes in POST body
+  - New SPELLS action section: renders hand cards as clickable buttons,
+    shows energy cost, greys out when can't afford
+  - New USE TOOL action section: renders equipped tools as Use buttons,
+    disabled after use (toolUsedThisTurn)
+  - Basic actions labeled "ends turn" when character card exists
+  - Action layout: spells → tools → basic actions (top to bottom)
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 8: Status effect tick system — BURN, POISON, REGEN, FREEZE, etc.
+proc at turn start with duration decrement and expiry.
+
+
+Event Bus — Step 8: Status Effect Tick System
+==============================================
+Branch: event-bus-zts
+Date:   2026-03-31
+
+Design Decisions Made
+---------------------
+  D6. Freeze/Stun: probabilistic — 20% skip turn entirely, 20% restrict
+      to basic actions only (no spells/tools), 60% block only. Rolled
+      once per turn when the effect ticks.
+  D7. Status effect stacking: refresh duration only (no damage stacking)
+  D8. Tick timing: start of affected player's turn, after TURN_START
+      event but before action selection
+  D9. Burn vs Poison: BURN=3 tick damage, POISON=2 tick damage
+
+Overview
+--------
+Added status effect tick processing at the start of each turn. BURN and
+POISON deal damage, REGEN heals, SHIELD grants block, SEND_TO_GRAVEYARD
+destroys a random equipped card, and FREEZE/STUN roll for turn restriction
+severity. Durations decrement each tick and expired effects are removed.
+Tick damage can kill players (checked immediately after ticks).
+
+Behavior Changes
+----------------
+For card-less matches: identical. No status effects are ever applied,
+so processStatusEffectTicks returns immediately. 43/43 tests pass.
+
+For card-based matches: status effects now actively impact gameplay.
+BURN/POISON can kill before the player acts. FREEZE/STUN create variable
+restrictions (skip/basic-only/block-only) adding unpredictability.
+
+Files Changed
+-------------
+
+lib/game-server/constants.ts
+  - Added BURN_TICK_DAMAGE (3), POISON_TICK_DAMAGE (2),
+    REGEN_TICK_HEALING (3), SHIELD_TICK_BLOCK (3)
+  - Added FREEZE_SKIP_TURN_CHANCE (20), FREEZE_BASIC_ONLY_CHANCE (20)
+
+lib/game-server/types.ts
+  - PlayerState: added turnRestriction: "none" | "block_only" | "basic_only"
+
+lib/game-server/effect-resolver.ts
+  - New export: TurnRestriction type
+  - New export: TickResult interface
+  - New export: processStatusEffectTicks(state, playerId):
+      BURN: deal BURN_TICK_DAMAGE, emit TICK + DAMAGE_DEALT + PLAYER_DIED
+      POISON: deal POISON_TICK_DAMAGE, same event pattern
+      REGEN: heal REGEN_TICK_HEALING (capped at maxHp), emit TICK + HEAL
+      FREEZE/STUN: roll for restriction severity, log outcome
+      SHIELD: add SHIELD_TICK_BLOCK, emit TICK + BLOCK_APPLIED
+      SEND_TO_GRAVEYARD: destroy random equipped card, emit CARD_DESTROYED
+    After ticking: decrement remainingTurns, remove expired effects,
+    emit STATUS_EFFECT_EXPIRED for each removal
+
+lib/game-server/match.ts
+  - Imports processStatusEffectTicks
+  - After TURN_START (first action only): calls processStatusEffectTicks
+  - If ticks kill the player: end match immediately, return early
+  - If restriction is skip_turn: emit TURN_END, swap turn, return early
+  - Stores restriction in attacker.turnRestriction for subsequent calls
+  - Enforces restriction before action switch: block_only rejects non-BLOCK,
+    basic_only rejects PLAY_SPELL/USE_TOOL
+  - Resets turnRestriction to "none" on turn swap
+
+app/match/page.tsx
+  - PlayerState: added turnRestriction field
+  - New restriction banner (blue for block_only, yellow for basic_only)
+  - Spell/tool sections hidden when restricted
+  - Punch/Kick disabled when block_only
+  - Block always available
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 9: Structured combat log — replace string[] with LogEntry[] for
+rich client-side rendering.
+
+
+Event Bus — Step 9: Structured Combat Log — IN PROGRESS
+=========================================================
+Branch: event-bus-zts
+Date:   2026-03-31
+
+Design Decisions Made
+---------------------
+  D10. Log entry granularity: one entry per atomic state change
+  D11. Log history limit: keep all entries (unbounded)
+
+STATUS: PARTIALLY COMPLETE — stopped mid-conversion due to usage limits.
+
+What IS done:
+  - LogEntry interface added to types.ts (message, event?, sourceCard?,
+    playerId?, values?: {damage?, healing?, block?})
+  - MatchState.log changed from string[] to LogEntry[]
+  - types.ts imports GameEventType from events.ts (type-only, no circular issue)
+  - match.ts: ALL state.log.push() calls converted to LogEntry objects
+  - effect-resolver.ts: MOST state.log.push() calls converted:
+      applyDamage()        — DONE
+      applyHealing()       — DONE
+      applyStatusEffect()  — DONE
+      resolveItemEffect()  — DONE (healthBonus, attackBonus, defenseBonus, consumed)
+      processStatusEffectTicks() — DONE (BURN, POISON, REGEN, FREEZE/STUN,
+                                         SHIELD, SEND_TO_GRAVEYARD, expired)
+
+What is NOT done (2 string log.push calls remain):
+  - effect-resolver.ts line ~704: resolveSpellEffect() UTILITY case
+      state.log.push(`${card.name} granted +${blockBonus} block to ${target.name}`)
+  - effect-resolver.ts line ~713: resolveSpellEffect() UTILITY case
+      state.log.push(`${card.name} granted +${attackBonus} attack to ${target.name}`)
+
+  - page.tsx: Client rendering NOT updated yet. Still reads log entries
+    as strings. Needs to read entry.message instead of entry directly.
+    Also needs color-coding by event type.
+
+  - Tests: 2 tests check log entries as strings and will FAIL at TS level
+    but pass at runtime (tsx doesn't type-check):
+      t2-create-match.test.ts:40  — expect(state.log[0]).toContain("Alice")
+      t6-apply-action.test.ts:115 — expect(state.log[state.log.length-1]).toContain("Alice")
+    These need to change to: state.log[0].message / state.log[...].message
+
+TO RESUME Step 9, do these in order:
+  1. Convert last 2 string log.push calls in effect-resolver.ts (UTILITY case)
+  2. Update page.tsx: change log rendering from `entry` to `entry.message`,
+     add color-coding by entry.event type
+  3. Fix tests: state.log[x] → state.log[x].message in t2 and t6
+  4. Run tests (should be 43/43)
+  5. Update this changelog entry to mark COMPLETED
+  6. Proceed to Step 10

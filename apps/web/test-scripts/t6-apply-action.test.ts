@@ -27,19 +27,6 @@ describe("applyAction", () => {
     expect(state.players.p1.block).toBe(5);
   });
 
-  it("HEAL restores up to 3 HP", async () => {
-    // Deal damage first so heal has room
-    await applyAction(matchId, "p1", "PUNCH"); // p2 turn
-    await applyAction(matchId, "p2", "PUNCH"); // p1 turn, p1 at 25hp
-    const state = await applyAction(matchId, "p1", "HEAL");
-    expect(state.players.p1.hp).toBe(28);
-  });
-
-  it("HEAL does not exceed 30 HP", async () => {
-    const state = await applyAction(matchId, "p1", "HEAL");
-    expect(state.players.p1.hp).toBe(30);
-  });
-
   // --- Block interaction ---
 
   it("block absorbs punch damage", async () => {

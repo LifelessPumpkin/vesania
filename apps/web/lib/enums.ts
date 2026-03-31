@@ -5,7 +5,7 @@ export enum CardType {
     TOOL = 'TOOL',
 }
 
-export enum Rarity {
+export enum CardRarity {
     COMMON = 'COMMON',
     UNCOMMON = 'UNCOMMON',
     RARE = 'RARE',

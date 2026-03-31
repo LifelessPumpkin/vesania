@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { applyAction, resolvePlayerByToken } from "@/lib/game-server/match";
 import { toPublicState, ActionType } from "@/lib/game-server/types";
 
-const VALID_ACTIONS: ActionType[] = ["PUNCH", "KICK", "BLOCK", "HEAL"];
+const VALID_ACTIONS: ActionType[] = ["PUNCH", "KICK", "BLOCK", "PLAY_SPELL", "USE_TOOL"];
+const CARD_ACTIONS: ActionType[] = ["PLAY_SPELL", "USE_TOOL"];
 
 export async function POST(
   request: Request,
@@ -17,18 +18,23 @@ export async function POST(
     }
     const token = authHeader.slice(7);
 
-    // Server resolves player identity from the token — the client never sends playerId.
     const playerId = await resolvePlayerByToken(id, token);
     if (!playerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { type } = await request.json();
+    const body = await request.json();
+    const { type, cardId } = body;
     if (!VALID_ACTIONS.includes(type)) {
       return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }
 
-    const state = await applyAction(id, playerId, type as ActionType);
+    // cardId is required for PLAY_SPELL and USE_TOOL
+    if (CARD_ACTIONS.includes(type) && !cardId) {
+      return NextResponse.json({ error: "cardId is required for this action" }, { status: 400 });
+    }
+
+    const state = await applyAction(id, playerId, type as ActionType, cardId);
     return NextResponse.json({ state: toPublicState(state) });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { Rarity, CardType, SpellType, DamageType, StatusEffect, TargetType, TriggerType, ElementType } from '@/lib/enums'
+import { CardRarity, CardType, SpellType, DamageType, StatusEffect, TargetType, TriggerType, ElementType } from '@/lib/enums'
 
 export const characterEffectSchema = z.object({
     health: z.number().int().min(1).max(1000).default(100),

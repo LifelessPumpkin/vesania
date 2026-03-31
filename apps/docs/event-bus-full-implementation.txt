@@ -1,0 +1,222 @@
+Event Bus — Remaining Implementation Plan
+==========================================
+Branch: event-bus-zts
+Last updated: 2026-03-30
+
+Completed Steps (see event-bus-changelog.txt for details):
+  Step 1: Expanded MatchState & PlayerState with card slots
+  Step 2: Defined GameEvent discriminated union + TriggerType mapping
+  Step 3: Built the event bus dispatcher (emit + emitWithCascade)
+  Step 4: Refactored applyAction() to emit events through the bus
+  Step 4.5: Removed HEAL as basic action (now card-only)
+  Step 5: Built the effect resolver + wired into applyAction()
+  Step 6: Added match setup flow (deck selection, ownership validation,
+          card state display in game UI)
+  Step 7: Added PLAY_SPELL + USE_TOOL action types with full spell
+          resolution by spellClass, energy system (full refill per turn),
+          rarity-based spell costs, once-per-turn tool use, and multi-
+          action turn structure
+  Step 8: Status effect tick system — BURN/POISON damage, REGEN heal,
+          SHIELD block, FREEZE/STUN restrictions, SEND_TO_GRAVEYARD
+          card destruction, duration decrement + expiry
+
+Current state: Step 9 (structured combat log) is IN PROGRESS. The
+LogEntry type is defined, MatchState.log is LogEntry[], and most
+server-side log.push calls are converted. 2 string pushes remain in
+effect-resolver.ts (UTILITY spell case). Client rendering and 2 test
+assertions still need updating. See Step 9 section below for exact
+remaining work. Steps 1-8 are fully complete. 43/43 tests pass at
+runtime (tsx doesn't type-check, so string pushes don't fail yet).
+
+Design Decisions Locked:
+  D1 = Full energy refill each turn
+  D2 = Rarity-scaled spell costs (1/1/2/2/3), per-card manaCost override, min 1
+  D3 = Tools free, once per turn
+  D4 = Spells consumed on use (move to graveyard)
+  D5 = Multiple actions per turn (energy-limited), basic actions end turn
+  D6 = FREEZE/STUN: 20% skip, 20% basic-only, 60% block-only
+  D7 = Refresh duration only (no stacking)
+  D8 = Ticks at start of affected player's turn
+  D9 = BURN=3 tick damage, POISON=2 tick damage
+
+
+========================================================================
+STEP 7: Add New Action Types (PLAY_SPELL, USE_TOOL) — COMPLETED
+========================================================================
+See event-bus-changelog.txt for full details.
+
+Decisions locked: D1=full refill, D2=rarity costs (1/1/2/2/3) + manaCost
+override min 1, D3=free once/turn, D4=graveyard, D5=multi-action + basic
+ends turn.
+
+
+========================================================================
+STEP 8: Status Effect Tick System — COMPLETED
+========================================================================
+See event-bus-changelog.txt for full details.
+
+Decisions locked: D6=probabilistic freeze/stun (20% skip, 20% basic-only,
+60% block-only), D7=refresh duration only, D8=start of turn,
+D9=BURN=3dmg POISON=2dmg
+
+
+========================================================================
+STEP 9: Structured Combat Log — IN PROGRESS
+========================================================================
+Decisions locked: D10=one entry per atomic state change, D11=keep all
+
+*** PARTIALLY COMPLETE — stopped mid-conversion. See changelog for
+exact remaining work. ***
+
+Remaining work to finish Step 9:
+  1. Convert 2 remaining string log.push calls in effect-resolver.ts
+     (resolveSpellEffect UTILITY case, lines ~704 and ~713)
+  2. Update page.tsx client log rendering:
+     - Change log entry display from `entry` to `entry.message`
+     - Add color-coding by entry.event type (red=damage, green=heal, etc.)
+  3. Fix 2 test assertions that check log entries as strings:
+     - t2-create-match.test.ts:40  → state.log[0].message
+     - t6-apply-action.test.ts:115 → state.log[...].message
+  4. Run tests (expect 43/43)
+  5. Mark step complete in both docs
+
+
+========================================================================
+STEP 10: Client UI Polish
+========================================================================
+
+Goal: Update the match page to display the full card-based game state
+with a polished experience.
+
+  *** DESIGN DECISIONS NEEDED BEFORE STARTING ***
+
+  D12. OPPONENT CARD VISIBILITY
+       How much of the opponent's card state should be visible?
+       - Option A: Full visibility (see all their items, tools, spells —
+         allows counterplay and strategic decisions)
+       - Option B: Hidden hand (see character/items/tools but not spells
+         in hand — adds surprise element)
+       - Option C: Minimal (only see character card and status effects —
+         fog of war, more suspense)
+       Recommendation: Option A for v1 — full visibility keeps the game
+       strategic and transparent. Hidden info adds complexity.
+
+  D13. CARD DETAIL VIEW
+       When a player clicks/hovers a card, how much detail to show?
+       - Option A: Tooltip on hover (name, description, stats)
+       - Option B: Modal/popup with full card art and effect breakdown
+       - Option C: Both (hover for quick info, click for full view)
+       Recommendation: Option C — hover tooltip for quick glance, click
+       for the full card view.
+
+  D14. ANIMATION PRIORITY
+       How much animation work for v1?
+       - Option A: None (instant state updates, functional only)
+       - Option B: Minimal (HP bar transitions, turn indicator pulse)
+       - Option C: Full (damage numbers floating, card glow on trigger,
+         status effect particles)
+       Recommendation: Option B — CSS transitions on bars and a turn
+       banner animation. Keep it lightweight for v1.
+
+--- 10A: Player Info Panel ---
+
+Show for each player:
+  - Character card (name, element, image)
+  - HP bar (current/max, colored by health %)
+  - Energy bar (current/max)
+  - Block shield icon with number
+  - Status effect icons with remaining turn counters
+
+--- 10B: Card Zone Display ---
+
+  - Equipped items: row of small card tiles below character
+  - Equipped tools: row of small card tiles
+  - Hand: row of spell cards (clickable to play on your turn)
+  - Graveyard: count indicator, expandable to see destroyed cards
+
+--- 10C: Action Panel Redesign ---
+
+Current: 3 buttons (Punch, Kick, Block)
+New layout:
+  - Basic attacks row: Punch, Kick, Block (always available)
+  - Spell cards row: rendered from hand[], each with energy cost
+  - Tool actions row: "Use [Tool Name]" for each equipped tool
+  - Disable spells when energy < cost
+  - Disable everything when not your turn
+
+--- 10D: Turn Indicator ---
+
+  - Animated "Your Turn" / "Opponent's Turn" banner
+  - Turn number display
+  - Timer (optional, for future turn time limits)
+
+
+========================================================================
+DESIGN DECISIONS — SUMMARY
+========================================================================
+
+Decisions to make before Step 7:
+  D1.  Energy regeneration (per-turn +1 / full refill / no regen)
+  D2.  Spell energy costs (rarity-based / per-card manaCost)
+  D3.  Tool active use cost (energy / free once-per-turn / free unlimited)
+  D4.  Spell card consumption (graveyard / reusable / uses count)
+  D5.  Actions per turn (one total / basic+spell / unlimited by energy)
+
+Decisions to make before Step 8:
+  D6.  Freeze/Stun behavior (skip turn / block only / partial restrict)
+  D7.  Status effect stacking (refresh / stack damage / independent)
+  D8.  Status effect tick timing (start of turn / end of turn)
+  D9.  Burn vs Poison distinction (damage only / duration / mechanics)
+
+Decisions to make before Step 9:
+  D10. Log entry granularity (per-action / per-atomic-change)
+  D11. Log history limit (unbounded / rolling window / send last N)
+
+Decisions to make before Step 10:
+  D12. Opponent card visibility (full / hidden hand / minimal)
+  D13. Card detail view (hover tooltip / modal / both)
+  D14. Animation priority (none / minimal CSS / full particles)
+
+
+========================================================================
+FILE INVENTORY — Current Game Server Module
+========================================================================
+
+lib/game-server/
+  types.ts            — MatchCard, ActiveStatusEffect, PlayerState,
+                        MatchState, ActionType, PlayerId, PublicMatchState
+  constants.ts        — GAME balance values, SPELL_COST_BY_RARITY map
+  events.ts           — GameEventType enum, 13 event payload interfaces,
+                        GameEvent union, TRIGGER_MAP, helper functions
+  event-bus.ts        — emit(), emitWithCascade(), TriggeredEffect type,
+                        scanPlayerCards(), rollChance()
+  effect-resolver.ts  — resolveTriggeredEffects(), resolveSpellEffect(),
+                        getSpellCost(), processStatusEffectTicks(),
+                        resolveItemEffect(), resolveToolEffect(),
+                        applyDamage(), applyHealing(),
+                        applyStatusEffect(), resolveTargets()
+  match.ts            — createMatch(), joinMatch(), applyAction(),
+                        getMatch(), resolvePlayerByToken(),
+                        loadDeckIntoPlayerState(), defaultPlayerState()
+
+lib/
+  redis.ts            — Redis client + createSubscriber()
+  prisma.ts           — Prisma client singleton
+  enums.ts            — CardType, CardRarity, TriggerType, SpellType,
+                        DamageType, TargetType, StatusEffect, ElementType
+  card-effect-schemas.ts — Zod schemas for character/spell/item/tool effects
+
+app/match/page.tsx    — Match lobby + game UI with deck selection,
+                        PlayerPanel, MiniCard, card zone display
+
+app/api/match/
+  create/route.ts     — POST create match (optional deck + auth)
+  join/route.ts       — POST join match (optional deck + auth)
+  [id]/action/route.ts — POST game action (PUNCH/KICK/BLOCK)
+  [id]/stream/route.ts — SSE stream for real-time state updates
+
+test-scripts/
+  run.ts              — Test runner with Redis + Prisma mocks
+  mock-redis.ts       — In-memory Redis mock
+  mock-prisma.ts      — Minimal Prisma stub
+  t1-t8 test files    — 43 passing tests

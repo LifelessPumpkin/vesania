@@ -3,14 +3,42 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import SlideUpPage from "@/components/SlideUpPage";
-import { GAME } from "@/lib/game-server/constants";
+import { useAuth } from "@/context/AuthContext";
 
 type PlayerId = "p1" | "p2";
+
+interface MatchCard {
+  cardId: string;
+  definitionId: string;
+  name: string;
+  type: string;
+  rarity: string;
+  description: string;
+  imageUrl: string | null;
+  effectJson: Record<string, unknown>;
+}
+
+interface ActiveStatusEffect {
+  effect: string;
+  remainingTurns: number;
+  sourceCardId: string | null;
+}
 
 interface PlayerState {
   name: string;
   hp: number;
+  maxHp: number;
+  energy: number;
+  maxEnergy: number;
   block: number;
+  character: MatchCard | null;
+  equippedItems: MatchCard[];
+  equippedTools: MatchCard[];
+  hand: MatchCard[];
+  graveyard: MatchCard[];
+  statusEffects: ActiveStatusEffect[];
+  toolUsedThisTurn: boolean;
+  turnRestriction: "none" | "block_only" | "basic_only";
 }
 
 interface MatchState {
@@ -21,35 +49,36 @@ interface MatchState {
     p2: PlayerState | null;
   };
   turn: PlayerId;
+  turnNumber: number;
   log: string[];
   winner: PlayerId | null;
-  // Note: p1Token and p2Token are intentionally absent here.
-  // The server strips them before sending, so they never arrive on the client.
 }
 
-type ActionType = "PUNCH" | "KICK" | "BLOCK" | "HEAL";
+type ActionType = "PUNCH" | "KICK" | "BLOCK" | "PLAY_SPELL" | "USE_TOOL";
 
-// Shape of the session object we persist in localStorage.
-// Storing the token here means it survives page refreshes, which is important
-// for the Redis-based disconnect recovery flow (Issue #2). When a player
-// refreshes, we can read this and resume their match without re-joining.
 interface MatchSession {
   matchId: string;
   playerId: PlayerId;
   playerName: string;
   token: string;
+  deckId?: string;
+}
+
+interface DeckOption {
+  id: string;
+  name: string;
+  cardCount: number;
 }
 
 const SESSION_KEY = "matchSession";
 
 export default function MatchPage() {
+  const { user, getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [matchId, setMatchId] = useState("");
   const [playerId, setPlayerId] = useState<PlayerId>("p1");
-  // matchToken holds the Bearer token for this player's seat.
-  // It is set once (on create or join) and used on every action request.
   const [matchToken, setMatchToken] = useState<string>("");
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [error, setError] = useState("");
@@ -58,8 +87,41 @@ export default function MatchPage() {
   const [connectionLost, setConnectionLost] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
-
   const reconnectDelay = useRef(1000);
+
+  // Deck selection state
+  const [decks, setDecks] = useState<DeckOption[]>([]);
+  const [selectedDeckId, setSelectedDeckId] = useState<string>("");
+  const [decksLoading, setDecksLoading] = useState(false);
+
+  // Fetch user's decks when logged in
+  useEffect(() => {
+    if (!user) {
+      setDecks([]);
+      setSelectedDeckId("");
+      return;
+    }
+
+    async function fetchDecks() {
+      setDecksLoading(true);
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("/api/decks", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setDecks(data.decks ?? []);
+      } catch {
+        // Silent fail — decks are optional
+      } finally {
+        setDecksLoading(false);
+      }
+    }
+
+    fetchDecks();
+  }, [user, getToken]);
 
   const connectSSE = useCallback(
     (id: string) => {
@@ -101,9 +163,6 @@ export default function MatchPage() {
   );
 
   // On mount: check localStorage for an existing session.
-  // If one is found, fetch the match to confirm it is still alive, then resume.
-  // This handles the page-refresh case — the token survives in localStorage so
-  // the player can continue acting without re-joining.
   useEffect(() => {
     const saved = localStorage.getItem(SESSION_KEY);
     if (!saved) return;
@@ -116,8 +175,6 @@ export default function MatchPage() {
       return;
     }
 
-    // Verify the match still exists before restoring state.
-    // With Redis this will succeed as long as the match hasn't expired.
     fetch(`/api/match/${session.matchId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Match gone");
@@ -133,7 +190,6 @@ export default function MatchPage() {
         connectSSE(session.matchId);
       })
       .catch(() => {
-        // Match is gone — clear the stale session so the lobby is clean.
         localStorage.removeItem(SESSION_KEY);
       });
   }, [connectSSE]);
@@ -156,20 +212,32 @@ export default function MatchPage() {
     setError("");
     setLoading(true);
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      // Include Firebase auth token when using a deck
+      if (selectedDeckId && user) {
+        const firebaseToken = await getToken();
+        if (firebaseToken) {
+          headers["Authorization"] = `Bearer ${firebaseToken}`;
+        }
+      }
+
       const res = await fetch("/api/match/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerName: playerName.trim() }),
+        headers,
+        body: JSON.stringify({
+          playerName: playerName.trim(),
+          deckId: selectedDeckId || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Persist the session (including token) so it survives a page refresh.
       const session: MatchSession = {
         matchId: data.matchId,
         playerId: data.playerId,
         playerName: playerName.trim(),
         token: data.token,
+        deckId: selectedDeckId || undefined,
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
@@ -197,22 +265,33 @@ export default function MatchPage() {
     setError("");
     setLoading(true);
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (selectedDeckId && user) {
+        const firebaseToken = await getToken();
+        if (firebaseToken) {
+          headers["Authorization"] = `Bearer ${firebaseToken}`;
+        }
+      }
+
       const code = roomCode.trim().toUpperCase();
       const res = await fetch("/api/match/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: code, playerName: playerName.trim() }),
+        headers,
+        body: JSON.stringify({
+          matchId: code,
+          playerName: playerName.trim(),
+          deckId: selectedDeckId || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Same persistence as create — token must be in localStorage for
-      // reconnection to work after a refresh.
       const session: MatchSession = {
         matchId: data.matchId,
         playerId: data.playerId,
         playerName: playerName.trim(),
         token: data.token,
+        deckId: selectedDeckId || undefined,
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
@@ -228,27 +307,25 @@ export default function MatchPage() {
     }
   }
 
-  async function handleAction(type: ActionType) {
+  async function handleAction(type: ActionType, cardId?: string) {
     setError("");
 
-    // Guard: if the token is missing (e.g., extreme edge case on first render
-    // before the reconnect effect runs) bail early rather than sending a bare request.
     if (!matchToken) {
       setError("Session not ready — try refreshing");
       return;
     }
 
     try {
+      const body: Record<string, string> = { type };
+      if (cardId) body.cardId = cardId;
+
       const res = await fetch(`/api/match/${matchId}/action`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Send the token as a standard Bearer token.
-          // The server validates this and resolves playerId server-side.
-          // playerId is no longer sent in the body.
           "Authorization": `Bearer ${matchToken}`,
         },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -258,7 +335,6 @@ export default function MatchPage() {
   }
 
   function handleBackToLobby() {
-    // Clear the session so the next player who opens this tab starts fresh.
     localStorage.removeItem(SESSION_KEY);
     eventSourceRef.current?.close();
     setMatchState(null);
@@ -299,6 +375,38 @@ export default function MatchPage() {
                 className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
               />
             </div>
+
+            {/* Deck Selection */}
+            {user && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Select Deck
+                </label>
+                {decksLoading ? (
+                  <p className="text-gray-500 text-sm">Loading decks...</p>
+                ) : decks.length === 0 ? (
+                  <p className="text-gray-500 text-sm">
+                    No decks available.{" "}
+                    <Link href="/collection" className="text-blue-400 hover:text-blue-300">
+                      Build one
+                    </Link>
+                  </p>
+                ) : (
+                  <select
+                    value={selectedDeckId}
+                    onChange={(e) => setSelectedDeckId(e.target.value)}
+                    className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">No deck (casual mode)</option>
+                    {decks.map((deck) => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name} ({deck.cardCount} cards)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleCreate}
@@ -391,7 +499,9 @@ export default function MatchPage() {
       <div className="w-full max-w-lg space-y-4">
         {/* Header */}
         <div className="text-center">
-          <p className="text-xs text-gray-500 font-mono">MATCH {matchState.matchId}</p>
+          <p className="text-xs text-gray-500 font-mono">
+            MATCH {matchState.matchId} &middot; Turn {matchState.turnNumber}
+          </p>
           {connectionStatus === "reconnecting" && (
             <p className="text-xs text-yellow-400">Reconnecting...</p>
           )}
@@ -409,85 +519,161 @@ export default function MatchPage() {
         {/* Players */}
         <div className="grid grid-cols-2 gap-4">
           {/* Me */}
-          <div className={`p-4 rounded-lg border ${isMyTurn ? "border-green-500 bg-green-500/10" : "border-gray-700 bg-gray-800"}`}>
-            <p className="text-sm text-gray-400">You</p>
-            <p className="font-bold text-lg">{me.name}</p>
-            <div className="mt-2">
-              <div className="flex justify-between text-sm">
-                <span>HP</span>
-                <span>{me.hp}/{GAME.MAX_HP}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
-                <div
-                  className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${(me.hp / GAME.MAX_HP) * 100}%` }}
-                />
-              </div>
-            </div>
-            {me.block > 0 && (
-              <p className="text-xs text-blue-400 mt-1">Shield: {me.block}</p>
-            )}
-          </div>
-
+          <PlayerPanel player={me} label="You" isActive={isMyTurn} />
           {/* Opponent */}
-          <div className={`p-4 rounded-lg border ${!isMyTurn && !isFinished ? "border-yellow-500 bg-yellow-500/10" : "border-gray-700 bg-gray-800"}`}>
-            <p className="text-sm text-gray-400">Opponent</p>
-            <p className="font-bold text-lg">{opponent?.name ?? "???"}</p>
-            {opponent && (
-              <div className="mt-2">
-                <div className="flex justify-between text-sm">
-                  <span>HP</span>
-                  <span>{opponent.hp}/{GAME.MAX_HP}</span>
+          <PlayerPanel player={opponent ?? null} label="Opponent" isActive={!isMyTurn && !isFinished} />
+        </div>
+
+        {/* Card Zones (only show if player has cards) */}
+        {me.character && (
+          <div className="space-y-2">
+            {/* Equipped Items */}
+            {me.equippedItems.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR ITEMS</p>
+                <div className="flex gap-2 flex-wrap">
+                  {me.equippedItems.map((card) => (
+                    <MiniCard key={card.cardId} card={card} />
+                  ))}
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
-                  <div
-                    className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${(opponent.hp / GAME.MAX_HP) * 100}%` }}
-                  />
+              </div>
+            )}
+            {/* Equipped Tools */}
+            {me.equippedTools.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR TOOLS</p>
+                <div className="flex gap-2 flex-wrap">
+                  {me.equippedTools.map((card) => (
+                    <MiniCard key={card.cardId} card={card} />
+                  ))}
                 </div>
-                {opponent.block > 0 && (
-                  <p className="text-xs text-blue-400 mt-1">Shield: {opponent.block}</p>
-                )}
+              </div>
+            )}
+            {/* Hand (spells) */}
+            {me.hand.length > 0 && (
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR SPELLS</p>
+                <div className="flex gap-2 flex-wrap">
+                  {me.hand.map((card) => (
+                    <MiniCard key={card.cardId} card={card} />
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         {!isFinished && (
-          <div className="grid grid-cols-4 gap-2">
-            <button
-              onClick={() => handleAction("PUNCH")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-orange-600 hover:bg-orange-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Punch
-              <span className="block text-xs opacity-70">5 dmg</span>
-            </button>
-            <button
-              onClick={() => handleAction("KICK")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-red-600 hover:bg-red-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Kick
-              <span className="block text-xs opacity-70">8 dmg</span>
-            </button>
-            <button
-              onClick={() => handleAction("BLOCK")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Block
-              <span className="block text-xs opacity-70">+5 shield</span>
-            </button>
-            <button
-              onClick={() => handleAction("HEAL")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Heal
-              <span className="block text-xs opacity-70">+3 hp</span>
-            </button>
+          <div className="space-y-2">
+            {/* Restriction banner */}
+            {isMyTurn && me.turnRestriction !== "none" && (
+              <div className={`text-center text-sm font-semibold py-2 rounded ${
+                me.turnRestriction === "block_only"
+                  ? "bg-blue-900/40 text-blue-300 border border-blue-700"
+                  : "bg-yellow-900/40 text-yellow-300 border border-yellow-700"
+              }`}>
+                {me.turnRestriction === "block_only"
+                  ? "Frozen — you can only Block this turn!"
+                  : "Dazed — basic actions only this turn!"}
+              </div>
+            )}
+
+            {/* Spell cards (play before ending turn with a basic action) */}
+            {isMyTurn && me.hand.length > 0 && me.turnRestriction === "none" && (
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-1">SPELLS</p>
+                <div className="flex gap-2 flex-wrap">
+                  {me.hand.map((card) => {
+                    const cost = (card.effectJson.manaCost as number) ?? 1;
+                    const canAfford = me.energy >= cost;
+                    return (
+                      <button
+                        key={card.cardId}
+                        onClick={() => handleAction("PLAY_SPELL", card.cardId)}
+                        disabled={!canAfford}
+                        className={`px-3 py-2 rounded border text-left text-xs transition-colors ${
+                          canAfford
+                            ? "border-violet-500 bg-violet-900/30 hover:bg-violet-800/50 text-white"
+                            : "border-gray-700 bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                        }`}
+                        title={card.description}
+                      >
+                        <p className="font-semibold">{card.name}</p>
+                        <p className={canAfford ? "text-yellow-400" : "text-gray-600"}>
+                          {cost} energy
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Tool active use */}
+            {isMyTurn && me.equippedTools.length > 0 && me.turnRestriction === "none" && (
+              <div>
+                <p className="text-xs text-gray-500 font-semibold mb-1">USE TOOL</p>
+                <div className="flex gap-2 flex-wrap">
+                  {me.equippedTools.map((card) => {
+                    const used = me.toolUsedThisTurn;
+                    return (
+                      <button
+                        key={card.cardId}
+                        onClick={() => handleAction("USE_TOOL", card.cardId)}
+                        disabled={used}
+                        className={`px-3 py-2 rounded border text-left text-xs transition-colors ${
+                          !used
+                            ? "border-cyan-500 bg-cyan-900/30 hover:bg-cyan-800/50 text-white"
+                            : "border-gray-700 bg-gray-800/50 text-gray-500 cursor-not-allowed"
+                        }`}
+                        title={card.description}
+                      >
+                        <p className="font-semibold">{card.name}</p>
+                        <p className={!used ? "text-cyan-400" : "text-gray-600"}>
+                          {used ? "Used" : "Ready"}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Basic actions (end turn) */}
+            <div>
+              {isMyTurn && me.character && (
+                <p className="text-xs text-gray-500 font-semibold mb-1">
+                  {me.turnRestriction === "block_only" ? "BLOCK ONLY" : "BASIC ACTIONS (ends turn)"}
+                </p>
+              )}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleAction("PUNCH")}
+                  disabled={!isMyTurn || me.turnRestriction === "block_only"}
+                  className="py-3 rounded bg-orange-600 hover:bg-orange-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Punch
+                  <span className="block text-xs opacity-70">5 dmg</span>
+                </button>
+                <button
+                  onClick={() => handleAction("KICK")}
+                  disabled={!isMyTurn || me.turnRestriction === "block_only"}
+                  className="py-3 rounded bg-red-600 hover:bg-red-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Kick
+                  <span className="block text-xs opacity-70">8 dmg</span>
+                </button>
+                <button
+                  onClick={() => handleAction("BLOCK")}
+                  disabled={!isMyTurn}
+                  className="py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+                >
+                  Block
+                  <span className="block text-xs opacity-70">+5 shield</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -523,5 +709,112 @@ export default function MatchPage() {
         )}
       </div>
     </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function PlayerPanel({
+  player,
+  label,
+  isActive,
+}: {
+  player: PlayerState | null;
+  label: string;
+  isActive: boolean;
+}) {
+  if (!player) {
+    return (
+      <div className="p-4 rounded-lg border border-gray-700 bg-gray-800">
+        <p className="text-sm text-gray-400">{label}</p>
+        <p className="font-bold text-lg">???</p>
+      </div>
+    );
+  }
+
+  const hpPercent = player.maxHp > 0 ? (player.hp / player.maxHp) * 100 : 0;
+
+  return (
+    <div className={`p-4 rounded-lg border ${isActive ? "border-green-500 bg-green-500/10" : "border-gray-700 bg-gray-800"}`}>
+      <p className="text-sm text-gray-400">{label}</p>
+      <p className="font-bold text-lg">{player.name}</p>
+
+      {/* Character card name */}
+      {player.character && (
+        <p className="text-xs text-purple-400 mt-0.5">{player.character.name}</p>
+      )}
+
+      {/* HP Bar */}
+      <div className="mt-2">
+        <div className="flex justify-between text-sm">
+          <span>HP</span>
+          <span>{player.hp}/{player.maxHp}</span>
+        </div>
+        <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
+          <div
+            className="bg-red-500 h-3 rounded-full transition-all duration-300"
+            style={{ width: `${hpPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Energy Bar (only if character card exists) */}
+      {player.character && (
+        <div className="mt-1">
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>Energy</span>
+            <span>{player.energy}/{player.maxEnergy}</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2 mt-0.5">
+            <div
+              className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${player.maxEnergy > 0 ? (player.energy / player.maxEnergy) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Block */}
+      {player.block > 0 && (
+        <p className="text-xs text-blue-400 mt-1">Shield: {player.block}</p>
+      )}
+
+      {/* Status Effects */}
+      {player.statusEffects.length > 0 && (
+        <div className="flex gap-1 mt-1 flex-wrap">
+          {player.statusEffects.map((se, i) => (
+            <span
+              key={i}
+              className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300"
+              title={`${se.effect} (${se.remainingTurns} turns)`}
+            >
+              {se.effect} {se.remainingTurns}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniCard({ card }: { card: MatchCard }) {
+  const typeColors: Record<string, string> = {
+    ITEM: "border-amber-600 bg-amber-900/20",
+    TOOL: "border-cyan-600 bg-cyan-900/20",
+    SPELL: "border-violet-600 bg-violet-900/20",
+  };
+
+  const colorClass = typeColors[card.type] ?? "border-gray-600 bg-gray-800";
+
+  return (
+    <div
+      className={`px-2 py-1 rounded border text-xs ${colorClass}`}
+      title={card.description}
+    >
+      <p className="font-semibold text-white">{card.name}</p>
+      <p className="text-gray-400">{card.type}</p>
+    </div>
   );
 }
