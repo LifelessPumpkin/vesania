@@ -3,7 +3,12 @@ import prisma from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth-session";
 import { apiError } from "@/lib/api-helpers";
 import { USERNAME_REGEX, MAX_BIO_LENGTH } from "@/lib/constants";
-import { USER_PROFILE_SELECT, mapUserToProfile } from "@/lib/profile-helpers";
+import {
+    USER_PROFILE_SELECT,
+    TOP_CARD_USAGE_INCLUDE,
+    mapTopCards,
+    mapUserToProfile,
+} from "@/lib/profile-helpers";
 
 export async function GET(req: NextRequest) {
     try {
@@ -19,6 +24,13 @@ export async function GET(req: NextRequest) {
                 id: true,
                 profileComplete: true,
                 role: true,
+                wins: true,
+                losses: true,
+                gamesPlayed: true,
+                topCard1Id: true,
+                topCard2Id: true,
+                topCard3Id: true,
+                favoriteChampion: true,
             },
         });
 
@@ -26,7 +38,32 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: "User not found" }, { status: 404 });
         }
 
-        return NextResponse.json(mapUserToProfile(user));
+        const userCardUsage = (
+            prisma as typeof prisma & {
+                userCardUsage?: {
+                    findMany: (args: {
+                        where: { userId: string };
+                        orderBy: Array<{ playCount: "desc" } | { updatedAt: "desc" }>;
+                        take: number;
+                        include: typeof TOP_CARD_USAGE_INCLUDE;
+                    }) => Promise<Parameters<typeof mapTopCards>[0]>;
+                };
+            }
+        ).userCardUsage;
+
+        const topCards = userCardUsage
+            ? await userCardUsage.findMany({
+                where: { userId: auth.user.id },
+                orderBy: [{ playCount: "desc" }, { updatedAt: "desc" }],
+                take: 3,
+                include: TOP_CARD_USAGE_INCLUDE,
+            })
+            : [];
+
+        return NextResponse.json({
+            ...mapUserToProfile(user),
+            topCards: mapTopCards(topCards),
+        });
     } catch (error) {
         console.error("Error fetching profile:", error);
         return apiError("Failed to fetch profile", 500, error);
@@ -97,4 +134,3 @@ export async function PATCH(req: NextRequest) {
         return apiError("Failed to update profile", 500, error);
     }
 }
-

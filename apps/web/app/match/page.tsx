@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import SlideUpPage from "@/components/SlideUpPage";
 import { GAME } from "@/lib/game-server/constants";
+import { useAuth } from "@/context/AuthContext";
 
 type PlayerId = "p1" | "p2";
 
@@ -43,6 +44,7 @@ interface MatchSession {
 const SESSION_KEY = "matchSession";
 
 export default function MatchPage() {
+  const { getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -156,9 +158,13 @@ export default function MatchPage() {
     setError("");
     setLoading(true);
     try {
+      const token = await getToken();
       const res = await fetch("/api/match/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ playerName: playerName.trim() }),
       });
       const data = await res.json();
@@ -198,9 +204,13 @@ export default function MatchPage() {
     setLoading(true);
     try {
       const code = roomCode.trim().toUpperCase();
+      const token = await getToken();
       const res = await fetch("/api/match/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ matchId: code, playerName: playerName.trim() }),
       });
       const data = await res.json();
