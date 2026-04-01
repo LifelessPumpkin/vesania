@@ -1,64 +1,105 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { cardStyle, primaryButtonStyle } from '@/styles/cardStyles'
+import { useState } from 'react'
+import styles from './auth.module.css'
 
 interface LoginCardProps {
     onBack: () => void
-    onSignIn: () => void
     loading?: boolean
     error?: string
     title?: string
+
+    onGoogleSignIn?: () => void
+    onEmailSignIn?: () => void
+    email?: string
+    setEmail?: (v: string) => void
+    password?: string
+    setPassword?: (v: string) => void
+    onCreateMode?: () => void
 }
 
-export default function LoginCard({ onBack, onSignIn, loading, error, title = 'Sign In to Save Cards' }: LoginCardProps) {
-    const [visible, setVisible] = useState(false)
-
-    useEffect(() => {
-        requestAnimationFrame(() => setVisible(true))
-    }, [])
+export default function LoginCard({
+    onBack, loading, error, title = 'Sign In to Save Cards',
+    onGoogleSignIn, onEmailSignIn,
+    email, setEmail, password, setPassword,
+    onCreateMode,
+}: LoginCardProps) {
+    const [showPassword, setShowPassword] = useState(false)
 
     return (
-        <div
-            style={{
-                ...cardStyle,
-                opacity: visible ? 1 : 0,
-                transform: visible ? 'translateY(0)' : 'translateY(16px)',
-                transition: 'opacity 0.35s ease, transform 0.35s ease',
-            }}
-        >
-            <button
-                onClick={onBack}
-                style={{
-                    background: 'none', border: 'none',
-                    color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem',
-                    cursor: 'pointer', padding: '0 0 1.25rem 0',
-                    display: 'flex', alignItems: 'center', gap: '0.4rem',
-                }}
-            >
+        <div className={styles.card}>
+            <button onClick={onBack} className={styles.backButton}>
                 ← Back
             </button>
 
-            <h2 style={{ color: 'white', fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '1.75rem', textAlign: 'center' }}>
-                {title}
-            </h2>
+            <h2 className={styles.title}>{title}</h2>
 
-            {error && (
-                <div style={{ color: '#f87171', fontSize: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                    {error}
+            {error && <div className={styles.error}>{error}</div>}
+
+            <div className={styles.form}>
+                {/* Email */}
+                <div>
+                    <label className={styles.label}>EMAIL</label>
+                    <input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email || ''}
+                        onChange={e => setEmail?.(e.target.value)}
+                        className={styles.input}
+                    />
                 </div>
-            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                {/* Password */}
+                <div>
+                    <label className={styles.label}>PASSWORD</label>
+                    <div className={styles.passwordWrapper}>
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            value={password || ''}
+                            onChange={e => setPassword?.(e.target.value)}
+                            className={styles.inputWithToggle}
+                            onKeyDown={e => { if (e.key === 'Enter') onEmailSignIn?.() }}
+                        />
+                        <button
+                            onClick={() => setShowPassword(v => !v)}
+                            className={styles.passwordToggle}
+                        >
+                            {showPassword ? 'Hide' : 'Show'}
+                        </button>
+                    </div>
+                </div>
+
                 <button
-                    onClick={onSignIn}
+                    onClick={onEmailSignIn}
                     disabled={loading}
-                    style={{ ...primaryButtonStyle, opacity: loading ? 0.6 : 1 }}
-                    onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#4f46e5' }}
-                    onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#6366f1' }}
+                    className={styles.primaryButton}
                 >
-                    {loading ? 'Signing in...' : 'Sign in with Google'}
+                    {loading ? 'Signing in...' : 'Sign In'}
                 </button>
+
+                {/* Separator */}
+                <div className={styles.separator}>
+                    <div className={styles.separatorLine} />
+                    <span className={styles.separatorText}>or</span>
+                    <div className={styles.separatorLine} />
+                </div>
+
+                {/* Google */}
+                <button
+                    onClick={onGoogleSignIn}
+                    disabled={loading}
+                    className={styles.googleButton}
+                >
+                    Sign in with Google
+                </button>
+
+                {/* Create Account link */}
+                {onCreateMode && (
+                    <button onClick={onCreateMode} className={styles.linkButton}>
+                        Don&apos;t have an account? <span className={styles.linkHighlight}>Create one</span>
+                    </button>
+                )}
             </div>
         </div>
     )

@@ -100,16 +100,23 @@ export interface ApiErrorResponse {
 
 export interface UserProfile {
     username: string;
-    displayName: string | null;
     avatarUrl: string | null;
     bio: string | null;
     createdAt: string;
     profileComplete?: boolean;
     role?: string;
+    favoriteChampion?: string | null;
     stats: {
         cardsOwned: number;
         decksBuilt: number;
         friendsCount: number;
+        gamesPlayed: number;
+        wins: number;
+        losses: number;
     };
+    topCards: Array<{
+        cardId: string;
+        playCount: number;
+        definition: CardDefinition;
+    }>;
 }
-

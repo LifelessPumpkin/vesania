@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import myImage from '@/app/images/card.webp'
-import { cardStyle, inputStyle, primaryButtonStyle } from '@/styles/cardStyles'
+import styles from './auth.module.css'
 
 interface ScanCardProps {
     code: string
@@ -14,46 +14,35 @@ interface ScanCardProps {
 
 export default function ScanCard({ code, onChangeCode, onScan, loading, error }: ScanCardProps) {
     return (
-        <div style={cardStyle}>
-            <h1 style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold', marginBottom: '1.5rem', textAlign: 'center' }}>
-                Vesania
-            </h1>
+        <div className={styles.card}>
+            {/* Go back to home page */}
+            <button onClick={() => window.location.href = '/home'} className={styles.backButton}>
+                &larr; Back to Home
+            </button>
+            <h1 className={styles.scanTitle}>Vesania</h1>
 
             <Image
                 src={myImage}
                 alt="Sample Card"
-                style={{
-                    width: '100%',
-                    maxWidth: '200px',
-                    height: 'auto',
-                    borderRadius: '0.5rem',
-                    display: 'block',
-                    margin: '0 auto 1.5rem auto',
-                }}
+                className={styles.scanImage}
             />
 
-            {error && (
-                <div style={{ color: '#f87171', fontSize: '0.85rem', marginBottom: '1rem', textAlign: 'center' }}>
-                    {error}
-                </div>
-            )}
+            {error && <div className={styles.error}>{error}</div>}
 
-            <form onSubmit={onScan} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <form onSubmit={onScan} className={styles.scanForm}>
                 <input
                     type="text"
                     value={code}
                     onChange={(e) => onChangeCode(e.target.value)}
                     placeholder="Enter NFC Code"
-                    style={inputStyle}
+                    className={styles.input}
                     required
                 />
 
                 <button
                     type="submit"
                     disabled={loading}
-                    style={{ ...primaryButtonStyle, opacity: loading ? 0.6 : 1, marginTop: '0.25rem' }}
-                    onMouseEnter={e => { if (!loading) e.currentTarget.style.backgroundColor = '#4f46e5' }}
-                    onMouseLeave={e => { if (!loading) e.currentTarget.style.backgroundColor = '#6366f1' }}
+                    className={styles.primaryButton}
                 >
                     {loading ? 'Scanning...' : 'Scan Card'}
                 </button>

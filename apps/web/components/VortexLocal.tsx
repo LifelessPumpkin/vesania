@@ -14,8 +14,17 @@ export default function VortexLocal() {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        const updateSize = () => {
+            const parent = canvas.parentElement
+            if (parent) {
+                canvas.width = parent.clientWidth
+                canvas.height = parent.clientHeight
+            } else {
+                canvas.width = window.innerWidth
+                canvas.height = window.innerHeight
+            }
+        }
+        updateSize()
 
         const noise3D = createNoise3D()
         const particleCount = 300
@@ -34,13 +43,13 @@ export default function VortexLocal() {
         const lerp = (n1: number, n2: number, speed: number) => (1 - speed) * n1 + speed * n2
 
         const initParticle = (i: number) => {
-            const x = (canvas.width / 2) + randRange(350)
-            const y = (canvas.height * 0.40) + randRange(60)
+            const x = (canvas.width / 2) + randRange(canvas.width / 2)
+            const y = (canvas.height / 2) + randRange(canvas.height / 4)
             const vx = 0
             const vy = 0
             const life = 0
             const ttl = 75 + rand(50)
-            const speed = 0.20 + rand(1.25)
+            const speed = 0.35 + rand(1.8)
             const radius = 1.75 + rand(1)
             const hue = 35 + rand(20)
             particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
@@ -86,7 +95,7 @@ export default function VortexLocal() {
                 particleProps[i + 3] = vy
                 particleProps[i + 4] = life
 
-                const outOfBounds = x2 > canvas.width || x2 < 0 || y2 > canvas.height || y2 < 0 || y2 < 60
+                const outOfBounds = x2 > canvas.width || x2 < 0 || y2 > canvas.height || y2 < 0
                 if (outOfBounds || life > ttl) initParticle(i)
             }
 
@@ -96,8 +105,7 @@ export default function VortexLocal() {
         draw()
 
         const handleResize = () => {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
+            updateSize()
         }
         window.addEventListener('resize', handleResize)
 
@@ -110,7 +118,7 @@ export default function VortexLocal() {
     return (
         <canvas
             ref={canvasRef}
-            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }}
 
         />
     )

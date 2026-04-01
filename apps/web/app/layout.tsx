@@ -1,17 +1,13 @@
 import { AuthProvider } from '@/context/AuthContext';
+import BackgroundAudio from '@/components/BackgroundAudio';
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+import "./components.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const customFont = localFont({
+  src: "./fonts/exepixelperfect.medium.ttf",
+  variable: "--font-retganon",
 });
 
 export const metadata: Metadata = {
@@ -27,22 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${customFont.variable} antialiased`}
       >
         <AuthProvider>
-          {/* <nav className="flex items-center justify-between px-6 py-4 bg-gray-950 text-white border-b border-gray-800">
-            <div className="flex items-center gap-8">
-              <Link href="/home" className="text-xl font-bold tracking-tight text-white hover:text-gray-200 transition-colors">
-                Vesania
-              </Link>
-              <div className="flex items-center gap-6 text-sm font-medium">
-                <Link href="/collection" className="text-gray-400 hover:text-white transition-colors">Collection</Link>
-                <Link href="/match" className="text-gray-400 hover:text-white transition-colors">PvP</Link>
-                <Link href="/scan" className="text-gray-400 hover:text-white transition-colors">Scan</Link>
-                <Link href="/api-docs" className="text-gray-400 hover:text-white transition-colors">API Docs</Link>
-              </div>
-            </div>
-          </nav> */}
+          <BackgroundAudio src="/sounds/background_ambience.wav" />
           {children}
         </AuthProvider>
       </body>

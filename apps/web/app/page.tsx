@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuth } from '@/context/AuthContext'
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import VortexLocal from '@/components/VortexLocal'
+import DungeonBackground from '@/components/DungeonBackground'
 
 export default function Home() {
   const router = useRouter()
@@ -21,21 +23,23 @@ export default function Home() {
     }
   }
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', paddingTop: '12vh' }}>
-      <Image
-        src="/background.jpg"
-        alt="Background"
-        fill
-        style={{ objectFit: 'cover' }}
-      />
-      <button style={{
-        position: 'absolute', top: '1rem', left: '1rem',
-        zIndex: 20, padding: '0.5rem 1rem',
-        background: 'goldenrod', color: 'white',
-        border: 'none', borderRadius: '0.5rem', cursor: 'pointer'
-      }}>
+    <div style={{ position: 'relative', minHeight: '100vh', width: '100%', overflow: 'hidden', paddingTop: '12vh' }}>
+      <DungeonBackground />
+      <motion.button
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        style={{
+          position: 'absolute', top: '1rem', left: '1rem',
+          zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
+          background: '#daa520', color: 'white',
+          border: 'none', borderRadius: '0.5rem', cursor: 'pointer',
+          animationDelay: '0.2s'
+        }}
+        className="rumble"
+      >
         About
-      </button>
+      </motion.button>
 
       <div style={{
         position: 'relative', zIndex: 10, display: 'flex',
@@ -43,7 +47,13 @@ export default function Home() {
         paddingTop: '2vh', height: '100%', gap: '0'
       }}>
 
-        <div style={{ position: 'relative', width: 700, height: 250 }}>
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          style={{ position: 'relative', width: 700, height: 250 }}
+          className="logo-float"
+        >
           <VortexLocal />
           <Image
             src="/AI_slop.png"
@@ -52,22 +62,27 @@ export default function Home() {
             height={250}
             style={{ position: 'relative', zIndex: 10 }}
           />
-        </div>
+        </motion.div>
 
         {/* Page should automatically route to /home if the user is logged in */}
-        <button
+        <motion.button
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
           onClick={handlePlayNow}
           disabled={loading || navigating}
           style={{
             position: 'relative', zIndex: 20,
-            padding: '1rem 10rem', fontSize: '1rem',
-            background: 'goldenrod', color: 'white',
+            padding: '0.6rem 3rem', fontSize: '32px',
+            background: '#daa520', color: 'white',
             border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
-            opacity: (loading || navigating) ? 0.7 : 1
+            opacity: (loading || navigating) ? 0.7 : 1,
+            animationDelay: '0.5s'
           }}
+          className="rumble"
         >
           {loading ? '...' : navigating ? '...' : 'Play now'}
-        </button>
+        </motion.button>
       </div>
     </div>
   )

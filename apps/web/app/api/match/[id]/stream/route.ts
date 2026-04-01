@@ -1,14 +1,15 @@
-import { getMatch, subscribe } from "@/lib/game-server/match";
-import { MatchState } from "@/lib/game-server/types";
+import { getMatch } from "@/lib/game-server/match";
+import { createSubscriber } from "@/lib/redis";
+import { MatchState, toPublicState } from "@/lib/game-server/types";
 
-export const dynamic = "force-dynamic"; //need this to avoid caching game state, would get stale state or break stream
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const match = getMatch(id);
+  const match = await getMatch(id);
 
   if (!match) {
     return new Response(JSON.stringify({ error: "Match not found" }), {
@@ -17,32 +18,32 @@ export async function GET(
     });
   }
 
-  const stream = new ReadableStream({ //alllows for data to be pushed over an extended period of time 
-    start(controller) { //controller is like a pipe
-      const encoder = new TextEncoder(); //converts strings into bytes
+  const sub = createSubscriber();
+  await sub.subscribe(`match:${id}`);
 
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+
+      // Strips tokens before pushing each SSE frame — tokens must never leave the server.
       function send(state: MatchState) {
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(state)}\n\n`)); //push bytes into stream
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(toPublicState(state))}\n\n`));
         } catch {
-          // Stream closed, unsubscribe will clean up
+          // Stream closed
         }
       }
 
-      // Send current state immediately
       send(match);
 
-      // Subscribe to future updates
-      const unsubscribe = subscribe(id, send);
+      sub.on("message", (_channel: string, message: string) => {
+        send(JSON.parse(message) as MatchState);
+      });
 
-      // Clean up when client disconnects
       request.signal.addEventListener("abort", () => {
-        unsubscribe();
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
+        sub.unsubscribe();
+        sub.quit();
+        try { controller.close(); } catch { /* already closed */ }
       });
     },
   });

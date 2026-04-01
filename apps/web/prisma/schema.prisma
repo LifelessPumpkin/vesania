@@ -7,22 +7,31 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(cuid())
-  username        String   @unique
+  id              String       @id @default(cuid())
+  username        String       @unique
   displayName     String?
   avatarUrl       String?
   bio             String?
-  profileComplete Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  lastSeenAt      DateTime @default(now())
-  email           String   @unique
-  firebaseUid     String   @unique
-  role            Role     @default(USER)
+  profileComplete Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  lastSeenAt      DateTime     @default(now())
+  email           String       @unique
+  firebaseUid     String       @unique
+  role            Role         @default(USER)
   cards           Card[]
   decks           Deck[]
+  cardUsageStats  UserCardUsage[]
   friendLinksA    Friendship[] @relation("FriendshipUserA")
   friendLinksB    Friendship[] @relation("FriendshipUserB")
-  gold            Int       @default(0)
+
+  // Stats
+  wins             Int     @default(0)
+  losses           Int     @default(0)
+  gamesPlayed      Int     @default(0)
+  favoriteChampion String?
+  topCard1Id       String?
+  topCard2Id       String?
+  topCard3Id       String?
 }
 
 model Friendship {
@@ -48,6 +57,21 @@ model Card {
   definition   CardDefinition @relation(fields: [definitionId], references: [id])
   owner        User?          @relation(fields: [ownerId], references: [id])
   deckCards    DeckCard[]
+  usageStats   UserCardUsage[]
+}
+
+model UserCardUsage {
+  id         String   @id @default(cuid())
+  userId     String
+  cardId     String
+  playCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+  @@index([userId, playCount])
 }
 
 model CardDefinition {

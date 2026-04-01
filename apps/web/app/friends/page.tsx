@@ -9,6 +9,8 @@ import styles from './friends.module.css'
 import type { Friend } from './types'
 import { AddFriendForm } from './components/AddFriendForm'
 import { FriendCard } from './components/FriendCard'
+import SlideUpPage from '@/components/SlideUpPage'
+import DungeonBackground from '@/components/DungeonBackground'
 
 type SearchResult = {
   username: string
@@ -183,95 +185,98 @@ export default function FriendsPage() {
 
   return (
     <main className={styles.page}>
-      <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} priority />
+      <DungeonBackground />
+      <SlideUpPage>
+        <div className={styles.overlay}>
+          <section className={styles.panel}>
+            <header className={styles.header}>
+              <h1 className={styles.title}>Friends</h1>
+              <button onClick={() => router.push('/home')} className={styles.backLink}>
+                &larr; Back to Home
+              </button>
+            </header>
 
-      <div className={styles.overlay}>
-        <section className={styles.panel}>
-          <header className={styles.header}>
-            <h1 className={styles.title}>Friends</h1>
-            <Link href="/home" className={styles.backLink}>← Home</Link>
-          </header>
-
-          {/* Search for players */}
-          <div className={styles.addForm}>
-            <label className={styles.label}>Find Players</label>
-            <div className={styles.formRow}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Search by username or display name..."
-                className={styles.input}
-              />
-            </div>
-            {searching && <p className={styles.message} style={{ fontSize: '0.85rem' }}>Searching...</p>}
-            {searchResults.length > 0 && (
-              <div className={styles.searchResults}>
-                {searchResults.map((result) => {
-                  const isFriend = friendUsernames.has(result.username)
-                  const isAdding = addingUsername === result.username
-                  return (
-                    <div key={result.username} className={styles.searchResultCard}>
-                      {result.avatarUrl ? (
-                        <img src={result.avatarUrl} alt="" className={styles.searchAvatar} />
-                      ) : (
-                        <div className={styles.searchAvatarPlaceholder}>👤</div>
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <Link href={`/profile/${encodeURIComponent(result.username)}`} style={{ textDecoration: 'none' }}>
-                          <span className={styles.searchName}>
-                            {result.displayName || result.username}
-                          </span>
-                        </Link>
-                        <span className={styles.searchUsername}>@{result.username}</span>
+            {/* Search for players */}
+            <div className={styles.addForm}>
+              <label className={styles.label}>Find Players</label>
+              <div className={styles.formRow}>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search by username or display name..."
+                  className={styles.input}
+                />
+              </div>
+              {searching && <p className={styles.message} style={{ fontSize: '24px' }}>Searching...</p>}
+              {searchResults.length > 0 && (
+                <div className={styles.searchResults}>
+                  {searchResults.map((result) => {
+                    const isFriend = friendUsernames.has(result.username)
+                    const isAdding = addingUsername === result.username
+                    return (
+                      <div key={result.username} className={styles.searchResultCard}>
+                        {result.avatarUrl ? (
+                          <img src={result.avatarUrl} alt="" className={styles.searchAvatar} />
+                        ) : (
+                          <div className={styles.searchAvatarPlaceholder}>👤</div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <Link href={`/profile/${encodeURIComponent(result.username)}`} style={{ textDecoration: 'none' }}>
+                            <span className={styles.searchName}>
+                              {result.displayName || result.username}
+                            </span>
+                          </Link>
+                          <span className={styles.searchUsername}>@{result.username}</span>
+                        </div>
+                        {isFriend ? (
+                          <span style={{ color: '#86efac', fontSize: '20px', fontWeight: 600 }}>Friends ✓</span>
+                        ) : (
+                          <button
+                            onClick={() => addFriendByUsername(result.username)}
+                            disabled={isAdding || addingFriend}
+                            className={styles.primaryButton}
+                            style={{ padding: '0.45rem 0.75rem', fontSize: '24px' }}
+                          >
+                            {isAdding ? 'Adding...' : 'Add'}
+                          </button>
+                        )}
                       </div>
-                      {isFriend ? (
-                        <span style={{ color: '#86efac', fontSize: '0.8rem', fontWeight: 600 }}>Friends ✓</span>
-                      ) : (
-                        <button
-                          onClick={() => addFriendByUsername(result.username)}
-                          disabled={isAdding || addingFriend}
-                          className={styles.primaryButton}
-                          style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-                        >
-                          {isAdding ? 'Adding...' : 'Add'}
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+              )}
+              {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
+                <p className={styles.message} style={{ fontSize: '24px' }}>No players found</p>
+              )}
+            </div>
+
+            {/* Manual add by exact username */}
+            <AddFriendForm
+              friendUsername={friendUsername}
+              addingFriend={addingFriend}
+              canSubmit={canSubmit}
+              onUsernameChange={setFriendUsername}
+              onSubmit={onAddFriend}
+            />
+
+            {error && <p className={styles.error}>{error}</p>}
+            {success && <p className={styles.success}>{success}</p>}
+
+            {loadingFriends ? (
+              <p className={styles.message}>Loading friends...</p>
+            ) : friends.length === 0 ? (
+              <p className={styles.message}>No friends yet. Search for players above to add them.</p>
+            ) : (
+              <div className={styles.grid}>
+                {friends.map((friend) => (
+                  <FriendCard key={friend.id} friend={friend} />
+                ))}
               </div>
             )}
-            {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
-              <p className={styles.message} style={{ fontSize: '0.85rem' }}>No players found</p>
-            )}
-          </div>
-
-          {/* Manual add by exact username */}
-          <AddFriendForm
-            friendUsername={friendUsername}
-            addingFriend={addingFriend}
-            canSubmit={canSubmit}
-            onUsernameChange={setFriendUsername}
-            onSubmit={onAddFriend}
-          />
-
-          {error && <p className={styles.error}>{error}</p>}
-          {success && <p className={styles.success}>{success}</p>}
-
-          {loadingFriends ? (
-            <p className={styles.message}>Loading friends...</p>
-          ) : friends.length === 0 ? (
-            <p className={styles.message}>No friends yet. Search for players above to add them.</p>
-          ) : (
-            <div className={styles.grid}>
-              {friends.map((friend) => (
-                <FriendCard key={friend.id} friend={friend} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+          </section>
+        </div>
+      </SlideUpPage>
     </main>
   )
 }

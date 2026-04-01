@@ -15,8 +15,7 @@ export const ALLOWED_IMAGE_TYPES = [
     'image/gif',
 ] as const;
 
-/** Display-name / bio limits. */
-export const MAX_DISPLAY_NAME_LENGTH = 50;
+/** Bio limit. */
 export const MAX_BIO_LENGTH = 200;
 
 /** Map MIME type → file extension (used by the upload route). */

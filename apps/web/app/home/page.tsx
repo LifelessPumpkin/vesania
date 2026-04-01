@@ -3,15 +3,26 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import VortexLocal from '@/components/VortexLocal'
 import FloatingCards from '@/components/FloatingCards'
 import { useAuth } from '@/context/AuthContext'
+import DungeonBackground from '@/components/DungeonBackground'
+import { playSound } from '@/components/ButtonAudio'
+
+// Module-level flag: survives SPA navigations, resets on full page reload
+let _homeAnimated = false
 
 export default function HomePage() {
     const router = useRouter()
     const { user, loading, profileComplete } = useAuth()
     const [navigating, setNavigating] = useState(false)
+
+    // Only animate the very first time this component mounts
+    // Read during render, but only SET after mount (avoids Strict Mode double-render issue)
+    const shouldAnimate = !_homeAnimated
+    useEffect(() => { _homeAnimated = true }, [])
 
     const nav = (path: string, requiresAuth = false) => {
         if (navigating) return
@@ -33,17 +44,15 @@ export default function HomePage() {
     }
 
     return (
-        <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-            <Image
-                src="/background.jpg"
-                alt="Background"
-                fill
-                style={{ objectFit: 'cover' }}
-            />
+        <div style={{ position: 'relative', minHeight: '100vh', width: '100%', overflow: 'hidden' }}>
+            <DungeonBackground />
             <FloatingCards />
 
             {/* menu top right */}
-            <button
+            <motion.button
+                initial={shouldAnimate ? { x: 100, opacity: 0 } : false}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
                 onClick={() => nav('/dashboard')}
                 style={{
                     position: 'absolute', top: '1rem', right: '1rem',
@@ -55,7 +64,7 @@ export default function HomePage() {
                 <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
                 <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
                 <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
-            </button>
+            </motion.button>
 
             {/* Main content */}
             <div style={{
@@ -65,7 +74,10 @@ export default function HomePage() {
             }}>
 
                 {/* Logo */}
-                <div style={{ position: 'relative', width: 700, height: 250 }}>
+                <motion.div
+                    style={{ position: 'relative', width: 700, height: 250 }}
+                    className={shouldAnimate ? 'logo-settle' : 'logo-float'}
+                >
                     <VortexLocal />
                     <Image
                         src="/AI_slop.png"
@@ -74,33 +86,46 @@ export default function HomePage() {
                         height={250}
                         style={{ position: 'relative', zIndex: 10 }}
                     />
-                </div>
+                </motion.div>
 
                 {/* 4 buttons */}
-                <div style={{
-                    display: 'flex', gap: '6rem', marginTop: '11rem', zIndex: 20, position: 'relative'
-                }}>
+                <motion.div
+                    initial={shouldAnimate ? { y: 100, opacity: 0 } : false}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+                    style={{
+                        display: 'flex', gap: '6rem', marginTop: '11rem', zIndex: 20, position: 'relative'
+                    }}
+                >
                     {[
                         { label: 'Play', path: '/match', auth: true },
                         { label: 'Collection', path: '/collection', auth: true },
                         { label: 'Friends', path: '/friends', auth: true },
                         { label: 'Store', path: '/store', auth: false },
-                    ].map(({ label, path, auth }) => (
-                        <button
+                    ].map(({ label, path, auth }, index) => (
+                        <motion.button
                             key={label}
-                            onClick={() => nav(path, auth)}
+                            initial={shouldAnimate ? { y: 50, opacity: 0 } : false}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, ease: "easeOut", delay: 0.5 + (index * 0.1) }}
+                            onClick={() => {
+                                nav(path, auth)
+                                playSound('/sounds/button_sound.wav')
+                            }}
                             disabled={loading}
                             style={{
-                                padding: '0.75rem 4rem', fontSize: '1rem',
+                                padding: '0.5rem 1rem', fontSize: '3rem',
                                 background: 'goldenrod', color: 'white',
                                 border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
-                                opacity: navigating || loading ? 0.7 : 1
+                                opacity: navigating || loading ? 0.7 : 1,
+                                animationDelay: `${index * 0.4}s`
                             }}
+                            className="rumble"
                         >
                             {label}
-                        </button>
+                        </motion.button>
                     ))}
-                </div>
+                </motion.div>
             </div>
         </div>
     )

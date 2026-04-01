@@ -5,22 +5,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem 1rem;
+    padding: var(--space-2xl) var(--space-lg);
     box-sizing: border-box;
 }
 
 .card {
     position: relative;
     z-index: 10;
-    background: rgba(20, 20, 30, 0.7);
+    background: var(--color-bg-alpha);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1.5rem;
-    padding: 2.5rem 2rem;
-    width: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    padding: var(--space-2xl) var(--space-xl);
+    min-width: 500px;
     max-width: 500px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-card);
     opacity: 0;
     transform: translateY(16px);
     animation: fadeIn 0.35s ease forwards;
@@ -37,18 +37,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-xl);
 }
 
 .backLink {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--color-text-muted);
     text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.2s;
+    font-size: var(--text-md);
+    transition: color var(--ease-default);
 }
 
 .backLink:hover {
-    color: white;
+    color: var(--color-text);
 }
 
 /* Profile header section */
@@ -56,32 +56,32 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
 }
 
 .avatarLarge {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.15);
+    border: 3px solid var(--color-border);
     object-fit: cover;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(17, 8, 4, 0.5);
 }
 
 .avatarLargeEdit {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.15);
+    border: 3px solid var(--color-border);
     object-fit: cover;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(17, 8, 4, 0.5);
     cursor: pointer;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color var(--ease-default), transform var(--ease-default);
 }
 
 .avatarLargeEdit:hover {
-    border-color: #6366f1;
+    border-color: var(--color-accent);
     transform: scale(1.05);
 }
 
@@ -89,84 +89,86 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 3px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
+    border: 3px solid var(--color-border);
+    background: rgba(17, 8, 4, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 2.5rem;
+    color: var(--color-text-faint);
+    font-size: 60px;
 }
 
 .avatarPlaceholderEdit {
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 3px dashed rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.05);
+    border: 3px dashed var(--color-border);
+    background: rgba(17, 8, 4, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 2.5rem;
+    color: var(--color-text-faint);
+    font-size: 60px;
     cursor: pointer;
-    transition: border-color 0.2s, transform 0.2s;
+    transition: border-color var(--ease-default), transform var(--ease-default);
 }
 
 .avatarPlaceholderEdit:hover {
-    border-color: #6366f1;
+    border-color: var(--color-accent);
     transform: scale(1.05);
 }
 
 .displayName {
-    color: white;
-    font-size: 1.5rem;
+    color: var(--color-text);
+    font-size: var(--text-lg);
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
     font-weight: bold;
     text-align: center;
     margin: 0;
 }
 
 .username {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-base);
     text-align: center;
 }
 
 .bio {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-base);
+    line-height: 1.4;
     text-align: center;
     max-width: 320px;
-    line-height: 1.4;
 }
 
 /* Stats */
 .statsRow {
     display: flex;
     justify-content: center;
-    gap: 2rem;
-    padding: 1.25rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 1.5rem;
+    gap: var(--space-2xl);
+    padding: var(--space-xl) 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--space-xl);
 }
 
 .stat {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: var(--space-2xs);
 }
 
 .statValue {
-    color: white;
-    font-size: 1.25rem;
+    color: var(--color-text);
+    font-size: var(--text-md);
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
     font-weight: 700;
 }
 
 .statLabel {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.75rem;
+    color: var(--color-text-faint);
+    font-size: var(--text-sm);
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -175,7 +177,7 @@
 .editForm {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-lg);
 }
 
 .fieldGroup {
@@ -184,69 +186,69 @@
 }
 
 .label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-size: 18px;
     font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin-bottom: 0.35rem;
+    margin-bottom: var(--space-xs);
 }
 
 .input {
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.07);
-    color: white;
-    font-size: 1rem;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: rgba(17, 8, 4, 0.5);
+    color: var(--color-text);
+    font-size: var(--text-base);
     outline: none;
     width: 100%;
     box-sizing: border-box;
-    transition: border-color 0.2s;
+    transition: border-color var(--ease-default);
 }
 
 .input:focus {
-    border-color: #6366f1;
+    border-color: var(--color-accent);
 }
 
 .textarea {
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.07);
-    color: white;
-    font-size: 1rem;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: rgba(17, 8, 4, 0.5);
+    color: var(--color-text);
+    font-size: var(--text-base);
     outline: none;
     width: 100%;
     box-sizing: border-box;
-    transition: border-color 0.2s;
+    transition: border-color var(--ease-default);
     resize: vertical;
     min-height: 70px;
     font-family: inherit;
 }
 
 .charCount {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.75rem;
+    color: var(--color-text-faint);
+    font-size: var(--text-sm);
     text-align: right;
-    margin-top: 0.15rem;
+    margin-top: var(--space-2xs);
 }
 
 .validationHint {
-    font-size: 0.78rem;
-    margin-top: 0.3rem;
+    font-size: var(--text-sm);
+    margin-top: var(--space-xs);
 }
 
 .valid {
-    color: #4ade80;
+    color: var(--color-success);
 }
 
 .invalid {
-    color: #f87171;
+    color: var(--color-error);
 }
 
 .checking {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--color-text-muted);
 }
 
 .hiddenInput {
@@ -256,39 +258,39 @@
 /* Buttons */
 .buttonRow {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
+    gap: var(--space-md);
+    margin-top: var(--space-sm);
 }
 
 .editButton {
-    padding: 0.65rem 1.25rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    font-size: 0.9rem;
+    padding: 0.65rem var(--space-xl);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-alpha);
+    color: var(--color-text);
+    font-size: var(--text-base);
     font-weight: 500;
     cursor: pointer;
     width: 100%;
-    transition: all 0.2s;
+    transition: all var(--ease-default);
 }
 
 .editButton:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: var(--color-surface);
+    border-color: var(--color-border-hover);
 }
 
 .saveButton {
-    padding: 0.65rem 1.25rem;
-    border-radius: 0.5rem;
+    padding: 0.65rem var(--space-xl);
+    border-radius: var(--radius-md);
     border: none;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, var(--color-accent), #b8860b);
     color: white;
-    font-size: 0.9rem;
+    font-size: var(--text-base);
     font-weight: 600;
     cursor: pointer;
     flex: 1;
-    transition: opacity 0.2s;
+    transition: opacity var(--ease-default);
 }
 
 .saveButton:hover:not(:disabled) {
@@ -301,42 +303,42 @@
 }
 
 .cancelButton {
-    padding: 0.65rem 1.25rem;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.65rem var(--space-xl);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-base);
     cursor: pointer;
     flex: 1;
-    transition: all 0.2s;
+    transition: all var(--ease-default);
 }
 
 .cancelButton:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    color: white;
+    border-color: var(--color-border-hover);
+    color: var(--color-text);
 }
 
 .error {
-    color: #f87171;
-    font-size: 0.85rem;
+    color: var(--color-error);
+    font-size: var(--text-base);
     text-align: center;
 }
 
 .success {
-    color: #4ade80;
-    font-size: 0.85rem;
+    color: var(--color-success);
+    font-size: var(--text-base);
     text-align: center;
 }
 
 .loadingText {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--color-text-muted);
     text-align: center;
 }
 
 .memberSince {
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 0.8rem;
+    color: var(--color-text-faint);
+    font-size: var(--text-base);
     text-align: center;
-    margin-top: 0.75rem;
+    margin-top: var(--space-md);
 }

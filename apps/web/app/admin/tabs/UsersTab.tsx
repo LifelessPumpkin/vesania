@@ -44,52 +44,53 @@ export function UsersTab({ getToken, currentUserId }: { getToken: () => Promise<
     }
 
     return (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-            <h2 className="text-lg font-semibold mb-4">
-                All Users <span className="text-gray-500 text-sm font-normal">({users.length})</span>
+        <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
+            <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
+                All Users <span className="text-sm font-normal" style={{ color: 'var(--color-text-faint)' }}>({users.length})</span>
             </h2>
             {loading ? (
-                <p className="text-gray-500">Loading...</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>Loading...</p>
             ) : users.length === 0 ? (
-                <p className="text-gray-500">No users found.</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>No users found.</p>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-base">
                         <thead>
-                            <tr className="text-gray-400 border-b border-gray-800">
-                                <th className="text-left py-2 px-3">Username</th>
-                                <th className="text-left py-2 px-3">Email</th>
-                                <th className="text-left py-2 px-3">Role</th>
-                                <th className="text-left py-2 px-3">Cards</th>
-                                <th className="text-left py-2 px-3">Joined</th>
-                                <th className="text-left py-2 px-3">Actions</th>
+                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                                <th className="text-left py-3 px-4">Username</th>
+                                <th className="text-left py-3 px-4">Email</th>
+                                <th className="text-left py-3 px-4">Role</th>
+                                <th className="text-left py-3 px-4">Cards</th>
+                                <th className="text-left py-3 px-4">Joined</th>
+                                <th className="text-left py-3 px-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {users.map((u) => (
-                                <tr key={u.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                                    <td className="py-2 px-3 font-medium">{u.username}</td>
-                                    <td className="py-2 px-3 text-gray-400">{u.email}</td>
-                                    <td className="py-2 px-3">
-                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.role === 'ADMIN'
-                                            ? 'bg-purple-500/20 text-purple-300'
+                                <tr key={u.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border)' }}>
+                                    <td className="py-3 px-4 font-medium">{u.username}</td>
+                                    <td className="py-3 px-4 text-gray-400">{u.email}</td>
+                                    <td className="py-3 px-4">
+                                        <span className={`px-3 py-1 rounded text-sm font-medium ${u.role === 'ADMIN'
+                                            ? ''
                                             : 'bg-gray-700 text-gray-300'
-                                            }`}>
+                                            }`}
+                                            style={u.role === 'ADMIN' ? { background: 'rgba(218,165,32,0.2)', color: '#daa520' } : {}}>
                                             {u.role}
                                         </span>
                                     </td>
-                                    <td className="py-2 px-3 text-gray-400">{u._count.cards}</td>
-                                    <td className="py-2 px-3 text-gray-500 text-xs">
+                                    <td className="py-3 px-4" style={{ color: 'var(--color-text-muted)' }}>{u._count.cards}</td>
+                                    <td className="py-3 px-4 text-xs" style={{ color: 'var(--color-text-faint)' }}>
                                         {new Date(u.createdAt).toLocaleDateString()}
                                     </td>
-                                    <td className="py-2 px-3">
+                                    <td className="py-3 px-4">
                                         {u.id === currentUserId ? (
-                                            <span className="text-xs text-gray-600">You</span>
+                                            <span className="text-xs" style={{ color: 'var(--color-text-faint)' }}>You</span>
                                         ) : (
                                             <button
                                                 onClick={() => toggleRole(u.id, u.role)}
                                                 disabled={updating === u.id}
-                                                className={`text-xs px-3 py-1 rounded font-medium transition-colors disabled:opacity-50 ${u.role === 'ADMIN'
+                                                className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${u.role === 'ADMIN'
                                                     ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
                                                     : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
                                                     }`}

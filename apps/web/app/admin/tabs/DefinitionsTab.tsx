@@ -84,19 +84,19 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
     return (
         <div className="space-y-6">
             {/* Create Form */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                <h2 className="text-lg font-semibold mb-4">Create Card Definition</h2>
+            <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Create Card Definition</h2>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm text-gray-400 mb-1">Name</label>
+                        <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Name</label>
                         <input
                             type="text" required value={formData.name}
                             onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                            className="w-full rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm text-gray-400 mb-1">Type</label>
+                        <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Type</label>
                         <select
                             value={formData.type}
                             onChange={(e) => {
@@ -107,28 +107,28 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                                     effectJson: getDefaultEffectForType(nextType) as Record<string, unknown>,
                                 }))
                             }}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                            className="w-full rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
                         >
                             {Object.values(CardType).map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm text-gray-400 mb-1">Rarity</label>
+                        <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Rarity</label>
                         <select
                             value={formData.rarity}
                             onChange={(e) => setFormData(p => ({ ...p, rarity: e.target.value }))}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                            className="w-full rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
                         >
                             {['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'].map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm text-gray-400 mb-1">Description</label>
+                        <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Description</label>
                         <textarea
                             required value={formData.description}
                             onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                             rows={2}
-                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
+                            className="w-full rounded-lg px-4 py-3 text-base text-white outline-none resize-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
                         />
                     </div>
                     <div className="md:col-span-2">
@@ -138,10 +138,10 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                             onChange={(value) => setFormData(p => ({ ...p, effectJson: value }))}
                         />
                     </div>
-                    <div className="md:col-span-2 flex items-center gap-4">
+                    <div className="md:col-span-2 flex items-center gap-6 mt-2">
                         <button
                             type="submit" disabled={submitting}
-                            className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                            className="disabled:opacity-50 text-white px-8 py-3 rounded-xl text-base font-medium transition-colors" style={{ background: '#daa520' }}
                         >
                             {submitting ? 'Creating...' : 'Create Definition'}
                         </button>
@@ -155,36 +155,36 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
             </div>
 
             {/* Definitions List */}
-            <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-                <h2 className="text-lg font-semibold mb-4">
-                    All Definitions <span className="text-gray-500 text-sm font-normal">({definitions.length})</span>
+            <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
+                <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
+                    All Definitions <span className="text-sm font-normal" style={{ color: 'var(--color-text-faint)' }}>({definitions.length})</span>
                 </h2>
                 {loading ? (
-                    <p className="text-gray-500">Loading...</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>Loading...</p>
                 ) : definitions.length === 0 ? (
-                    <p className="text-gray-500">No card definitions yet.</p>
+                    <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>No card definitions yet.</p>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-base">
                             <thead>
-                                <tr className="text-gray-400 border-b border-gray-800">
-                                    <th className="text-left py-2 px-3">Name</th>
-                                    <th className="text-left py-2 px-3">Type</th>
-                                    <th className="text-left py-2 px-3">Rarity</th>
-                                    <th className="text-left py-2 px-3">ID</th>
+                                <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                                    <th className="text-left py-3 px-4">Name</th>
+                                    <th className="text-left py-3 px-4">Type</th>
+                                    <th className="text-left py-3 px-4">Rarity</th>
+                                    <th className="text-left py-3 px-4">ID</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {definitions.map((def) => (
-                                    <tr key={def.id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
-                                        <td className="py-2 px-3 font-medium">{def.name}</td>
-                                        <td className="py-2 px-3">
-                                            <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded text-xs">{def.type}</span>
+                                    <tr key={def.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border)' }}>
+                                        <td className="py-3 px-4 font-medium">{def.name}</td>
+                                        <td className="py-3 px-4">
+                                            <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded text-sm">{def.type}</span>
                                         </td>
-                                        <td className="py-2 px-3">
+                                        <td className="py-3 px-4">
                                             <RarityBadge rarity={def.rarity} />
                                         </td>
-                                        <td className="py-2 px-3 font-mono text-xs text-gray-500">{def.id}</td>
+                                        <td className="py-3 px-4 font-mono text-xs" style={{ color: 'var(--color-text-faint)' }}>{def.id}</td>
                                     </tr>
                                 ))}
                             </tbody>

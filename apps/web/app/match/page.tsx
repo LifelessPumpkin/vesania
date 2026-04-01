@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import SlideUpPage from "@/components/SlideUpPage";
 import { GAME } from "@/lib/game-server/constants";
+import { useAuth } from "@/context/AuthContext";
 
 type PlayerId = "p1" | "p2";
 
@@ -22,22 +24,44 @@ interface MatchState {
   turn: PlayerId;
   log: string[];
   winner: PlayerId | null;
+  // Note: p1Token and p2Token are intentionally absent here.
+  // The server strips them before sending, so they never arrive on the client.
 }
 
 type ActionType = "PUNCH" | "KICK" | "BLOCK" | "HEAL";
 
+// Shape of the session object we persist in localStorage.
+// Storing the token here means it survives page refreshes, which is important
+// for the Redis-based disconnect recovery flow (Issue #2). When a player
+// refreshes, we can read this and resume their match without re-joining.
+interface MatchSession {
+  matchId: string;
+  playerId: PlayerId;
+  playerName: string;
+  token: string;
+}
+
+const SESSION_KEY = "matchSession";
+
 export default function MatchPage() {
+  const { getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [matchId, setMatchId] = useState("");
   const [playerId, setPlayerId] = useState<PlayerId>("p1");
+  // matchToken holds the Bearer token for this player's seat.
+  // It is set once (on create or join) and used on every action request.
+  const [matchToken, setMatchToken] = useState<string>("");
   const [matchState, setMatchState] = useState<MatchState | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "reconnecting">("connected");
   const [connectionLost, setConnectionLost] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  const reconnectDelay = useRef(1000);
 
   const connectSSE = useCallback(
     (id: string) => {
@@ -48,6 +72,12 @@ export default function MatchPage() {
       const es = new EventSource(`/api/match/${id}/stream`);
       eventSourceRef.current = es;
 
+      es.onopen = () => {
+        setConnectionStatus("connected");
+        setConnectionLost(false);
+        reconnectDelay.current = 1000;
+      };
+
       es.onmessage = (event) => {
         const state: MatchState = JSON.parse(event.data);
         setMatchState(state);
@@ -55,15 +85,60 @@ export default function MatchPage() {
         if (state.status === "active" || state.status === "finished") {
           setScreen("game");
         }
+        if (state.status === "finished") {
+          localStorage.removeItem("activeMatch");
+        }
       };
 
       es.onerror = () => {
-        es.close();
+        setConnectionStatus("reconnecting");
         setConnectionLost(true);
+        es.close();
+        const delay = reconnectDelay.current;
+        reconnectDelay.current = Math.min(delay * 2, 30000);
+        setTimeout(() => connectSSE(id), delay);
       };
     },
     []
   );
+
+  // On mount: check localStorage for an existing session.
+  // If one is found, fetch the match to confirm it is still alive, then resume.
+  // This handles the page-refresh case — the token survives in localStorage so
+  // the player can continue acting without re-joining.
+  useEffect(() => {
+    const saved = localStorage.getItem(SESSION_KEY);
+    if (!saved) return;
+
+    let session: MatchSession;
+    try {
+      session = JSON.parse(saved);
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+      return;
+    }
+
+    // Verify the match still exists before restoring state.
+    // With Redis this will succeed as long as the match hasn't expired.
+    fetch(`/api/match/${session.matchId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Match gone");
+        return res.json();
+      })
+      .then((state: MatchState) => {
+        setMatchId(session.matchId);
+        setPlayerId(session.playerId);
+        setPlayerName(session.playerName);
+        setMatchToken(session.token);
+        setMatchState(state);
+        setScreen(state.status === "waiting" ? "waiting" : "game");
+        connectSSE(session.matchId);
+      })
+      .catch(() => {
+        // Match is gone — clear the stale session so the lobby is clean.
+        localStorage.removeItem(SESSION_KEY);
+      });
+  }, [connectSSE]);
 
   useEffect(() => {
     return () => {
@@ -83,15 +158,30 @@ export default function MatchPage() {
     setError("");
     setLoading(true);
     try {
+      const token = await getToken();
       const res = await fetch("/api/match/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ playerName: playerName.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Persist the session (including token) so it survives a page refresh.
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
+      setMatchToken(data.token);
       setScreen("waiting");
       connectSSE(data.matchId);
     } catch (e) {
@@ -114,15 +204,31 @@ export default function MatchPage() {
     setLoading(true);
     try {
       const code = roomCode.trim().toUpperCase();
+      const token = await getToken();
       const res = await fetch("/api/match/join", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ matchId: code, playerName: playerName.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+
+      // Same persistence as create — token must be in localStorage for
+      // reconnection to work after a refresh.
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
+      setMatchToken(data.token);
       setScreen("game");
       connectSSE(data.matchId);
     } catch (e) {
@@ -134,11 +240,25 @@ export default function MatchPage() {
 
   async function handleAction(type: ActionType) {
     setError("");
+
+    // Guard: if the token is missing (e.g., extreme edge case on first render
+    // before the reconnect effect runs) bail early rather than sending a bare request.
+    if (!matchToken) {
+      setError("Session not ready — try refreshing");
+      return;
+    }
+
     try {
       const res = await fetch(`/api/match/${matchId}/action`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId, type }),
+        headers: {
+          "Content-Type": "application/json",
+          // Send the token as a standard Bearer token.
+          // The server validates this and resolves playerId server-side.
+          // playerId is no longer sent in the body.
+          "Authorization": `Bearer ${matchToken}`,
+        },
+        body: JSON.stringify({ type }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -147,70 +267,87 @@ export default function MatchPage() {
     }
   }
 
+  function handleBackToLobby() {
+    // Clear the session so the next player who opens this tab starts fresh.
+    localStorage.removeItem(SESSION_KEY);
+    eventSourceRef.current?.close();
+    setMatchState(null);
+    setMatchId("");
+    setError("");
+    setLoading(false);
+    setMatchToken("");
+    setRoomCode("");
+    setConnectionStatus("connected");
+    setConnectionLost(false);
+    setScreen("lobby");
+  }
+
   // --- LOBBY ---
   if (screen === "lobby") {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="w-full max-w-md p-8 space-y-6">
-          <div className="text-center">
-            <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
-              &larr; Home
-            </Link>
-            <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>
-            <p className="text-gray-400 mt-1">Turn-based combat</p>
-          </div>
+      <SlideUpPage>
+        <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+          <div className="w-full max-w-md p-8 space-y-6">
+            <div className="text-center">
+              <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
+                &larr; Home
+              </Link>
+              <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>
+              <p className="text-gray-400 mt-1">Turn-based combat</p>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Your Name
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Enter your name"
-              maxLength={20}
-              className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Your Name
+              </label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={20}
+                className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              />
+            </div>
 
-          <button
-            onClick={handleCreate}
-            disabled={loading}
-            className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-50 transition-colors"
-          >
-            Create Match
-          </button>
-
-          <div className="flex items-center gap-3">
-            <hr className="flex-1 border-gray-700" />
-            <span className="text-gray-500 text-sm">or join</span>
-            <hr className="flex-1 border-gray-700" />
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder="ROOM CODE"
-              maxLength={6}
-              className="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 uppercase tracking-widest text-center font-mono"
-            />
             <button
-              onClick={handleJoin}
+              onClick={handleCreate}
               disabled={loading}
-              className="px-6 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50 transition-colors"
+              className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-50 transition-colors"
             >
-              Join
+              Create Match
             </button>
-          </div>
 
-          {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          )}
-        </div>
-      </main>
+            <div className="flex items-center gap-3">
+              <hr className="flex-1 border-gray-700" />
+              <span className="text-gray-500 text-sm">or join</span>
+              <hr className="flex-1 border-gray-700" />
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="ROOM CODE"
+                maxLength={6}
+                className="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 uppercase tracking-widest text-center font-mono"
+              />
+              <button
+                onClick={handleJoin}
+                disabled={loading}
+                className="px-6 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50 transition-colors"
+              >
+                Join
+              </button>
+            </div>
+
+            {error && (
+              <p className="text-red-400 text-sm text-center">{error}</p>
+            )}
+          </div>
+        </main>
+      </SlideUpPage>
     );
   }
 
@@ -218,7 +355,7 @@ export default function MatchPage() {
   if (screen === "waiting") {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="text-center space-y-6">
+        <div className="text-center space-y-6 px-6">
           <h1 className="text-2xl font-bold">Waiting for opponent...</h1>
           <div className="space-y-2">
             <p className="text-gray-400">Share this room code:</p>
@@ -229,6 +366,15 @@ export default function MatchPage() {
           <div className="animate-pulse text-gray-500">
             Listening for players...
           </div>
+          {connectionStatus === "reconnecting" && (
+            <p className="text-yellow-400 text-sm">Reconnecting...</p>
+          )}
+          <button
+            onClick={handleBackToLobby}
+            className="w-full rounded border border-gray-700 px-4 py-3 font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:bg-gray-800"
+          >
+            Cancel Match
+          </button>
         </div>
       </main>
     );
@@ -256,6 +402,9 @@ export default function MatchPage() {
         {/* Header */}
         <div className="text-center">
           <p className="text-xs text-gray-500 font-mono">MATCH {matchState.matchId}</p>
+          {connectionStatus === "reconnecting" && (
+            <p className="text-xs text-yellow-400">Reconnecting...</p>
+          )}
           {isFinished ? (
             <p className={`text-2xl font-bold mt-1 ${iWon ? "text-green-400" : "text-red-400"}`}>
               {iWon ? "You Win!" : "You Lose!"}
@@ -355,13 +504,7 @@ export default function MatchPage() {
         {/* Play Again */}
         {isFinished && (
           <button
-            onClick={() => {
-              eventSourceRef.current?.close();
-              setMatchState(null);
-              setMatchId("");
-              setRoomCode("");
-              setScreen("lobby");
-            }}
+            onClick={handleBackToLobby}
             className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold transition-colors"
           >
             Back to Lobby

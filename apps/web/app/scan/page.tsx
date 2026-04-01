@@ -110,7 +110,7 @@ function ScanPageContent() {
         {!user || showLogin ? (
           <LoginCard
             onBack={() => setShowLogin(false)}
-            onSignIn={handleSignIn}
+            onGoogleSignIn={handleSignIn}
             loading={signingIn}
             error={error}
           />

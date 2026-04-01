@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "favoriteChampion" TEXT,
+ADD COLUMN     "gamesPlayed" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "losses" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "topCard1Id" TEXT,
+ADD COLUMN     "topCard2Id" TEXT,
+ADD COLUMN     "topCard3Id" TEXT,
+ADD COLUMN     "wins" INTEGER NOT NULL DEFAULT 0;
