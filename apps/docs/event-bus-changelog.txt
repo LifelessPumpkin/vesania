@@ -643,8 +643,8 @@ Step 9: Structured combat log — replace string[] with LogEntry[] for
 rich client-side rendering.
 
 
-Event Bus — Step 9: Structured Combat Log — IN PROGRESS
-=========================================================
+Event Bus — Step 9: Structured Combat Log — COMPLETED
+=======================================================
 Branch: event-bus-zts
 Date:   2026-03-31
 
@@ -653,43 +653,118 @@ Design Decisions Made
   D10. Log entry granularity: one entry per atomic state change
   D11. Log history limit: keep all entries (unbounded)
 
-STATUS: PARTIALLY COMPLETE — stopped mid-conversion due to usage limits.
+Overview
+--------
+Replaced the string[] combat log with typed LogEntry[] objects carrying
+message, event type, source card, playerId, and numeric values. Client
+rendering now color-codes log entries by event type (red=damage,
+green=heal, blue=block, yellow=status, purple=card play, etc.).
 
-What IS done:
-  - LogEntry interface added to types.ts (message, event?, sourceCard?,
-    playerId?, values?: {damage?, healing?, block?})
+Files Changed
+-------------
+
+lib/game-server/types.ts
+  - Added LogEntry interface (message, event?, sourceCard?, playerId?,
+    values?: {damage?, healing?, block?})
   - MatchState.log changed from string[] to LogEntry[]
-  - types.ts imports GameEventType from events.ts (type-only, no circular issue)
-  - match.ts: ALL state.log.push() calls converted to LogEntry objects
-  - effect-resolver.ts: MOST state.log.push() calls converted:
-      applyDamage()        — DONE
-      applyHealing()       — DONE
-      applyStatusEffect()  — DONE
-      resolveItemEffect()  — DONE (healthBonus, attackBonus, defenseBonus, consumed)
-      processStatusEffectTicks() — DONE (BURN, POISON, REGEN, FREEZE/STUN,
-                                         SHIELD, SEND_TO_GRAVEYARD, expired)
 
-What is NOT done (2 string log.push calls remain):
-  - effect-resolver.ts line ~704: resolveSpellEffect() UTILITY case
-      state.log.push(`${card.name} granted +${blockBonus} block to ${target.name}`)
-  - effect-resolver.ts line ~713: resolveSpellEffect() UTILITY case
-      state.log.push(`${card.name} granted +${attackBonus} attack to ${target.name}`)
+lib/game-server/match.ts
+  - All state.log.push() calls converted to LogEntry objects with
+    appropriate event types and values
 
-  - page.tsx: Client rendering NOT updated yet. Still reads log entries
-    as strings. Needs to read entry.message instead of entry directly.
-    Also needs color-coding by event type.
+lib/game-server/effect-resolver.ts
+  - All state.log.push() calls converted to LogEntry objects:
+    applyDamage, applyHealing, applyStatusEffect, resolveItemEffect,
+    resolveToolEffect, processStatusEffectTicks, resolveSpellEffect
+    (including UTILITY blockBonus/attackBonus cases)
 
-  - Tests: 2 tests check log entries as strings and will FAIL at TS level
-    but pass at runtime (tsx doesn't type-check):
-      t2-create-match.test.ts:40  — expect(state.log[0]).toContain("Alice")
-      t6-apply-action.test.ts:115 — expect(state.log[state.log.length-1]).toContain("Alice")
-    These need to change to: state.log[0].message / state.log[...].message
+app/match/page.tsx
+  - Client MatchState.log type updated to LogEntry[] shape
+  - Log rendering reads entry.message instead of entry directly
+  - Color-coding by entry.event type:
+    DAMAGE_DEALT/PLAYER_DIED → red, HEAL_APPLIED → green,
+    BLOCK_APPLIED → blue, STATUS_EFFECT_APPLIED → yellow,
+    STATUS_EFFECT_EXPIRED → gray, CARD_PLAYED/EQUIPPED → purple,
+    CARD_DESTROYED → orange, ENERGY_SPENT → yellow-light,
+    STATUS_EFFECT_TICK → amber, default → gray
 
-TO RESUME Step 9, do these in order:
-  1. Convert last 2 string log.push calls in effect-resolver.ts (UTILITY case)
-  2. Update page.tsx: change log rendering from `entry` to `entry.message`,
-     add color-coding by entry.event type
-  3. Fix tests: state.log[x] → state.log[x].message in t2 and t6
-  4. Run tests (should be 43/43)
-  5. Update this changelog entry to mark COMPLETED
-  6. Proceed to Step 10
+test-scripts/t2-create-match.test.ts
+  - Fixed log assertion: state.log[0].message
+
+test-scripts/t6-apply-action.test.ts
+  - Fixed log assertion: state.log[...].message
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.
+
+Next Step
+---------
+Step 10: Client UI polish — opponent card visibility, card detail view,
+animation priority (decisions D12-D14 needed first).
+
+
+Event Bus — Step 10: Client UI Polish — COMPLETED
+===================================================
+Branch: event-bus-zts
+Date:   2026-03-31
+
+Design Decisions Made
+---------------------
+  D12. Opponent card visibility: A — full visibility
+  D13. Card detail view: C — hover tooltip + click modal
+  D14. Animation priority: B — minimal CSS transitions
+
+Overview
+--------
+Polished the match page UI with improved player panels, opponent card
+visibility, card detail modals, animated turn banners, and CSS
+transitions. Extracted reusable components (TurnBanner, CardZones,
+CardDetailModal) and added health-based HP bar coloring.
+
+Behavior Changes
+----------------
+Visual only — no game logic changes. 43/43 tests pass identically.
+
+New Components
+--------------
+
+  TurnBanner: animated "Your Turn" / "Opponent's Turn" / "Victory" /
+    "Defeat" banner. Green pulse when active, muted when waiting,
+    fade-in for game-over results.
+
+  CardZones: reusable card zone display for any player. Shows equipped
+    items, tools, hand spells, and expandable graveyard. Both player's
+    and opponent's zones rendered (D12=A full visibility).
+
+  CardDetailModal: full-screen modal showing card image, name, rarity,
+    type, description, and effect data table. Type-colored border.
+    Scale-in + fade-in animations. Dismiss via backdrop click or button.
+
+Files Changed
+-------------
+
+app/match/page.tsx
+  - New state: selectedCard for card detail modal
+  - TurnBanner component replaces inline turn text
+  - PlayerPanel improvements:
+    - Character image display
+    - HP bar color by health % (green >60, yellow >30, red <=30)
+    - Active turn glow shadow + pulsing dot indicator
+    - Status effect badges color-coded by type
+    - Block shown with shield icon
+    - Font-mono for numeric values
+    - Smooth 500ms transitions on bars
+  - CardZones component for both players (opponent visible, D12=A)
+  - Graveyard: collapsible section with card count + dimmed tiles
+  - MiniCard: added onClick, dimmed prop, rarity display, hover states
+  - CardDetailModal: click-to-view full card details (D13=C)
+  - Restriction banners now pulse
+
+app/globals.css
+  - Added fadeIn keyframe animation
+  - Added scaleIn keyframe animation
+
+Test Results
+------------
+43/43 existing tests passing, 0 failures. No regressions.

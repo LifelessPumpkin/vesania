@@ -50,7 +50,13 @@ interface MatchState {
   };
   turn: PlayerId;
   turnNumber: number;
-  log: string[];
+  log: {
+    message: string;
+    event?: string;
+    sourceCard?: { name: string; imageUrl: string | null };
+    playerId?: string;
+    values?: { damage?: number; healing?: number; block?: number };
+  }[];
   winner: PlayerId | null;
 }
 
@@ -93,6 +99,9 @@ export default function MatchPage() {
   const [decks, setDecks] = useState<DeckOption[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
   const [decksLoading, setDecksLoading] = useState(false);
+
+  // Card detail modal state (D13=C click for full view)
+  const [selectedCard, setSelectedCard] = useState<MatchCard | null>(null);
 
   // Fetch user's decks when logged in
   useEffect(() => {
@@ -505,62 +514,33 @@ export default function MatchPage() {
           {connectionStatus === "reconnecting" && (
             <p className="text-xs text-yellow-400">Reconnecting...</p>
           )}
-          {isFinished ? (
-            <p className={`text-2xl font-bold mt-1 ${iWon ? "text-green-400" : "text-red-400"}`}>
-              {iWon ? "You Win!" : "You Lose!"}
-            </p>
-          ) : (
-            <p className={`text-lg font-semibold mt-1 ${isMyTurn ? "text-green-400" : "text-yellow-400"}`}>
-              {isMyTurn ? "Your Turn" : "Waiting for opponent..."}
-            </p>
-          )}
         </div>
+
+        {/* Turn Banner */}
+        <TurnBanner isFinished={isFinished} isMyTurn={isMyTurn} iWon={iWon} />
 
         {/* Players */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Me */}
           <PlayerPanel player={me} label="You" isActive={isMyTurn} />
-          {/* Opponent */}
           <PlayerPanel player={opponent ?? null} label="Opponent" isActive={!isMyTurn && !isFinished} />
         </div>
 
-        {/* Card Zones (only show if player has cards) */}
+        {/* My Card Zones */}
         {me.character && (
-          <div className="space-y-2">
-            {/* Equipped Items */}
-            {me.equippedItems.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR ITEMS</p>
-                <div className="flex gap-2 flex-wrap">
-                  {me.equippedItems.map((card) => (
-                    <MiniCard key={card.cardId} card={card} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Equipped Tools */}
-            {me.equippedTools.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR TOOLS</p>
-                <div className="flex gap-2 flex-wrap">
-                  {me.equippedTools.map((card) => (
-                    <MiniCard key={card.cardId} card={card} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Hand (spells) */}
-            {me.hand.length > 0 && (
-              <div>
-                <p className="text-xs text-gray-500 font-semibold mb-1">YOUR SPELLS</p>
-                <div className="flex gap-2 flex-wrap">
-                  {me.hand.map((card) => (
-                    <MiniCard key={card.cardId} card={card} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <CardZones
+            player={me}
+            label="YOUR"
+            onCardClick={setSelectedCard}
+          />
+        )}
+
+        {/* Opponent Card Zones (D12=A full visibility) */}
+        {opponent?.character && (
+          <CardZones
+            player={opponent}
+            label="OPPONENT"
+            onCardClick={setSelectedCard}
+          />
         )}
 
         {/* Actions */}
@@ -568,7 +548,7 @@ export default function MatchPage() {
           <div className="space-y-2">
             {/* Restriction banner */}
             {isMyTurn && me.turnRestriction !== "none" && (
-              <div className={`text-center text-sm font-semibold py-2 rounded ${
+              <div className={`text-center text-sm font-semibold py-2 rounded animate-pulse ${
                 me.turnRestriction === "block_only"
                   ? "bg-blue-900/40 text-blue-300 border border-blue-700"
                   : "bg-yellow-900/40 text-yellow-300 border border-yellow-700"
@@ -579,7 +559,7 @@ export default function MatchPage() {
               </div>
             )}
 
-            {/* Spell cards (play before ending turn with a basic action) */}
+            {/* Spell cards */}
             {isMyTurn && me.hand.length > 0 && me.turnRestriction === "none" && (
               <div>
                 <p className="text-xs text-gray-500 font-semibold mb-1">SPELLS</p>
@@ -690,11 +670,33 @@ export default function MatchPage() {
         {/* Combat Log */}
         <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 h-48 overflow-y-auto text-sm">
           <p className="text-gray-500 text-xs font-semibold mb-2">COMBAT LOG</p>
-          {matchState.log.map((entry, i) => (
-            <p key={i} className="text-gray-300 py-0.5">
-              {entry}
-            </p>
-          ))}
+          {matchState.log.map((entry, i) => {
+            const colorClass =
+              entry.event === "DAMAGE_DEALT" || entry.event === "PLAYER_DIED"
+                ? "text-red-400"
+                : entry.event === "HEAL_APPLIED"
+                ? "text-green-400"
+                : entry.event === "BLOCK_APPLIED"
+                ? "text-blue-400"
+                : entry.event === "STATUS_EFFECT_APPLIED"
+                ? "text-yellow-400"
+                : entry.event === "STATUS_EFFECT_EXPIRED"
+                ? "text-gray-500"
+                : entry.event === "CARD_PLAYED" || entry.event === "CARD_EQUIPPED"
+                ? "text-purple-400"
+                : entry.event === "CARD_DESTROYED"
+                ? "text-orange-400"
+                : entry.event === "ENERGY_SPENT"
+                ? "text-yellow-300"
+                : entry.event === "STATUS_EFFECT_TICK"
+                ? "text-amber-400"
+                : "text-gray-300";
+            return (
+              <p key={i} className={`${colorClass} py-0.5`}>
+                {entry.message}
+              </p>
+            );
+          })}
           <div ref={logEndRef} />
         </div>
 
@@ -708,6 +710,11 @@ export default function MatchPage() {
           </p>
         )}
       </div>
+
+      {/* Card Detail Modal (D13=C: click for full view) */}
+      {selectedCard && (
+        <CardDetailModal card={selectedCard} onClose={() => setSelectedCard(null)} />
+      )}
     </main>
   );
 }
@@ -715,6 +722,58 @@ export default function MatchPage() {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
+
+/** Animated turn banner (D14=B minimal CSS transitions) */
+function TurnBanner({
+  isFinished,
+  isMyTurn,
+  iWon,
+}: {
+  isFinished: boolean;
+  isMyTurn: boolean;
+  iWon: boolean;
+}) {
+  if (isFinished) {
+    return (
+      <div className={`text-center py-3 rounded-lg font-bold text-2xl animate-[fadeIn_0.5s_ease-out] ${
+        iWon
+          ? "bg-green-900/30 border border-green-500/50 text-green-400"
+          : "bg-red-900/30 border border-red-500/50 text-red-400"
+      }`}>
+        {iWon ? "Victory!" : "Defeat"}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`text-center py-2 rounded-lg font-semibold text-lg transition-all duration-500 ${
+      isMyTurn
+        ? "bg-green-900/20 border border-green-500/40 text-green-400 animate-pulse"
+        : "bg-gray-800/50 border border-gray-700 text-gray-400"
+    }`}>
+      {isMyTurn ? "Your Turn" : "Opponent's Turn"}
+    </div>
+  );
+}
+
+/** HP bar color based on health percentage */
+function hpBarColor(percent: number): string {
+  if (percent > 60) return "bg-green-500";
+  if (percent > 30) return "bg-yellow-500";
+  return "bg-red-500";
+}
+
+/** Status effect badge color */
+function statusEffectColor(effect: string): string {
+  switch (effect) {
+    case "BURN": return "bg-orange-900/60 text-orange-300 border-orange-600";
+    case "POISON": return "bg-green-900/60 text-green-300 border-green-600";
+    case "FREEZE": case "STUN": return "bg-cyan-900/60 text-cyan-300 border-cyan-600";
+    case "REGEN": return "bg-emerald-900/60 text-emerald-300 border-emerald-600";
+    case "SHIELD": return "bg-blue-900/60 text-blue-300 border-blue-600";
+    default: return "bg-gray-700 text-gray-300 border-gray-600";
+  }
+}
 
 function PlayerPanel({
   player,
@@ -737,39 +796,59 @@ function PlayerPanel({
   const hpPercent = player.maxHp > 0 ? (player.hp / player.maxHp) * 100 : 0;
 
   return (
-    <div className={`p-4 rounded-lg border ${isActive ? "border-green-500 bg-green-500/10" : "border-gray-700 bg-gray-800"}`}>
-      <p className="text-sm text-gray-400">{label}</p>
-      <p className="font-bold text-lg">{player.name}</p>
+    <div className={`p-4 rounded-lg border transition-all duration-300 ${
+      isActive
+        ? "border-green-500 bg-green-500/10 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+        : "border-gray-700 bg-gray-800"
+    }`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-400">{label}</p>
+          <p className="font-bold text-lg">{player.name}</p>
+        </div>
+        {isActive && (
+          <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+        )}
+      </div>
 
-      {/* Character card name */}
+      {/* Character card */}
       {player.character && (
-        <p className="text-xs text-purple-400 mt-0.5">{player.character.name}</p>
+        <div className="flex items-center gap-2 mt-1">
+          {player.character.imageUrl && (
+            <img
+              src={player.character.imageUrl}
+              alt={player.character.name}
+              className="w-8 h-8 rounded object-cover border border-purple-500/50"
+            />
+          )}
+          <p className="text-xs text-purple-400 font-medium">{player.character.name}</p>
+        </div>
       )}
 
       {/* HP Bar */}
       <div className="mt-2">
         <div className="flex justify-between text-sm">
           <span>HP</span>
-          <span>{player.hp}/{player.maxHp}</span>
+          <span className="font-mono">{player.hp}/{player.maxHp}</span>
         </div>
-        <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
+        <div className="w-full bg-gray-700 rounded-full h-3 mt-1 overflow-hidden">
           <div
-            className="bg-red-500 h-3 rounded-full transition-all duration-300"
+            className={`${hpBarColor(hpPercent)} h-3 rounded-full transition-all duration-500 ease-out`}
             style={{ width: `${hpPercent}%` }}
           />
         </div>
       </div>
 
-      {/* Energy Bar (only if character card exists) */}
+      {/* Energy Bar */}
       {player.character && (
-        <div className="mt-1">
+        <div className="mt-1.5">
           <div className="flex justify-between text-xs text-gray-400">
             <span>Energy</span>
-            <span>{player.energy}/{player.maxEnergy}</span>
+            <span className="font-mono">{player.energy}/{player.maxEnergy}</span>
           </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mt-0.5">
+          <div className="w-full bg-gray-700 rounded-full h-2 mt-0.5 overflow-hidden">
             <div
-              className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
+              className="bg-yellow-500 h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${player.maxEnergy > 0 ? (player.energy / player.maxEnergy) * 100 : 0}%` }}
             />
           </div>
@@ -778,17 +857,20 @@ function PlayerPanel({
 
       {/* Block */}
       {player.block > 0 && (
-        <p className="text-xs text-blue-400 mt-1">Shield: {player.block}</p>
+        <div className="flex items-center gap-1 mt-1.5">
+          <span className="text-blue-400 text-sm">&#x1F6E1;</span>
+          <span className="text-xs text-blue-400 font-semibold">{player.block}</span>
+        </div>
       )}
 
       {/* Status Effects */}
       {player.statusEffects.length > 0 && (
-        <div className="flex gap-1 mt-1 flex-wrap">
+        <div className="flex gap-1 mt-1.5 flex-wrap">
           {player.statusEffects.map((se, i) => (
             <span
               key={i}
-              className="text-xs px-1.5 py-0.5 rounded bg-gray-700 text-gray-300"
-              title={`${se.effect} (${se.remainingTurns} turns)`}
+              className={`text-xs px-1.5 py-0.5 rounded border font-medium ${statusEffectColor(se.effect)}`}
+              title={`${se.effect} (${se.remainingTurns} turns remaining)`}
             >
               {se.effect} {se.remainingTurns}
             </span>
@@ -799,22 +881,180 @@ function PlayerPanel({
   );
 }
 
-function MiniCard({ card }: { card: MatchCard }) {
+/** Card zone display for a player — items, tools, hand, graveyard */
+function CardZones({
+  player,
+  label,
+  onCardClick,
+}: {
+  player: PlayerState;
+  label: string;
+  onCardClick: (card: MatchCard) => void;
+}) {
+  const [graveyardOpen, setGraveyardOpen] = useState(false);
+
+  const hasCards = player.equippedItems.length > 0 ||
+    player.equippedTools.length > 0 ||
+    player.hand.length > 0;
+
+  if (!hasCards && player.graveyard.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {player.equippedItems.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 font-semibold mb-1">{label} ITEMS</p>
+          <div className="flex gap-2 flex-wrap">
+            {player.equippedItems.map((card) => (
+              <MiniCard key={card.cardId} card={card} onClick={() => onCardClick(card)} />
+            ))}
+          </div>
+        </div>
+      )}
+      {player.equippedTools.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 font-semibold mb-1">{label} TOOLS</p>
+          <div className="flex gap-2 flex-wrap">
+            {player.equippedTools.map((card) => (
+              <MiniCard key={card.cardId} card={card} onClick={() => onCardClick(card)} />
+            ))}
+          </div>
+        </div>
+      )}
+      {player.hand.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-500 font-semibold mb-1">{label} SPELLS</p>
+          <div className="flex gap-2 flex-wrap">
+            {player.hand.map((card) => (
+              <MiniCard key={card.cardId} card={card} onClick={() => onCardClick(card)} />
+            ))}
+          </div>
+        </div>
+      )}
+      {player.graveyard.length > 0 && (
+        <div>
+          <button
+            onClick={() => setGraveyardOpen(!graveyardOpen)}
+            className="text-xs text-gray-500 font-semibold hover:text-gray-300 transition-colors"
+          >
+            {label} GRAVEYARD ({player.graveyard.length}) {graveyardOpen ? "▾" : "▸"}
+          </button>
+          {graveyardOpen && (
+            <div className="flex gap-2 flex-wrap mt-1">
+              {player.graveyard.map((card) => (
+                <MiniCard key={card.cardId} card={card} onClick={() => onCardClick(card)} dimmed />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Compact card tile with hover tooltip + click handler (D13=C) */
+function MiniCard({
+  card,
+  onClick,
+  dimmed,
+}: {
+  card: MatchCard;
+  onClick?: () => void;
+  dimmed?: boolean;
+}) {
   const typeColors: Record<string, string> = {
-    ITEM: "border-amber-600 bg-amber-900/20",
-    TOOL: "border-cyan-600 bg-cyan-900/20",
-    SPELL: "border-violet-600 bg-violet-900/20",
+    ITEM: "border-amber-600 bg-amber-900/20 hover:bg-amber-900/40",
+    TOOL: "border-cyan-600 bg-cyan-900/20 hover:bg-cyan-900/40",
+    SPELL: "border-violet-600 bg-violet-900/20 hover:bg-violet-900/40",
+    CHARACTER: "border-purple-600 bg-purple-900/20 hover:bg-purple-900/40",
   };
 
-  const colorClass = typeColors[card.type] ?? "border-gray-600 bg-gray-800";
+  const colorClass = typeColors[card.type] ?? "border-gray-600 bg-gray-800 hover:bg-gray-700";
 
   return (
     <div
-      className={`px-2 py-1 rounded border text-xs ${colorClass}`}
+      className={`px-2 py-1.5 rounded border text-xs cursor-pointer transition-all duration-200 ${colorClass} ${
+        dimmed ? "opacity-50" : ""
+      }`}
       title={card.description}
+      onClick={onClick}
     >
       <p className="font-semibold text-white">{card.name}</p>
-      <p className="text-gray-400">{card.type}</p>
+      <p className="text-gray-400">{card.type} &middot; {card.rarity}</p>
+    </div>
+  );
+}
+
+/** Full card detail modal (D13=C: click for full view) */
+function CardDetailModal({
+  card,
+  onClose,
+}: {
+  card: MatchCard;
+  onClose: () => void;
+}) {
+  const typeColors: Record<string, string> = {
+    ITEM: "border-amber-500",
+    TOOL: "border-cyan-500",
+    SPELL: "border-violet-500",
+    CHARACTER: "border-purple-500",
+  };
+
+  const borderColor = typeColors[card.type] ?? "border-gray-500";
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 animate-[fadeIn_0.15s_ease-out]"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-gray-900 rounded-xl border-2 ${borderColor} p-5 max-w-sm w-full mx-4 shadow-2xl animate-[scaleIn_0.15s_ease-out]`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Card image */}
+        {card.imageUrl && (
+          <img
+            src={card.imageUrl}
+            alt={card.name}
+            className="w-full h-48 object-cover rounded-lg mb-4"
+          />
+        )}
+
+        {/* Card header */}
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xl font-bold text-white">{card.name}</h3>
+          <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-medium">
+            {card.rarity}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-500 font-medium mb-3">{card.type}</p>
+
+        {/* Description */}
+        <p className="text-sm text-gray-300 mb-4">{card.description}</p>
+
+        {/* Effect details */}
+        {card.effectJson && Object.keys(card.effectJson).length > 0 && (
+          <div className="bg-gray-800 rounded-lg p-3 mb-4">
+            <p className="text-xs text-gray-500 font-semibold mb-1.5">EFFECT DATA</p>
+            <div className="space-y-1">
+              {Object.entries(card.effectJson).map(([key, value]) => (
+                <div key={key} className="flex justify-between text-xs">
+                  <span className="text-gray-400">{key}</span>
+                  <span className="text-gray-200 font-mono">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onClose}
+          className="w-full py-2 rounded bg-gray-800 hover:bg-gray-700 text-sm font-medium text-gray-300 transition-colors"
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }

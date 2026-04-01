@@ -701,7 +701,13 @@ export function resolveSpellEffect(
         if (!target) continue;
         if (blockBonus > 0) {
           target.block += blockBonus;
-          state.log.push(`${card.name} granted +${blockBonus} block to ${target.name}`);
+          state.log.push({
+            message: `${card.name} granted +${blockBonus} block to ${target.name}`,
+            event: GameEventType.BLOCK_APPLIED,
+            sourceCard: { name: card.name, imageUrl: card.imageUrl },
+            playerId: tid,
+            values: { block: blockBonus },
+          });
           events.push({
             type: GameEventType.BLOCK_APPLIED,
             playerId: tid,
@@ -710,7 +716,11 @@ export function resolveSpellEffect(
           });
         }
         if (attackBonus > 0) {
-          state.log.push(`${card.name} granted +${attackBonus} attack to ${target.name}`);
+          state.log.push({
+            message: `${card.name} granted +${attackBonus} attack to ${target.name}`,
+            sourceCard: { name: card.name, imageUrl: card.imageUrl },
+            playerId: tid,
+          });
         }
       }
       break;

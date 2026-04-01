@@ -112,6 +112,6 @@ describe("applyAction", () => {
   it("adds log entries for every action", async () => {
     const state = await applyAction(matchId, "p1", "PUNCH");
     expect(state.log.length).toBeGreaterThan(1);
-    expect(state.log[state.log.length - 1]).toContain("Alice");
+    expect(state.log[state.log.length - 1].message).toContain("Alice");
   });
 });

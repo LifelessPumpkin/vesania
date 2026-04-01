@@ -37,6 +37,6 @@ describe("createMatch", () => {
   it("adds a creation log entry", async () => {
     const state = await createMatch("Alice");
     expect(state.log.length).toBeGreaterThan(0);
-    expect(state.log[0]).toContain("Alice");
+    expect(state.log[0].message).toContain("Alice");
   });
 });
