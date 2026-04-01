@@ -22,6 +22,7 @@ model User {
   decks           Deck[]
   friendLinksA    Friendship[] @relation("FriendshipUserA")
   friendLinksB    Friendship[] @relation("FriendshipUserB")
+  gold            Int       @default(0)
 }
 
 model Friendship {
