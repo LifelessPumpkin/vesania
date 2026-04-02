@@ -6,15 +6,17 @@ export const MAX_DECK_SIZE = 40
 
 /** Required count per card type in a valid deck. Must sum to MAX_DECK_SIZE. */
 export const DECK_COMPOSITION = {
-    SPELL: 12,
+    SPELL: 16,
     ITEM:  12,
-    TOOL:  16,
+    TOOL:  12,
 } as const
 
 /** Maximum cards of each rarity allowed in a single deck. */
 export const RARITY_CAPS: Record<string, number> = {
     LEGENDARY: 2,
-    EPIC:      8,
+    EPIC:      3,
+    RARE:      4,
+    UNCOMMON:  6,
 }
 
 /** Card elements — future feature, not yet in DB. Filter is client-side only. */
