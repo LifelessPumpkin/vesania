@@ -46,7 +46,7 @@ export default function HomePage() {
     return (
         <div style={{ position: 'relative', minHeight: '100vh', width: '100%', overflow: 'hidden' }}>
             <DungeonBackground />
-            <FloatingCards />
+            <FloatingCards shouldAnimate={shouldAnimate} />
 
             {/* menu top right */}
             <motion.button
@@ -75,16 +75,17 @@ export default function HomePage() {
 
                 {/* Logo */}
                 <motion.div
-                    style={{ position: 'relative', width: 700, height: 250 }}
+                    style={{ position: 'relative', width: 840, height: 300 }}
                     className={shouldAnimate ? 'logo-settle' : 'logo-float'}
                 >
                     <VortexLocal />
                     <Image
-                        src="/AI_slop.png"
+                        src="/VesaniaLogo3.png"
                         alt="Vesania"
-                        width={700}
-                        height={250}
-                        style={{ position: 'relative', zIndex: 10 }}
+                        width={840}
+                        height={300}
+                        unoptimized
+                        style={{ position: 'relative', zIndex: 10, imageRendering: 'pixelated' }}
                     />
                 </motion.div>
 

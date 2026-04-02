@@ -51,16 +51,17 @@ export default function Home() {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-          style={{ position: 'relative', width: 700, height: 250 }}
+          style={{ position: 'relative', width: 840, height: 300 }}
           className="logo-float"
         >
           <VortexLocal />
           <Image
-            src="/AI_slop.png"
+            src="/VesaniaLogo3.png"
             alt="Vesania"
-            width={700}
-            height={250}
-            style={{ position: 'relative', zIndex: 10 }}
+            width={840}
+            height={300}
+            unoptimized
+            style={{ position: 'relative', zIndex: 10, imageRendering: 'pixelated' }}
           />
         </motion.div>
 

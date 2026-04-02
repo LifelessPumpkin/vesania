@@ -10,6 +10,7 @@ export interface CardDefinition {
     description: string;
     effectJson: Record<string, unknown>;
     imageUrl: string | null;
+    element?: string; // future DB field — filter is client-side only until added
 }
 
 export interface CardInstance {

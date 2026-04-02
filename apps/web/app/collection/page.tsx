@@ -6,8 +6,11 @@ import { useRouter } from 'next/navigation'
 import { useToast } from './hooks/useToast'
 import { useCards } from './hooks/useCards'
 import { useDecks } from './hooks/useDecks'
-import { CardsTab } from './components/CardsTab'
-import { DecksTab } from './components/DecksTab'
+import { DeckList } from './components/DeckList'
+import { DeckEditor } from './components/DeckEditor'
+import { InvalidDeckModal } from './components/InvalidDeckModal'
+import { validateDeck } from '@/lib/deck-validator'
+
 import SlideUpPage from '@/components/SlideUpPage'
 import styles from './collection.module.css'
 
@@ -16,98 +19,113 @@ export default function CollectionPage() {
     const router = useRouter()
     const { toast, showToast } = useToast()
 
-    const [activeTab, setActiveTab] = useState<'cards' | 'decks'>('cards')
+    const [view, setView] = useState<'list' | 'editor'>('list')
+    const [invalidErrors, setInvalidErrors] = useState<string[]>([])
+    const [showModal, setShowModal] = useState(false)
 
-    const { cards, loading, cardError, search, setSearch, sort, setSort } = useCards()
     const {
-        decks, selectedDeckId, setSelectedDeckId, deckCards, deckLoading,
-        newDeckName, setNewDeckName, selectedDeck, deckCardIds,
+        cards, characterCards, loading: cardsLoading, cardError,
+        search, setSearch, sort, setSort,
+        typeFilter, setTypeFilter, elementFilter, setElementFilter,
+    } = useCards()
+
+    const {
+        decks, selectedDeckId, setSelectedDeckId,
+        deckCards, deckLoading, selectedDeck, deckCardIds,
+        newDeckName, setNewDeckName,
         createDeck, deleteDeck, addCardToDeck, removeCardFromDeck,
-    } = useDecks(activeTab, showToast)
+    } = useDecks(showToast)
 
-    // ─── Auth gate ────────────────────────────────────────────────────
-
+    // Auth gate
     useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login')
-        }
+        if (!authLoading && !user) router.push('/login')
     }, [user, authLoading, router])
 
     if (authLoading) {
         return (
-            <div className={styles.page}>
-                <div className={styles.loadingWrapper}>
-                    <div className={styles.spinner} />
-                    <span className={styles.loadingText}>Loading...</span>
-                </div>
+            <div className={styles.loadingPage}>
+                <div className={styles.spinner} />
             </div>
         )
     }
-
     if (!user) return null
+
+    const enterDeck = (deckId: string) => {
+        setSelectedDeckId(deckId)
+        setView('editor')
+    }
+
+    const handleSave = () => {
+        const result = validateDeck(deckCards)
+        if (result.valid) {
+            setView('list')
+            setSelectedDeckId(null)
+        } else {
+            setInvalidErrors(result.errors)
+            setShowModal(true)
+        }
+    }
+
+    const handleSaveAnyway = () => {
+        setShowModal(false)
+        setView('list')
+        setSelectedDeckId(null)
+    }
+
+    const handleBackToList = () => {
+        setView('list')
+        setSelectedDeckId(null)
+    }
 
     return (
         <SlideUpPage>
-            <div className={styles.page}>
-                {/* Header */}
-                <header className={styles.header}>
-                    {/* Back button */}
-                    <button className={styles.backLink} onClick={() => router.push('/home')}>
-                        ← Back to Home
-                    </button>
-                    <h1 className={styles.title}>Collection</h1>
-                </header>
+            <div className={styles.root}>
 
-                {/* Tabs */}
-                <div className={styles.tabs}>
-                    <button
-                        className={`${styles.tab} ${activeTab === 'cards' ? styles.tabActive : ''}`}
-                        onClick={() => setActiveTab('cards')}
-                    >
-                        🃏 My Cards
-                    </button>
-                    <button
-                        className={`${styles.tab} ${activeTab === 'decks' ? styles.tabActive : ''}`}
-                        onClick={() => setActiveTab('decks')}
-                    >
-                        📦 My Decks
-                    </button>
-                </div>
-
-                {/* ─── Cards Tab ──────────────────────────────────────────────── */}
-                {activeTab === 'cards' && (
-                    <CardsTab
-                        cards={cards}
-                        loading={loading}
-                        error={cardError}
-                        search={search}
-                        sort={sort}
-                        onSearchChange={setSearch}
-                        onSortChange={setSort}
-                        selectedDeckId={selectedDeckId}
-                        deckCardIds={deckCardIds}
-                        onAddToDeck={addCardToDeck}
-                    />
-                )}
-
-                {/* ─── Decks Tab ──────────────────────────────────────────────── */}
-                {activeTab === 'decks' && (
-                    <DecksTab
+                {view === 'list' && (
+                    <DeckList
                         decks={decks}
-                        selectedDeckId={selectedDeckId}
-                        deckCards={deckCards}
-                        deckLoading={deckLoading}
                         newDeckName={newDeckName}
-                        selectedDeck={selectedDeck}
-                        onSelectDeck={(id) => setSelectedDeckId(id === selectedDeckId ? null : id)}
                         onNewDeckNameChange={setNewDeckName}
                         onCreateDeck={createDeck}
+                        onEnterDeck={enterDeck}
                         onDeleteDeck={deleteDeck}
-                        onRemoveCard={removeCardFromDeck}
+                        onBack={() => router.push('/home')}
                     />
                 )}
 
-                {/* Toast */}
+                {view === 'editor' && selectedDeck && (
+                    <DeckEditor
+                        deck={selectedDeck}
+                        deckCards={deckCards}
+                        deckLoading={deckLoading}
+                        deckCardIds={deckCardIds}
+                        availableCards={cards}
+                        characterCards={characterCards}
+                        cardsLoading={cardsLoading}
+                        cardError={cardError}
+                        search={search}
+                        sort={sort}
+                        typeFilter={typeFilter}
+                        elementFilter={elementFilter}
+                        onSearchChange={setSearch}
+                        onSortChange={setSort}
+                        onTypeFilterChange={setTypeFilter}
+                        onElementFilterChange={setElementFilter}
+                        onAddCard={addCardToDeck}
+                        onRemoveCard={removeCardFromDeck}
+                        onBack={handleBackToList}
+                        onSave={handleSave}
+                    />
+                )}
+
+                {showModal && (
+                    <InvalidDeckModal
+                        errors={invalidErrors}
+                        onSaveAnyway={handleSaveAnyway}
+                        onStayAndFix={() => setShowModal(false)}
+                    />
+                )}
+
                 {toast && (
                     <div className={`${styles.toast} ${toast.type === 'error' ? styles.toastError : styles.toastSuccess}`}>
                         {toast.message}

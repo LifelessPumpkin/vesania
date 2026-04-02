@@ -1,0 +1,135 @@
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: fadeIn 0.1s steps(3);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.modal {
+    background: #1a0e08;
+    border: 3px solid #ef4444;
+    border-radius: 0;
+    padding: 2.5rem 3rem 2.5rem;
+    max-width: 650px;
+    width: 100%;
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.7);
+    animation: slideUp 0.15s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.icon {
+    font-size: 3.5rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.title {
+    font-size: 2.25rem;
+    color: #fca5a5;
+    text-align: center;
+    margin: 0 0 1.75rem;
+    font-weight: 500;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.errorList {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.errorItem {
+    font-size: 1.35rem;
+    color: #e0d0b8;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    line-height: 1.25;
+}
+
+.bullet {
+    color: #ef4444;
+    flex-shrink: 0;
+    font-weight: 700;
+}
+
+.hint {
+    font-size: 1.15rem;
+    color: #a08060;
+    text-align: center;
+    margin: 0 0 2rem;
+    line-height: 1.4;
+}
+
+.actions {
+    display: flex;
+    gap: 1.25rem;
+    justify-content: center;
+}
+
+.btnSecondary {
+    flex: 1;
+    padding: 0.85rem 1.25rem;
+    font-size: 1.4rem;
+    border-radius: 0;
+    border: 2px solid #7a4030;
+    background: #3d2218;
+    color: #e0d0b8;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transition: none;
+}
+
+.btnSecondary:hover {
+    border-color: #daa520;
+    color: #f3e8d8;
+}
+.btnSecondary:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+
+.btnPrimary {
+    flex: 1;
+    padding: 0.85rem 1.25rem;
+    font-size: 1.4rem;
+    border-radius: 0;
+    border: 2px outset #c8941a;
+    background: #daa520;
+    color: #100804;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 500;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transition: none;
+}
+
+.btnPrimary:hover {
+    background: #e8b42e;
+}
+.btnPrimary:active {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
