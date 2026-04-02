@@ -39,6 +39,7 @@ interface MatchSession {
   playerId: PlayerId;
   playerName: string;
   token: string;
+  mode: "code" | "matchmaking";
 }
 
 const SESSION_KEY = "matchSession";
@@ -46,6 +47,7 @@ const SESSION_KEY = "matchSession";
 export default function MatchPage() {
   const { getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
+  const [waitingMode, setWaitingMode] = useState<"code" | "matchmaking">("code");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [matchId, setMatchId] = useState("");
@@ -86,7 +88,7 @@ export default function MatchPage() {
           setScreen("game");
         }
         if (state.status === "finished") {
-          localStorage.removeItem("activeMatch");
+          localStorage.removeItem(SESSION_KEY);
         }
       };
 
@@ -130,6 +132,7 @@ export default function MatchPage() {
         setPlayerId(session.playerId);
         setPlayerName(session.playerName);
         setMatchToken(session.token);
+        setWaitingMode(session.mode ?? "code");
         setMatchState(state);
         setScreen(state.status === "waiting" ? "waiting" : "game");
         connectSSE(session.matchId);
@@ -176,12 +179,14 @@ export default function MatchPage() {
         playerId: data.playerId,
         playerName: playerName.trim(),
         token: data.token,
+        mode: "code",
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
       setMatchToken(data.token);
+      setWaitingMode("code");
       setScreen("waiting");
       connectSSE(data.matchId);
     } catch (e) {
@@ -223,6 +228,7 @@ export default function MatchPage() {
         playerId: data.playerId,
         playerName: playerName.trim(),
         token: data.token,
+        mode: "code",
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
@@ -233,6 +239,49 @@ export default function MatchPage() {
       connectSSE(data.matchId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to join match");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleFindMatch() {
+    if (!playerName.trim()) {
+      setError("Enter your name");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/matchmaking/queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ playerName: playerName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+        mode: "matchmaking",
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+      setMatchId(data.matchId);
+      setPlayerId(data.playerId);
+      setMatchToken(data.token);
+      setWaitingMode("matchmaking");
+      setScreen(data.status === "queued" ? "waiting" : "game");
+      connectSSE(data.matchId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to queue for matchmaking");
     } finally {
       setLoading(false);
     }
@@ -267,8 +316,22 @@ export default function MatchPage() {
     }
   }
 
-  function handleBackToLobby() {
-    // Clear the session so the next player who opens this tab starts fresh.
+  async function handleBackToLobby() {
+    if (screen === "waiting" && waitingMode === "matchmaking" && matchId) {
+      try {
+        await fetch("/api/matchmaking/queue", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            ...(matchToken ? { Authorization: `Bearer ${matchToken}` } : {}),
+          },
+          body: JSON.stringify({ matchId }),
+        });
+      } catch {
+        // Best-effort cleanup; the queue entry will still expire if this fails.
+      }
+    }
+
     localStorage.removeItem(SESSION_KEY);
     eventSourceRef.current?.close();
     setMatchState(null);
@@ -277,6 +340,7 @@ export default function MatchPage() {
     setLoading(false);
     setMatchToken("");
     setRoomCode("");
+    setWaitingMode("code");
     setConnectionStatus("connected");
     setConnectionLost(false);
     setScreen("lobby");
@@ -309,6 +373,14 @@ export default function MatchPage() {
                 className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
               />
             </div>
+
+            <button
+              onClick={handleFindMatch}
+              disabled={loading}
+              className="w-full py-3 rounded bg-amber-500 hover:bg-amber-400 text-gray-950 font-semibold disabled:opacity-50 transition-colors"
+            >
+              Find Match
+            </button>
 
             <button
               onClick={handleCreate}
@@ -356,15 +428,24 @@ export default function MatchPage() {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
         <div className="text-center space-y-6 px-6">
-          <h1 className="text-2xl font-bold">Waiting for opponent...</h1>
-          <div className="space-y-2">
-            <p className="text-gray-400">Share this room code:</p>
-            <p className="text-5xl font-mono font-bold tracking-widest text-blue-400">
-              {matchId}
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold">
+            {waitingMode === "matchmaking" ? "Searching for opponent..." : "Waiting for opponent..."}
+          </h1>
+          {waitingMode === "matchmaking" ? (
+            <div className="space-y-2">
+              <p className="text-gray-400">We&apos;re looking for a nearby MMR match for you.</p>
+              <p className="text-sm text-gray-500 font-mono">Queue ID: {matchId}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-gray-400">Share this room code:</p>
+              <p className="text-5xl font-mono font-bold tracking-widest text-blue-400">
+                {matchId}
+              </p>
+            </div>
+          )}
           <div className="animate-pulse text-gray-500">
-            Listening for players...
+            {waitingMode === "matchmaking" ? "Expanding search over time..." : "Listening for players..."}
           </div>
           {connectionStatus === "reconnecting" && (
             <p className="text-yellow-400 text-sm">Reconnecting...</p>
@@ -373,7 +454,7 @@ export default function MatchPage() {
             onClick={handleBackToLobby}
             className="w-full rounded border border-gray-700 px-4 py-3 font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:bg-gray-800"
           >
-            Cancel Match
+            {waitingMode === "matchmaking" ? "Cancel Search" : "Cancel Match"}
           </button>
         </div>
       </main>

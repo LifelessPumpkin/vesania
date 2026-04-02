@@ -71,6 +71,10 @@ export default function PublicProfilePage() {
 
                         <div className={styles.statsRow}>
                             <div className={styles.stat}>
+                                <span className={styles.statValue}>{profile.stats.mmr}</span>
+                                <span className={styles.statLabel}>MMR</span>
+                            </div>
+                            <div className={styles.stat}>
                                 <span className={styles.statValue}>{profile.stats.cardsOwned}</span>
                                 <span className={styles.statLabel}>Cards</span>
                             </div>
@@ -81,6 +85,18 @@ export default function PublicProfilePage() {
                             <div className={styles.stat}>
                                 <span className={styles.statValue}>{profile.stats.friendsCount}</span>
                                 <span className={styles.statLabel}>Friends</span>
+                            </div>
+                            <div className={styles.stat}>
+                                <span className={styles.statValue}>{profile.stats.gamesPlayed}</span>
+                                <span className={styles.statLabel}>Games</span>
+                            </div>
+                            <div className={styles.stat}>
+                                <span className={styles.statValue}>{profile.stats.wins}</span>
+                                <span className={styles.statLabel}>Wins</span>
+                            </div>
+                            <div className={styles.stat}>
+                                <span className={styles.statValue}>{profile.stats.losses}</span>
+                                <span className={styles.statLabel}>Losses</span>
                             </div>
                         </div>
 

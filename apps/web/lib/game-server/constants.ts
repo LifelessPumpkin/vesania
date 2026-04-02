@@ -5,4 +5,11 @@ export const GAME = {
     KICK_DAMAGE: 8,
     BLOCK_AMOUNT: 5,
     HEAL_AMOUNT: 3,
+    MMR: {
+        INITIAL: 1000,
+        K_FACTOR: 32,
+        SEARCH_RANGE: 150,
+        SEARCH_RANGE_GROWTH_PER_SECOND: 25,
+        MAX_SEARCH_RANGE: 600,
+    },
 } as const;

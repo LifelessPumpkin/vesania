@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
                 wins: true,
                 losses: true,
                 gamesPlayed: true,
+                mmr: true,
                 topCard1Id: true,
                 topCard2Id: true,
                 topCard3Id: true,
