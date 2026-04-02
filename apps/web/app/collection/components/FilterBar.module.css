@@ -1,0 +1,78 @@
+.filterBar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #1a0e08;
+    border-top: 1px solid #4d2a18;
+    border-bottom: 1px solid #4d2a18;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.rowLabel {
+    font-size: 1.15rem;
+    color: #a08060;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    min-width: 6.5rem;
+}
+
+.pill {
+    padding: 0.45rem 1.1rem;
+    font-size: 1.25rem;
+    border-radius: 0;
+    border: 2px solid #4d2a18;
+    background: #2a1810;
+    color: #bfa880;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: none;
+}
+
+.pill:hover {
+    border-color: #7a4030;
+    color: #f3e8d8;
+}
+
+.pill:active {
+    transform: translate(1px, 1px);
+}
+
+.pillActive {
+    background: #daa520;
+    border-color: #c8941a;
+    color: #100804;
+    font-weight: 500;
+}
+
+.pillElement {
+    opacity: 0.55;
+}
+
+.pillElement:hover {
+    opacity: 0.8;
+}
+
+.clearBtn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    border-radius: 0;
+    border: 1px solid #ef4444;
+    background: transparent;
+    color: #ef4444;
+    cursor: pointer;
+    font-family: inherit;
+    transition: none;
+}
+
+.clearBtn:hover {
+    background: #2a1010;
+}

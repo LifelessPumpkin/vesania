@@ -74,7 +74,11 @@ function getPointAtDistance(distance: number) {
     return PATH[PATH.length - 1]
 }
 
-export default function FloatingCards() {
+interface FloatingCardsProps {
+    shouldAnimate?: boolean
+}
+
+export default function FloatingCards({ shouldAnimate = true }: FloatingCardsProps) {
     const cardsRef = useRef<Card[]>([])
     const domCardsRef = useRef<HTMLDivElement[]>([])
     const animationRef = useRef<number | null>(null)
@@ -134,7 +138,7 @@ export default function FloatingCards() {
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
+            initial={shouldAnimate ? { opacity: 0 } : false}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
             style={{

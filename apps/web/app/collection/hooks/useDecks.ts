@@ -6,10 +6,7 @@ import { apiRequest } from '@/lib/api-client'
 import type { DeckSummary, DeckCardEntry } from '@/lib/api-types'
 import type { ToastType } from './useToast'
 
-export function useDecks(
-    activeTab: 'cards' | 'decks',
-    showToast: (message: string, type?: ToastType) => void
-) {
+export function useDecks(showToast: (message: string, type?: ToastType) => void) {
     const { user, getToken } = useAuth()
 
     const [decks, setDecks] = useState<DeckSummary[]>([])
@@ -17,8 +14,6 @@ export function useDecks(
     const [deckCards, setDeckCards] = useState<DeckCardEntry[]>([])
     const [deckLoading, setDeckLoading] = useState(false)
     const [newDeckName, setNewDeckName] = useState('')
-
-    // ─── Fetch decks ──────────────────────────────────────────────────
 
     const fetchDecks = useCallback(async () => {
         if (!user) return
@@ -32,10 +27,8 @@ export function useDecks(
     }, [user, getToken])
 
     useEffect(() => {
-        if (user && activeTab === 'decks') fetchDecks()
-    }, [user, activeTab, fetchDecks])
-
-    // ─── Fetch deck cards ─────────────────────────────────────────────
+        if (user) fetchDecks()
+    }, [user, fetchDecks])
 
     const fetchDeckCards = useCallback(async (deckId: string) => {
         if (!user) return
@@ -43,8 +36,7 @@ export function useDecks(
         try {
             const token = await getToken()
             const data = await apiRequest<{ deck: { cards: DeckCardEntry[] } }>(
-                `/api/decks/${deckId}/cards`,
-                { token }
+                `/api/decks/${deckId}/cards`, { token }
             )
             setDeckCards(data.deck?.cards || [])
         } catch (err) {
@@ -59,42 +51,28 @@ export function useDecks(
         else setDeckCards([])
     }, [selectedDeckId, fetchDeckCards])
 
-    // ─── Deck actions ─────────────────────────────────────────────────
-
     const createDeck = async () => {
         if (!newDeckName.trim()) return
         try {
             const token = await getToken()
-            await apiRequest('/api/decks', {
-                method: 'POST',
-                token,
-                body: { name: newDeckName.trim() },
-            })
+            await apiRequest('/api/decks', { method: 'POST', token, body: { name: newDeckName.trim() } })
             setNewDeckName('')
             showToast('Deck created!', 'success')
             fetchDecks()
         } catch (err) {
-            console.error('Failed to create deck:', err)
-            showToast(err instanceof Error ? err.message : 'Network error — could not create deck')
+            showToast(err instanceof Error ? err.message : 'Could not create deck')
         }
     }
 
     const deleteDeck = async (deckId: string) => {
         try {
             const token = await getToken()
-            await apiRequest(`/api/decks?id=${deckId}`, {
-                method: 'DELETE',
-                token,
-            })
-            if (selectedDeckId === deckId) {
-                setSelectedDeckId(null)
-                setDeckCards([])
-            }
+            await apiRequest(`/api/decks?id=${deckId}`, { method: 'DELETE', token })
+            if (selectedDeckId === deckId) { setSelectedDeckId(null); setDeckCards([]) }
             showToast('Deck deleted', 'success')
             fetchDecks()
         } catch (err) {
-            console.error('Failed to delete deck:', err)
-            showToast(err instanceof Error ? err.message : 'Network error — could not delete deck')
+            showToast(err instanceof Error ? err.message : 'Could not delete deck')
         }
     }
 
@@ -102,17 +80,12 @@ export function useDecks(
         if (!selectedDeckId) return
         try {
             const token = await getToken()
-            await apiRequest(`/api/decks/${selectedDeckId}/cards`, {
-                method: 'POST',
-                token,
-                body: { cardId },
-            })
-            showToast('Card added to deck!', 'success')
+            await apiRequest(`/api/decks/${selectedDeckId}/cards`, { method: 'POST', token, body: { cardId } })
+            showToast('Card added!', 'success')
             fetchDeckCards(selectedDeckId)
             fetchDecks()
         } catch (err) {
-            console.error('Failed to add card to deck:', err)
-            showToast(err instanceof Error ? err.message : 'Network error — could not add card')
+            showToast(err instanceof Error ? err.message : 'Could not add card')
         }
     }
 
@@ -120,39 +93,24 @@ export function useDecks(
         if (!selectedDeckId) return
         try {
             const token = await getToken()
-            await apiRequest(`/api/decks/${selectedDeckId}/cards?cardId=${cardId}`, {
-                method: 'DELETE',
-                token,
-            })
+            await apiRequest(`/api/decks/${selectedDeckId}/cards?cardId=${cardId}`, { method: 'DELETE', token })
             showToast('Card removed', 'success')
             fetchDeckCards(selectedDeckId)
             fetchDecks()
         } catch (err) {
-            console.error('Failed to remove card from deck:', err)
-            showToast(
-                err instanceof Error ? err.message : 'Network error — could not remove card'
-            )
+            showToast(err instanceof Error ? err.message : 'Could not remove card')
         }
     }
 
-    // ─── Derived state ────────────────────────────────────────────────
-
-    const selectedDeck = decks.find((d) => d.id === selectedDeckId)
-    const deckCardIds = new Set(deckCards.map((dc) => dc.card.id))
+    const selectedDeck = decks.find(d => d.id === selectedDeckId)
+    const deckCardIds = new Set(deckCards.map(dc => dc.card.id))
 
     return {
-        decks,
-        selectedDeckId,
-        setSelectedDeckId,
-        deckCards,
-        deckLoading,
-        newDeckName,
-        setNewDeckName,
-        selectedDeck,
-        deckCardIds,
-        createDeck,
-        deleteDeck,
-        addCardToDeck,
-        removeCardFromDeck,
+        decks, selectedDeckId, setSelectedDeckId,
+        deckCards, deckLoading,
+        selectedDeck, deckCardIds,
+        newDeckName, setNewDeckName,
+        createDeck, deleteDeck,
+        addCardToDeck, removeCardFromDeck,
     }
 }

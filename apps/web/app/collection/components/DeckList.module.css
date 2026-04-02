@@ -1,0 +1,206 @@
+.page {
+    position: relative;
+    z-index: 10;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 4rem;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.backBtn {
+    background: #3d2218;
+    border: 2px solid #7a4030;
+    border-radius: 0;
+    color: #e0d0b8;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0.5rem 1rem;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transition: none;
+}
+.backBtn:hover {
+    color: #f3e8d8;
+    border-color: #daa520;
+}
+.backBtn:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+
+.title {
+    font-size: 3.5rem;
+    color: #f3e8d8;
+    font-weight: 500;
+    text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+/* Create form */
+.createForm {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    max-width: 560px;
+}
+
+.createInput {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 0;
+    border: 2px solid #7a4030;
+    background: #2a1810;
+    color: #f3e8d8;
+    font-size: 1.1rem;
+    font-family: inherit;
+    outline: none;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+.createInput:focus { border-color: #daa520; }
+.createInput::placeholder { color: #a08060; }
+
+.createBtn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0;
+    border: 2px outset #c8941a;
+    background: #daa520;
+    color: #1a0c06;
+    font-size: 1.1rem;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transition: none;
+}
+.createBtn:hover:not(:disabled) { background: #e8b42e; }
+.createBtn:active:not(:disabled) {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+.createBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Empty */
+.empty {
+    text-align: center;
+    padding: 5rem 1rem;
+}
+.emptyIcon { font-size: 2.5rem; margin-bottom: 1rem; color: #7a4030; }
+.emptyTitle { font-size: 1.4rem; color: #bfa880; margin-bottom: 0.5rem; }
+.emptySubtitle { font-size: 1rem; color: #a08060; }
+
+/* Deck grid */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.deckTile {
+    background: #2a1810;
+    border: 2px solid #7a4030;
+    border-radius: 0;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+    transition: none;
+}
+.deckTile:hover {
+    border-color: #daa520;
+}
+
+.tileTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.deckName {
+    font-size: 1.3rem;
+    color: #f3e8d8;
+    font-weight: 600;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.deleteBtn {
+    background: none;
+    border: none;
+    color: #a08060;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.3rem;
+    transition: none;
+    font-family: inherit;
+}
+.deleteBtn:hover { color: #ef4444; }
+
+.countRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.countBar {
+    flex: 1;
+    height: 10px;
+    background: #1a0e08;
+    border: 1px solid #4d2a18;
+    overflow: hidden;
+}
+.countFill {
+    height: 100%;
+    transition: width 0.1s steps(10);
+}
+.countLabel { font-size: 1rem; color: #bfa880; min-width: 3rem; text-align: right; }
+.countGood { color: #22c55e; }
+.countBad  { color: #ef4444; }
+
+.tileBottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.statusBadge {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0;
+    border: 1px solid;
+}
+.badgeValid   { border-color: #22c55e; color: #86efac; background: #0a1f0e; }
+.badgeInvalid { border-color: #7a4030; color: #bfa880; background: transparent; }
+
+.enterBtn {
+    padding: 0.5rem 1.1rem;
+    border-radius: 0;
+    border: 2px outset #c8941a;
+    background: #daa520;
+    color: #1a0c06;
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    transition: none;
+}
+.enterBtn:hover { background: #e8b42e; }
+.enterBtn:active {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
