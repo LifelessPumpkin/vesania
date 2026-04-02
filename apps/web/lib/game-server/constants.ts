@@ -4,9 +4,6 @@ import { CardRarity } from "@/lib/enums";
 export const GAME = {
     MAX_HP: 30,
     DEFAULT_ENERGY: 4,
-    PUNCH_DAMAGE: 5,
-    KICK_DAMAGE: 8,
-    BLOCK_AMOUNT: 5,
     HEAL_AMOUNT: 3,
     MAX_STATUS_EFFECTS: 5,
     MAX_EVENT_CHAIN_DEPTH: 10,

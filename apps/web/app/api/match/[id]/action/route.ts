@@ -2,8 +2,28 @@ import { NextResponse } from "next/server";
 import { applyAction, resolvePlayerByToken } from "@/lib/game-server/match";
 import { toPublicState, ActionType } from "@/lib/game-server/types";
 
-const VALID_ACTIONS: ActionType[] = ["PUNCH", "KICK", "BLOCK", "PLAY_SPELL", "USE_TOOL"];
-const CARD_ACTIONS: ActionType[] = ["PLAY_SPELL", "USE_TOOL"];
+const VALID_ACTIONS: ActionType[] = [
+  "DRAW_CARD",
+  "DRAW_SPELL",
+  "EQUIP_ITEM",
+  "UNEQUIP_ITEM",
+  "EQUIP_TOOL",
+  "UNEQUIP_TOOL",
+  "USE_TOOL",
+  "PLAY_SPELL",
+  "END_TURN",
+  "PASS",
+  "SURRENDER",
+];
+
+const CARD_ACTIONS: ActionType[] = [
+  "EQUIP_ITEM",
+  "UNEQUIP_ITEM",
+  "EQUIP_TOOL",
+  "UNEQUIP_TOOL",
+  "PLAY_SPELL",
+  "USE_TOOL",
+];
 
 export async function POST(
   request: Request,
@@ -12,13 +32,20 @@ export async function POST(
   try {
     const { id } = await params;
 
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const matchToken =
+      request.headers.get("X-Match-Token") ??
+      request.headers.get("x-match-token") ??
+      (() => {
+        const authHeader = request.headers.get("Authorization");
+        if (!authHeader?.startsWith("Bearer ")) return null;
+        return authHeader.slice(7);
+      })();
+
+    if (!matchToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const token = authHeader.slice(7);
 
-    const playerId = await resolvePlayerByToken(id, token);
+    const playerId = await resolvePlayerByToken(id, matchToken);
     if (!playerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -29,7 +56,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action type" }, { status: 400 });
     }
 
-    // cardId is required for PLAY_SPELL and USE_TOOL
+    // cardId is required for actions that target a specific card instance
     if (CARD_ACTIONS.includes(type) && !cardId) {
       return NextResponse.json({ error: "cardId is required for this action" }, { status: 400 });
     }

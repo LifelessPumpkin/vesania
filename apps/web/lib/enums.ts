@@ -33,9 +33,8 @@ export enum SpellType {
     HEALING = 'HEALING',
     BUFF = 'BUFF',
     DEBUFF = 'DEBUFF',
-    UTILITY = 'UTILITY',
     SUMMON = 'SUMMON',
-    ENVIRONMENTAL = 'ENVIRONMENTAL',
+    BLOCK = 'BLOCK',
 }
 
 export enum DamageType {
