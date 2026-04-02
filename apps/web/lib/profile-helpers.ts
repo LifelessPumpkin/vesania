@@ -21,6 +21,7 @@ type UserWithCounts = Prisma.UserGetPayload<{ select: typeof USER_PROFILE_SELECT
     wins?: number | null;
     losses?: number | null;
     gamesPlayed?: number | null;
+    mmr?: number | null;
 };
 
 /**
@@ -35,6 +36,7 @@ export function mapUserToProfile(user: UserWithCounts) {
         wins,
         losses,
         gamesPlayed,
+        mmr,
         ...profile
     } = profileSource;
     return {
@@ -46,6 +48,7 @@ export function mapUserToProfile(user: UserWithCounts) {
             wins: wins ?? 0,
             losses: losses ?? 0,
             gamesPlayed: gamesPlayed ?? 0,
+            mmr: mmr ?? 1000,
         },
     };
 }

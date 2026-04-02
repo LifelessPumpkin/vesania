@@ -20,6 +20,10 @@ export async function GET(
             select: {
                 ...USER_PROFILE_SELECT,
                 id: true,
+                wins: true,
+                losses: true,
+                gamesPlayed: true,
+                mmr: true,
             },
         });
 

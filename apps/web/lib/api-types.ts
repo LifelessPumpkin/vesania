@@ -114,6 +114,7 @@ export interface UserProfile {
         gamesPlayed: number;
         wins: number;
         losses: number;
+        mmr: number;
     };
     topCards: Array<{
         cardId: string;

@@ -262,6 +262,10 @@ export default function ProfilePage() {
                                     <span className={styles.statLabel}>Friends</span>
                                 </div>
                                 <div className={styles.stat}>
+                                    <span className={styles.statValue}>{profile.stats.mmr ?? 0}</span>
+                                    <span className={styles.statLabel}>MMR</span>
+                                </div>
+                                <div className={styles.stat}>
                                     <span className={styles.statValue}>{profile.stats.gamesPlayed ?? 0}</span>
                                     <span className={styles.statLabel}>Games</span>
                                 </div>

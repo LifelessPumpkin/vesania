@@ -28,6 +28,7 @@ model User {
   wins             Int     @default(0)
   losses           Int     @default(0)
   gamesPlayed      Int     @default(0)
+  mmr              Int     @default(1000)
   favoriteChampion String?
   topCard1Id       String?
   topCard2Id       String?
