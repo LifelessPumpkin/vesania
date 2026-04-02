@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import SlideUpPage from "@/components/SlideUpPage";
+import DungeonBackground from "@/components/DungeonBackground";
 import { GAME } from "@/lib/game-server/constants";
 import { useAuth } from "@/context/AuthContext";
 
@@ -350,73 +351,76 @@ export default function MatchPage() {
   if (screen === "lobby") {
     return (
       <SlideUpPage>
-        <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-          <div className="w-full max-w-md p-8 space-y-6">
-            <div className="text-center">
-              <Link href="/home" className="text-gray-500 text-sm hover:text-gray-300">
-                &larr; Home
-              </Link>
-              <h1 className="text-4xl font-bold mt-2">PvP Arena</h1>
-              <p className="text-gray-400 mt-1">Turn-based combat</p>
-            </div>
+        <main className="page-layout overflow-hidden">
+          <DungeonBackground />
+          <div className="flex min-h-screen items-center justify-center relative z-10 w-full px-4">
+            <div className="pixel-panel p-8 w-full max-w-md flex flex-col gap-6">
+              <div className="text-center">
+                <Link href="/home" className="text-muted text-sm hover:text-white transition-colors">
+                  &larr; Home
+                </Link>
+                <h1 className="heading-xl mt-4 mb-2">PvP Arena</h1>
+                <p className="text-warm m-0">Turn-based combat</p>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Enter your name"
-                maxLength={20}
-                className="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-              />
-            </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-warm font-bold uppercase tracking-widest text-sm m-0">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  placeholder="Enter your name"
+                  maxLength={20}
+                  className="pixel-input w-full"
+                />
+              </div>
 
-            <button
-              onClick={handleFindMatch}
-              disabled={loading}
-              className="w-full py-3 rounded bg-amber-500 hover:bg-amber-400 text-gray-950 font-semibold disabled:opacity-50 transition-colors"
-            >
-              Find Match
-            </button>
-
-            <button
-              onClick={handleCreate}
-              disabled={loading}
-              className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-50 transition-colors"
-            >
-              Create Match
-            </button>
-
-            <div className="flex items-center gap-3">
-              <hr className="flex-1 border-gray-700" />
-              <span className="text-gray-500 text-sm">or join</span>
-              <hr className="flex-1 border-gray-700" />
-            </div>
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                placeholder="ROOM CODE"
-                maxLength={6}
-                className="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 uppercase tracking-widest text-center font-mono"
-              />
               <button
-                onClick={handleJoin}
+                onClick={handleFindMatch}
                 disabled={loading}
-                className="px-6 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50 transition-colors"
+                className="pixel-btn-primary w-full py-3"
               >
-                Join
+                Find Match
               </button>
-            </div>
 
-            {error && (
-              <p className="text-red-400 text-sm text-center">{error}</p>
-            )}
+              <button
+                onClick={handleCreate}
+                disabled={loading}
+                className="pixel-btn-secondary w-full py-3"
+              >
+                Create Match
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="flex-1 border-t-2 border-border-strong border-dashed" />
+                <span className="text-muted font-bold tracking-widest uppercase text-sm">or join</span>
+                <div className="flex-1 border-t-2 border-border-strong border-dashed" />
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                  placeholder="ROOM CODE"
+                  maxLength={6}
+                  className="pixel-input flex-1 uppercase tracking-widest text-center !font-mono text-xl"
+                />
+                <button
+                  onClick={handleJoin}
+                  disabled={loading}
+                  className="pixel-btn-primary px-6 py-2"
+                >
+                  Join
+                </button>
+              </div>
+
+              {error && (
+                <p className="text-error font-bold text-center m-0">{error}</p>
+              )}
+            </div>
           </div>
         </main>
       </SlideUpPage>
@@ -426,36 +430,39 @@ export default function MatchPage() {
   // --- WAITING ---
   if (screen === "waiting") {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="text-center space-y-6 px-6">
-          <h1 className="text-2xl font-bold">
-            {waitingMode === "matchmaking" ? "Searching for opponent..." : "Waiting for opponent..."}
-          </h1>
-          {waitingMode === "matchmaking" ? (
-            <div className="space-y-2">
-              <p className="text-gray-400">We&apos;re looking for a nearby MMR match for you.</p>
-              <p className="text-sm text-gray-500 font-mono">Queue ID: {matchId}</p>
+      <main className="page-layout overflow-hidden">
+        <DungeonBackground />
+        <div className="flex min-h-screen items-center justify-center relative z-10 w-full px-4">
+          <div className="pixel-panel text-center p-8 w-full max-w-md flex flex-col gap-6">
+            <h1 className="heading-lg m-0 text-white">
+              {waitingMode === "matchmaking" ? "Searching..." : "Waiting..."}
+            </h1>
+            {waitingMode === "matchmaking" ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-warm m-0">We&apos;re looking for a nearby opponent.</p>
+                <p className="text-sm text-muted font-mono bg-black/50 py-1 px-2 mx-auto inline-block">ID: {matchId}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-warm m-0">Share this room code:</p>
+                <p className="text-4xl font-mono font-bold tracking-widest text-accent bg-black/60 border border-border py-4 px-6 relative drop-shadow-md">
+                  {matchId}
+                </p>
+              </div>
+            )}
+            <div className="animate-pulse text-muted font-bold uppercase tracking-widest mt-2">
+              {waitingMode === "matchmaking" ? "Expanding search..." : "Listening for players..."}
             </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-gray-400">Share this room code:</p>
-              <p className="text-5xl font-mono font-bold tracking-widest text-blue-400">
-                {matchId}
-              </p>
-            </div>
-          )}
-          <div className="animate-pulse text-gray-500">
-            {waitingMode === "matchmaking" ? "Expanding search over time..." : "Listening for players..."}
+            {connectionStatus === "reconnecting" && (
+              <p className="text-warning text-sm font-bold animate-pulse m-0">Reconnecting...</p>
+            )}
+            <button
+              onClick={handleBackToLobby}
+              className="w-full px-4 py-3 pixel-btn-secondary"
+            >
+              {waitingMode === "matchmaking" ? "Cancel Search" : "Cancel Match"}
+            </button>
           </div>
-          {connectionStatus === "reconnecting" && (
-            <p className="text-yellow-400 text-sm">Reconnecting...</p>
-          )}
-          <button
-            onClick={handleBackToLobby}
-            className="w-full rounded border border-gray-700 px-4 py-3 font-semibold text-gray-200 transition-colors hover:border-gray-500 hover:bg-gray-800"
-          >
-            {waitingMode === "matchmaking" ? "Cancel Search" : "Cancel Match"}
-          </button>
         </div>
       </main>
     );
@@ -464,8 +471,11 @@ export default function MatchPage() {
   // --- GAME ---
   if (!matchState) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <p>Loading...</p>
+      <main className="page-layout overflow-hidden">
+        <DungeonBackground />
+        <div className="flex min-h-screen items-center justify-center relative z-10 w-full px-4">
+          <div className="w-8 h-8 border-4 border-accent/30 border-t-accent rounded-none animate-spin" style={{ animationTimingFunction: 'steps(8)' }} />
+        </div>
       </main>
     );
   }
@@ -478,140 +488,153 @@ export default function MatchPage() {
   const iWon = matchState.winner === playerId;
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 flex flex-col items-center">
-      <div className="w-full max-w-lg space-y-4">
-        {/* Header */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500 font-mono">MATCH {matchState.matchId}</p>
-          {connectionStatus === "reconnecting" && (
-            <p className="text-xs text-yellow-400">Reconnecting...</p>
-          )}
-          {isFinished ? (
-            <p className={`text-2xl font-bold mt-1 ${iWon ? "text-green-400" : "text-red-400"}`}>
-              {iWon ? "You Win!" : "You Lose!"}
-            </p>
-          ) : (
-            <p className={`text-lg font-semibold mt-1 ${isMyTurn ? "text-green-400" : "text-yellow-400"}`}>
-              {isMyTurn ? "Your Turn" : "Waiting for opponent..."}
-            </p>
-          )}
-        </div>
-
-        {/* Players */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Me */}
-          <div className={`p-4 rounded-lg border ${isMyTurn ? "border-green-500 bg-green-500/10" : "border-gray-700 bg-gray-800"}`}>
-            <p className="text-sm text-gray-400">You</p>
-            <p className="font-bold text-lg">{me.name}</p>
-            <div className="mt-2">
-              <div className="flex justify-between text-sm">
-                <span>HP</span>
-                <span>{me.hp}/{GAME.MAX_HP}</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
-                <div
-                  className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                  style={{ width: `${(me.hp / GAME.MAX_HP) * 100}%` }}
-                />
-              </div>
+    <main className="page-layout overflow-hidden">
+      <DungeonBackground />
+      <div className="flex min-h-screen flex-col items-center justify-center relative z-10 w-full px-4 py-8">
+        <div className="w-full max-w-2xl flex flex-col gap-5">
+          {/* Header */}
+          <div className="text-center pixel-panel bg-panel p-4 flex flex-col gap-2">
+            <div className="flex justify-between items-center px-2">
+              <span className="text-sm text-faint font-mono">MATCH {matchState.matchId}</span>
+              {connectionStatus === "reconnecting" && (
+                <span className="text-sm text-warning font-bold animate-pulse">Reconnecting...</span>
+              )}
             </div>
-            {me.block > 0 && (
-              <p className="text-xs text-blue-400 mt-1">Shield: {me.block}</p>
+            {isFinished ? (
+              <h2 className={`heading-lg m-0 drop-shadow-md ${iWon ? "text-success" : "text-error"}`}>
+                {iWon ? "You Win!" : "You Lose!"}
+              </h2>
+            ) : (
+              <h2 className={`heading-md m-0 drop-shadow-md ${isMyTurn ? "text-success" : "text-warning"}`}>
+                {isMyTurn ? "Your Turn" : "Waiting for opponent..."}
+              </h2>
             )}
           </div>
 
-          {/* Opponent */}
-          <div className={`p-4 rounded-lg border ${!isMyTurn && !isFinished ? "border-yellow-500 bg-yellow-500/10" : "border-gray-700 bg-gray-800"}`}>
-            <p className="text-sm text-gray-400">Opponent</p>
-            <p className="font-bold text-lg">{opponent?.name ?? "???"}</p>
-            {opponent && (
-              <div className="mt-2">
-                <div className="flex justify-between text-sm">
-                  <span>HP</span>
-                  <span>{opponent.hp}/{GAME.MAX_HP}</span>
+          {/* Players */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Me */}
+            <div className={`pixel-panel p-5 bg-panel flex flex-col gap-1 transition-colors ${isMyTurn ? "border-accent shadow-[0_0_15px_rgba(218,165,32,0.15)]" : "border-border-strong"}`}>
+              <span className="text-sm text-warm uppercase tracking-widest font-bold">You</span>
+              <h3 className="heading-md text-white m-0 truncate">{me.name}</h3>
+              <div className="mt-3 flex flex-col gap-1">
+                <div className="flex justify-between items-end">
+                  <span className="text-base font-bold text-warm">HP</span>
+                  <span className="text-lg font-mono font-bold text-white">{me.hp}/{GAME.MAX_HP}</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3 mt-1">
+                <div className="w-full bg-black/60 border-2 border-border-strong h-5 overflow-hidden p-0.5">
                   <div
-                    className="bg-red-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${(opponent.hp / GAME.MAX_HP) * 100}%` }}
+                    className="bg-error h-full transition-[width] duration-300 ease-in-out"
+                    style={{ width: `${(me.hp / GAME.MAX_HP) * 100}%` }}
                   />
                 </div>
-                {opponent.block > 0 && (
-                  <p className="text-xs text-blue-400 mt-1">Shield: {opponent.block}</p>
-                )}
               </div>
-            )}
+              {me.block > 0 && (
+                <div className="mt-3 self-start px-3 py-1 bg-[#1e3a8a]/40 border border-[#1e3a8a] text-[#60a5fa] text-sm font-bold pixel-label">
+                  🛡️ Block: {me.block}
+                </div>
+              )}
+            </div>
+
+            {/* Opponent */}
+            <div className={`pixel-panel p-5 bg-panel flex flex-col gap-1 transition-colors ${!isMyTurn && !isFinished ? "border-warning shadow-[0_0_15px_rgba(250,204,21,0.15)]" : "border-border-strong opacity-80"}`}>
+              <span className="text-sm text-warm uppercase tracking-widest font-bold">Opponent</span>
+              <h3 className="heading-md text-white m-0 truncate">{opponent?.name ?? "???"}</h3>
+              {opponent && (
+                <>
+                  <div className="mt-3 flex flex-col gap-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-base font-bold text-warm">HP</span>
+                      <span className="text-lg font-mono font-bold text-white">{opponent.hp}/{GAME.MAX_HP}</span>
+                    </div>
+                    <div className="w-full bg-black/60 border-2 border-border-strong h-5 overflow-hidden p-0.5">
+                      <div
+                        className="bg-error h-full transition-[width] duration-300 ease-in-out"
+                        style={{ width: `${(opponent.hp / GAME.MAX_HP) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                  {opponent.block > 0 && (
+                    <div className="mt-3 self-start px-3 py-1 bg-[#1e3a8a]/40 border border-[#1e3a8a] text-[#60a5fa] text-sm font-bold pixel-label">
+                      🛡️ Block: {opponent.block}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        {!isFinished && (
-          <div className="grid grid-cols-4 gap-2">
+          {/* Actions */}
+          {!isFinished && (
+            <div className="grid grid-cols-4 gap-3 mt-2">
+              <button
+                onClick={() => handleAction("PUNCH")}
+                disabled={!isMyTurn}
+                className="py-4 pixel-btn-primary flex flex-col items-center justify-center gap-1"
+              >
+                <span className="text-lg bg-transparent">Punch</span>
+                <span className="text-sm opacity-80 font-bold bg-transparent">5 dmg</span>
+              </button>
+              <button
+                onClick={() => handleAction("KICK")}
+                disabled={!isMyTurn}
+                className="py-4 pixel-btn-primary flex flex-col items-center justify-center gap-1"
+              >
+                <span className="text-lg bg-transparent">Kick</span>
+                <span className="text-sm opacity-80 font-bold bg-transparent">8 dmg</span>
+              </button>
+              <button
+                onClick={() => handleAction("BLOCK")}
+                disabled={!isMyTurn}
+                className="py-4 pixel-btn border-2 border-border-strong bg-panel hover:text-white hover:border-accent text-warm flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+              >
+                <span className="text-lg bg-transparent">Block</span>
+                <span className="text-sm opacity-80 font-bold bg-transparent">+5 shield</span>
+              </button>
+              <button
+                onClick={() => handleAction("HEAL")}
+                disabled={!isMyTurn}
+                className="py-4 pixel-btn border-2 border-border-strong bg-panel text-success hover:border-success hover:bg-success/10 flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+              >
+                <span className="text-lg bg-transparent">Heal</span>
+                <span className="text-sm opacity-80 font-bold bg-transparent">+3 hp</span>
+              </button>
+            </div>
+          )}
+
+          {/* Play Again */}
+          {isFinished && (
             <button
-              onClick={() => handleAction("PUNCH")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-orange-600 hover:bg-orange-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
+              onClick={handleBackToLobby}
+              className="w-full py-4 pixel-btn-primary text-xl mt-2"
             >
-              Punch
-              <span className="block text-xs opacity-70">5 dmg</span>
+              Back to Lobby
             </button>
-            <button
-              onClick={() => handleAction("KICK")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-red-600 hover:bg-red-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Kick
-              <span className="block text-xs opacity-70">8 dmg</span>
-            </button>
-            <button
-              onClick={() => handleAction("BLOCK")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Block
-              <span className="block text-xs opacity-70">+5 shield</span>
-            </button>
-            <button
-              onClick={() => handleAction("HEAL")}
-              disabled={!isMyTurn}
-              className="py-3 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-sm"
-            >
-              Heal
-              <span className="block text-xs opacity-70">+3 hp</span>
-            </button>
+          )}
+
+          {/* Combat Log */}
+          <div className="pixel-panel p-5 h-56 overflow-y-auto bg-black/80 border-border-strong flex flex-col mt-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-[#1a0e08] [&::-webkit-scrollbar-thumb]:bg-[#7a4030] hover:[&::-webkit-scrollbar-thumb]:bg-accent">
+            <span className="text-warm font-bold uppercase tracking-widest text-sm mb-4">COMBAT LOG</span>
+            <div className="flex flex-col gap-2">
+              {matchState.log.map((entry, i) => (
+                <p key={i} className={`text-base m-0 leading-snug ${entry.includes("wins!") ? "text-success font-bold" : "text-white"}`}>
+                  {entry}
+                </p>
+              ))}
+              <div ref={logEndRef} />
+            </div>
           </div>
-        )}
 
-        {/* Play Again */}
-        {isFinished && (
-          <button
-            onClick={handleBackToLobby}
-            className="w-full py-3 rounded bg-blue-600 hover:bg-blue-500 font-semibold transition-colors"
-          >
-            Back to Lobby
-          </button>
-        )}
+          {error && (
+            <p className="text-error text-base font-bold text-center m-0">{error}</p>
+          )}
 
-        {/* Combat Log */}
-        <div className="bg-gray-900 border border-gray-700 rounded-lg p-3 h-48 overflow-y-auto text-sm">
-          <p className="text-gray-500 text-xs font-semibold mb-2">COMBAT LOG</p>
-          {matchState.log.map((entry, i) => (
-            <p key={i} className="text-gray-300 py-0.5">
-              {entry}
+          {connectionLost && (
+            <p className="text-warning text-sm font-bold text-center bg-warning/20 p-2 border border-warning m-0">
+              Connection lost. The game state may be outdated.
             </p>
-          ))}
-          <div ref={logEndRef} />
+          )}
         </div>
-
-        {error && (
-          <p className="text-red-400 text-sm text-center">{error}</p>
-        )}
-
-        {connectionLost && (
-          <p className="text-yellow-400 text-sm text-center">
-            Connection lost. The game state may be outdated.
-          </p>
-        )}
       </div>
     </main>
   );

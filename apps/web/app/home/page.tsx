@@ -54,16 +54,16 @@ export default function HomePage() {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
                 onClick={() => nav('/dashboard')}
+                className="pixel-btn pixel-btn-primary"
                 style={{
                     position: 'absolute', top: '1rem', right: '1rem',
-                    zIndex: 20, background: 'none', border: 'none',
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column',
+                    zIndex: 20, display: 'flex', flexDirection: 'column',
                     gap: '5px', padding: '0.5rem'
                 }}
             >
-                <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
-                <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
-                <span style={{ display: 'block', width: '28px', height: '3px', background: 'goldenrod', borderRadius: '2px' }} />
+                <span style={{ display: 'block', width: '28px', height: '4px', background: 'rgba(0, 0, 0, 0.85)', borderRadius: '0' }} />
+                <span style={{ display: 'block', width: '28px', height: '4px', background: 'rgba(0, 0, 0, 0.85)', borderRadius: '0' }} />
+                <span style={{ display: 'block', width: '28px', height: '4px', background: 'rgba(0, 0, 0, 0.85)', borderRadius: '0' }} />
             </motion.button>
 
             {/* Main content */}
@@ -115,13 +115,11 @@ export default function HomePage() {
                             }}
                             disabled={loading}
                             style={{
-                                padding: '0.5rem 1rem', fontSize: '3rem',
-                                background: 'goldenrod', color: 'white',
-                                border: 'none', borderRadius: '0.75rem', cursor: 'pointer',
+                                padding: '0.5rem 1.5rem', fontSize: '3rem',
                                 opacity: navigating || loading ? 0.7 : 1,
                                 animationDelay: `${index * 0.4}s`
                             }}
-                            className="rumble"
+                            className="pixel-btn pixel-btn-primary rumble"
                         >
                             {label}
                         </motion.button>

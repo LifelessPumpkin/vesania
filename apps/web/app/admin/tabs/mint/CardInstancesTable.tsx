@@ -11,9 +11,9 @@ interface CardInstancesTableProps {
 
 export function CardInstancesTable({ instances, loading }: CardInstancesTableProps) {
     return (
-        <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
-            <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
-                All Card Instances <span className="text-sm font-normal" style={{ color: 'var(--color-text-faint)' }}>({instances.length})</span>
+        <div className="pixel-panel p-8">
+            <h2 className="heading-md mb-6">
+                All Card Instances <span className="text-base text-faint font-normal">({instances.length})</span>
             </h2>
             {loading ? (
                 <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>Loading...</p>
@@ -23,7 +23,7 @@ export function CardInstancesTable({ instances, loading }: CardInstancesTablePro
                 <div className="overflow-x-auto">
                     <table className="w-full text-base">
                         <thead>
-                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border-strong)' }}>
                                 <th className="text-left py-3 px-4 whitespace-nowrap">Public Code</th>
                                 <th className="text-left py-3 px-4">Definition</th>
                                 <th className="text-left py-3 px-4">Status</th>
@@ -35,8 +35,8 @@ export function CardInstancesTable({ instances, loading }: CardInstancesTablePro
                         </thead>
                         <tbody>
                             {instances.map((inst) => (
-                                <tr key={inst.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border)' }}>
-                                    <td className="py-3 px-4 whitespace-nowrap text-xs" style={{ color: 'var(--color-text-muted)' }}>{inst.publicCode}</td>
+                                <tr key={inst.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border-strong)' }}>
+                                    <td className="py-3 px-4 whitespace-nowrap font-mono" style={{ color: 'var(--color-text-muted)' }}>{inst.publicCode}</td>
                                     <td className="py-3 px-4">{inst.definition.name}</td>
                                     <td className="py-3 px-4">
                                         <StatusBadge status={inst.status} />
@@ -52,7 +52,7 @@ export function CardInstancesTable({ instances, loading }: CardInstancesTablePro
                                     </td>
                                     <td className="py-3 px-4">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-xs truncate max-w-[300px]" style={{ color: 'var(--color-text-faint)' }}>
+                                            <span className="truncate max-w-[300px]" style={{ color: 'var(--color-text-faint)' }}>
                                                 {getScanUrl(inst.publicCode)}
                                             </span>
                                             <CopyButton text={getScanUrl(inst.publicCode)} />
