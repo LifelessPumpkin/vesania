@@ -18,15 +18,13 @@
 }
 
 .card {
-    background: var(--color-bg-alpha);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-2xl);
+    background: var(--color-panel);
+    border: 2px solid var(--color-border-strong);
+    border-radius: 0;
     padding: var(--space-2xl) var(--space-xl);
     width: 100%;
     max-width: 400px;
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-pixel-lg);
     display: flex;
     flex-direction: column;
     gap: var(--space-lg);
@@ -82,21 +80,37 @@
     display: block;
     width: 100%;
     padding: var(--space-sm) var(--space-lg);
-    background: var(--color-surface-alpha);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
+    background: var(--color-panel-raised);
+    border: 2px solid var(--color-border-strong);
+    border-radius: 0;
     color: var(--color-text);
     font-weight: 500;
     text-align: center;
     text-decoration: none;
     font-size: var(--text-md);
-    transition: all var(--ease-default);
+    transition: none;
     box-sizing: border-box;
+    box-shadow: var(--shadow-pixel);
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.link:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
 }
 
 .linkAdmin {
-    background: linear-gradient(135deg, var(--color-accent), #b8860b);
-    border-color: var(--color-accent-alpha);
+    background: var(--color-accent);
+    border: 2px outset #c8941a;
+    color: var(--color-bg-deep);
+    font-weight: 700;
+}
+
+.linkAdmin:active {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
 }
 
 .backRow {
@@ -119,8 +133,15 @@
 }
 
 .linkSignOut {
-    background: var(--color-error-bg);
-    border-color: rgba(239, 68, 68, 0.3);
+    background: var(--color-error);
+    border-color: #8b0000;
+    color: white;
     cursor: pointer;
     font-family: inherit;
+}
+
+.linkSignOut:active {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
 }

@@ -19,11 +19,11 @@ export default function AdminDashboard({ adminUser }: { adminUser: AdminUser }) 
         <SlideUpPage>
             <div className="min-h-screen text-gray-100" style={{ background: 'var(--color-bg-deep)' }}>
                 {/* Header */}
-                <header className="border-b backdrop-blur-sm sticky top-0 z-10" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-alpha)' }}>
+                <header className="border-b sticky top-0 z-10" style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-panel)' }}>
                     <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-6">
                             <Link href="/" className="hover:text-white transition-colors text-base" style={{ color: 'var(--color-text-muted)' }}>
-                                ← Back
+                                &larr; Back
                             </Link>
                             <h1 className="text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #daa520, #f0c040)' }}>
                                 Admin Dashboard
@@ -37,23 +37,16 @@ export default function AdminDashboard({ adminUser }: { adminUser: AdminUser }) 
 
                 {/* Tabs */}
                 <div className="max-w-6xl mx-auto px-6 pt-8">
-                    <div className="flex gap-2 rounded-xl p-2 w-fit" style={{ background: 'var(--color-bg-alpha)', border: '1px solid var(--color-border)' }}>
+                    <div className="flex gap-2 w-fit pixel-panel">
                         {([
-                            { key: 'definitions', label: '📋 Card Definitions' },
-                            { key: 'mint', label: '🏭 Mint Cards' },
-                            { key: 'users', label: '👥 Users' },
+                            { key: 'definitions', label: 'Card Definitions' },
+                            { key: 'mint', label: 'Mint Cards' },
+                            { key: 'users', label: 'Users' },
                         ] as { key: Tab; label: string }[]).map(({ key, label }) => (
                             <button
                                 key={key}
                                 onClick={() => setActiveTab(key)}
-                                className={`px-6 py-3 rounded-lg text-base font-medium transition-all ${activeTab === key
-                                    ? 'text-white shadow-lg'
-                                    : 'hover:text-white'
-                                    }`}
-                                style={activeTab === key
-                                    ? { background: '#daa520', boxShadow: '0 0 24px rgba(218,165,32,0.25)' }
-                                    : { color: 'var(--color-text-muted)', background: 'transparent' }
-                                }
+                                className={`px-6 py-2 text-base outline-none ${activeTab === key ? 'pixel-btn pixel-btn-primary' : 'pixel-btn pixel-btn-secondary'}`}
                             >
                                 {label}
                             </button>

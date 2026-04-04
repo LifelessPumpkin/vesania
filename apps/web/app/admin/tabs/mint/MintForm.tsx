@@ -54,15 +54,15 @@ export function MintForm({ definitions, getToken, onMintSuccess }: MintFormProps
     }
 
     return (
-        <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Mint Physical Cards</h2>
+        <div className="pixel-panel p-8">
+            <h2 className="heading-md mb-4">Mint Physical Cards</h2>
             <form onSubmit={handleMint} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Card Definition</label>
+                    <label className="block text-base mb-1 text-muted">Card Definition</label>
                     <select
                         required value={formData.definitionId}
                         onChange={(e) => setFormData(p => ({ ...p, definitionId: e.target.value }))}
-                        className="w-full rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                        className="w-full px-4 py-2 pixel-select"
                     >
                         <option value="">Select a definition...</option>
                         {definitions.map(def => (
@@ -73,7 +73,7 @@ export function MintForm({ definitions, getToken, onMintSuccess }: MintFormProps
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Quantity</label>
+                    <label className="block text-base mb-1 text-muted">Quantity</label>
                     <input
                         type="number" min={1} max={50} value={quantityStr}
                         onChange={(e) => setQuantityStr(e.target.value)}
@@ -81,7 +81,7 @@ export function MintForm({ definitions, getToken, onMintSuccess }: MintFormProps
                             const clamped = Math.min(50, Math.max(1, parseInt(e.target.value) || 1))
                             setQuantityStr(String(clamped))
                         }}
-                        className="w-full rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                        className="w-full px-4 py-2 pixel-input"
                     />
                     {displayQuantity > 1 && (
                         <p className="text-sm text-gray-500 mt-2">
@@ -91,18 +91,18 @@ export function MintForm({ definitions, getToken, onMintSuccess }: MintFormProps
                 </div>
                 {displayQuantity === 1 && (
                     <div className="md:col-span-2">
-                        <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Public Code (NFC Tag ID)</label>
+                        <label className="block text-base mb-1 text-muted">Public Code (NFC Tag ID)</label>
                         <div className="flex gap-4">
                             <input
                                 type="text" required value={formData.publicCode}
                                 onChange={(e) => setFormData(p => ({ ...p, publicCode: e.target.value }))}
                                 placeholder="ves_abc123"
-                                className="flex-1 rounded-lg px-4 py-3 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                                className="flex-1 px-4 py-2 pixel-input"
                             />
                             <button
                                 type="button"
                                 onClick={() => setFormData(p => ({ ...p, publicCode: `ves_${crypto.randomUUID().slice(0, 8)}` }))}
-                                className="text-white px-6 py-3 rounded-lg text-sm transition-colors whitespace-nowrap" style={{ background: 'var(--color-surface)' }}
+                                className="pixel-btn pixel-btn-secondary px-6 py-2 text-sm whitespace-nowrap"
                             >
                                 Generate
                             </button>
@@ -112,7 +112,7 @@ export function MintForm({ definitions, getToken, onMintSuccess }: MintFormProps
                 <div className="md:col-span-2 flex items-center gap-6 mt-2">
                     <button
                         type="submit" disabled={submitting}
-                        className="disabled:opacity-50 text-white px-8 py-3 rounded-xl text-base font-medium transition-colors" style={{ background: '#daa520' }}
+                        className="pixel-btn pixel-btn-primary px-8 py-2 text-base font-medium"
                     >
                         {submitting ? 'Minting...' : displayQuantity > 1 ? `Mint ${displayQuantity} Cards` : 'Mint Card'}
                     </button>

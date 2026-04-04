@@ -9,7 +9,7 @@ import { useAvatarPicker } from '@/hooks/useAvatarPicker'
 import { uploadAvatar } from '@/lib/avatar-upload'
 import { USERNAME_RULES, MAX_BIO_LENGTH } from '@/lib/constants'
 import type { UserProfile } from '@/lib/api-types'
-import styles from './profile.module.css'
+
 import SlideUpPage from '@/components/SlideUpPage'
 import DungeonBackground from '@/components/DungeonBackground'
 
@@ -138,96 +138,96 @@ export default function ProfilePage() {
 
     if (authLoading || !user) {
         return (
-            <main className={styles.page}>
+            <main className="page-center">
                 <DungeonBackground />
-                <div className={styles.card}>
-                    <p className={styles.loadingText}>Loading...</p>
+                <div className="pixel-panel p-8 w-full max-w-[500px] mt-8">
+                    <p className="text-center text-muted">Loading...</p>
                 </div>
             </main>
         )
     }
 
     return (
-        <main className={styles.page}>
+        <main className="page-padded">
             <DungeonBackground />
 
             <SlideUpPage>
-                <div className={styles.card}>
-                    <header className={styles.header}>
-                        <Link href="/home" className={styles.backLink}>← Home</Link>
+                <div className="pixel-panel p-8 w-full max-w-[500px] mt-8 mx-auto animate-fade-in">
+                    <header className="flex items-center justify-between mb-6">
+                        <Link href="/home" className="text-muted text-base hover:text-white transition-colors">&larr; Home</Link>
                     </header>
 
                     {loadingProfile ? (
-                        <p className={styles.loadingText}>Loading profile...</p>
+                        <p className="text-center text-muted">Loading profile...</p>
                     ) : !profile ? (
-                        <p className={styles.error}>Could not load profile.</p>
+                        <p className="text-base text-error text-center">Could not load profile.</p>
                     ) : editing ? (
                         /* ── Edit Mode ── */
-                        <form className={styles.editForm} onSubmit={handleSave}>
-                            <div className={styles.profileHeader}>
+                        <form className="flex flex-col gap-6" onSubmit={handleSave}>
+                            <div className="flex flex-col items-center gap-4 mb-6">
                                 <input
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp,image/gif"
                                     onChange={handleFileChange}
-                                    className={styles.hiddenInput}
+                                    className="hidden"
                                 />
                                 {avatarPreviewUrl ? (
                                     <img
                                         src={avatarPreviewUrl}
                                         alt="Avatar"
-                                        className={styles.avatarLargeEdit}
+                                        className="w-[120px] h-[120px] rounded-full border-[3px] border-border object-cover bg-black/50 cursor-pointer hover:border-accent transition-colors block"
                                         onClick={handleAvatarClick}
                                     />
                                 ) : (
-                                    <div className={styles.avatarPlaceholderEdit} onClick={handleAvatarClick}>+</div>
+                                    <div className="w-[120px] h-[120px] rounded-full border-[3px] border-dashed border-border bg-black/50 flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors text-faint text-[60px] leading-none" onClick={handleAvatarClick}><span>+</span></div>
                                 )}
                                 <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '1.2rem' }}>
                                     Click avatar to change
                                 </span>
                             </div>
 
-                            <div className={styles.fieldGroup}>
-                                <label className={styles.label}>Username</label>
+                            <div className="flex flex-col">
+                                <label className="text-lg font-semibold tracking-wider uppercase text-muted mb-2">Username</label>
                                 <input
                                     type="text"
                                     value={editUsername}
                                     onChange={e => handleUsernameChange(e.target.value)}
-                                    className={styles.input}
+                                    className="pixel-input"
                                     maxLength={20}
                                     required
                                 />
                                 {usernameStatus === 'checking' && (
-                                    <span className={`${styles.validationHint} ${styles.checking}`}>Checking...</span>
+                                    <span className="text-sm mt-1 text-muted">Checking...</span>
                                 )}
                                 {usernameStatus === 'available' && (
-                                    <span className={`${styles.validationHint} ${styles.valid}`}>✓ Available</span>
+                                    <span className="text-sm mt-1 text-success">✓ Available</span>
                                 )}
                                 {usernameStatus === 'taken' && (
-                                    <span className={`${styles.validationHint} ${styles.invalid}`}>✗ Taken</span>
+                                    <span className="text-sm mt-1 text-error">✗ Taken</span>
                                 )}
                                 {usernameStatus === 'invalid' && (
-                                    <span className={`${styles.validationHint} ${styles.invalid}`}>{USERNAME_RULES}</span>
+                                    <span className="text-sm mt-1 text-error">{USERNAME_RULES}</span>
                                 )}
                             </div>
 
-                            <div className={styles.fieldGroup}>
-                                <label className={styles.label}>Bio</label>
+                            <div className="flex flex-col">
+                                <label className="text-lg font-semibold tracking-wider uppercase text-muted mb-2">Bio</label>
                                 <textarea
                                     value={editBio}
                                     onChange={e => setEditBio(e.target.value)}
-                                    className={styles.textarea}
+                                    className="pixel-input min-h-[70px] resize-y"
                                     maxLength={MAX_BIO_LENGTH}
                                     placeholder="Tell others about yourself"
                                 />
-                                <span className={styles.charCount}>{editBio.length}/{MAX_BIO_LENGTH}</span>
+                                <span className="text-sm text-faint text-right mt-1">{editBio.length}/{MAX_BIO_LENGTH}</span>
                             </div>
 
-                            {error && <p className={styles.error}>{error}</p>}
+                            {error && <p className="text-base text-error text-center">{error}</p>}
 
-                            <div className={styles.buttonRow}>
-                                <button type="button" onClick={cancelEditing} className={styles.cancelButton}>Cancel</button>
-                                <button type="submit" disabled={saving} className={styles.saveButton}>
+                            <div className="flex gap-4 mt-2">
+                                <button type="button" onClick={cancelEditing} className="pixel-btn bg-transparent flex-1 border-2 border-border-strong text-warm hover:text-white hover:border-accent">Cancel</button>
+                                <button type="submit" disabled={saving} className="pixel-btn-primary flex-1">
                                     {saving ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
@@ -235,74 +235,74 @@ export default function ProfilePage() {
                     ) : (
                         /* ── View Mode ── */
                         <>
-                            <div className={styles.profileHeader}>
+                            <div className="flex flex-col items-center gap-4 mb-6">
                                 {profile.avatarUrl ? (
-                                    <img src={profile.avatarUrl} alt="Avatar" className={styles.avatarLarge} />
+                                    <img src={profile.avatarUrl} alt="Avatar" className="w-[120px] h-[120px] rounded-full border-[3px] border-border object-cover bg-black/50" />
                                 ) : (
-                                    <div className={styles.avatarPlaceholder}>👤</div>
+                                    <div className="w-[120px] h-[120px] rounded-full border-[3px] border-border bg-black/50 flex items-center justify-center text-faint text-[60px] leading-none"><span>👤</span></div>
                                 )}
-                                <h1 className={styles.displayName}>
+                                <h1 className="heading-lg text-center m-0">
                                     {profile.username}
                                 </h1>
-                                <span className={styles.username}>@{profile.username}</span>
-                                {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
+                                <span className="text-base text-muted text-center">@{profile.username}</span>
+                                {profile.bio && <p className="text-base text-muted text-center max-w-[320px] leading-relaxed">{profile.bio}</p>}
                             </div>
 
-                            <div className={styles.statsRow}>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.cardsOwned ?? 0}</span>
-                                    <span className={styles.statLabel}>Cards</span>
+                            <div className="flex justify-center flex-wrap gap-8 py-6 border-y border-border mb-6">
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.cardsOwned ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Cards</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.decksBuilt ?? 0}</span>
-                                    <span className={styles.statLabel}>Decks</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.decksBuilt ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Decks</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.friendsCount ?? 0}</span>
-                                    <span className={styles.statLabel}>Friends</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.friendsCount ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Friends</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.mmr ?? 0}</span>
-                                    <span className={styles.statLabel}>MMR</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.mmr ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">MMR</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.gamesPlayed ?? 0}</span>
-                                    <span className={styles.statLabel}>Games</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.gamesPlayed ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Games</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.wins ?? 0}</span>
-                                    <span className={styles.statLabel}>Wins</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.wins ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Wins</span>
                                 </div>
-                                <div className={styles.stat}>
-                                    <span className={styles.statValue}>{profile.stats.losses ?? 0}</span>
-                                    <span className={styles.statLabel}>Losses</span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.losses ?? 0}</span>
+                                    <span className="text-sm text-faint uppercase tracking-[0.04em]">Losses</span>
                                 </div>
                             </div>
                             {/* Top 3 Most Used Cards */}
-                            <div className={styles.topCards}>
-                                <h2 className={styles.sectionTitle}>Top Cards</h2>
-                                <div className={styles.topCardsList}>
+                            <div className="flex flex-col mt-6">
+                                <h2 className="heading-sm mb-4">Top Cards</h2>
+                                <div className="flex flex-col gap-3">
                                     {profile.topCards.length > 0 ? (
                                         profile.topCards.map((card) => (
-                                            <div key={card.cardId} className={styles.topCardPlaceholder}>
+                                            <div key={card.cardId} className="flex justify-between items-center p-3 pixel-panel bg-black/20">
                                                 <strong>{card.definition.name}</strong>
                                                 <span>{card.playCount} game{card.playCount === 1 ? '' : 's'}</span>
                                             </div>
                                         ))
                                     ) : (
-                                        <p className={styles.noData}>Play a match with a deck to start tracking top cards.</p>
+                                        <p className="text-base text-faint italic">Play a match with a deck to start tracking top cards.</p>
                                     )}
                                 </div>
                             </div>
 
-                            <p className={styles.memberSince}>
+                            <p className="text-base text-faint text-center mt-6">
                                 Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                             </p>
 
-                            {error && <p className={styles.error}>{error}</p>}
-                            {success && <p className={styles.success}>{success}</p>}
+                            {error && <p className="text-base text-error text-center">{error}</p>}
+                            {success && <p className="text-base text-success text-center">{success}</p>}
 
-                            <button onClick={startEditing} className={styles.editButton}>Edit Profile</button>
+                            <button onClick={startEditing} className="pixel-btn-secondary w-full mt-4">Edit Profile</button>
                         </>
                     )}
                 </div>

@@ -203,7 +203,7 @@ export default function CardEffectWizard({ cardType, value, onChange }: CardEffe
     return (
         <div className="space-y-3 p-6 rounded-lg" style={{ background: 'var(--color-bg-alpha)', border: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-3 mb-2">
-                <span className="text-lg font-medium" style={{ color: '#daa520' }}>✨ Effect Wizard</span>
+                <span className="text-lg font-medium" style={{ color: '#daa520' }}>Effect Wizard</span>
                 <span className="text-sm" style={{ color: 'var(--color-text-faint)' }}>({cardType})</span>
             </div>
 
@@ -230,14 +230,14 @@ function NumberField({
 }) {
     return (
         <div>
-            <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
+            <label className="block text-base mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
             <input
                 type="number"
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
                 min={min}
                 max={max}
-                className="w-full max-w-[140px] rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                className="w-full max-w-[140px] px-3 py-2 pixel-input"
             />
         </div>
     )
@@ -258,7 +258,7 @@ function OptionalNumberField({
 }) {
     return (
         <div>
-            <label className="block text-2xl text-gray-400 mb-1">{label} <span className="text-gray-600">(optional)</span></label>
+            <label className="block text-base mb-1" style={{ color: 'var(--color-text-muted)' }}>{label} <span className="opacity-70">(optional)</span></label>
             <input
                 type="number"
                 value={value ?? ''}
@@ -266,7 +266,7 @@ function OptionalNumberField({
                 min={min}
                 max={max}
                 placeholder="0"
-                className="w-full max-w-[140px] rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                className="w-full max-w-[140px] px-3 py-2 pixel-input"
             />
         </div>
     )
@@ -285,11 +285,11 @@ function SelectField({
 }) {
     return (
         <div>
-            <label className="block text-2xl text-gray-400 mb-1">{label}</label>
+            <label className="block text-base mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</label>
             <select
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                className="w-full px-3 py-2 pixel-select"
             >
                 {options.map(option => (
                     <option key={option} value={option}>{option}</option>
@@ -314,13 +314,13 @@ function TextField({
 }) {
     return (
         <div>
-            <label className="block text-2xl text-gray-400 mb-1">{label} {subLabel && <span className="text-gray-600">{subLabel}</span>}</label>
+            <label className="block text-base mb-1" style={{ color: 'var(--color-text-muted)' }}>{label} {subLabel && <span className="opacity-70">{subLabel}</span>}</label>
             <input
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full rounded-lg px-3 py-2 text-base text-white outline-none" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+                className="w-full px-3 py-2 pixel-input"
             />
         </div>
     )

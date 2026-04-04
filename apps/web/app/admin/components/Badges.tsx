@@ -3,14 +3,14 @@
 
 export function RarityBadge({ rarity }: { rarity: string }) {
     const colors: Record<string, string> = {
-        COMMON: 'bg-gray-600/20 text-gray-300',
-        UNCOMMON: 'bg-green-500/10 text-green-400',
-        RARE: 'bg-blue-500/10 text-blue-400',
-        EPIC: 'bg-yellow-500/10 text-yellow-500',
-        LEGENDARY: 'bg-yellow-500/10 text-yellow-400',
+        COMMON: 'bg-[#1a1210] border-border-strong border text-base text-gray-300',
+        UNCOMMON: 'bg-[#14532d]/40 border-2 border-[#166534] text-base text-[#4ade80]',
+        RARE: 'bg-[#1e3a8a]/40 border-2 border-[#1e40af] text-base text-[#60a5fa]',
+        EPIC: 'bg-[#4c1d95]/40 border-2 border-[#5b21b6] text-base text-[#c084fc]',
+        LEGENDARY: 'bg-[#3d2218] border-2 border-accent text-base text-accent',
     }
     return (
-        <span className={`px-3 py-1 rounded text-lg font-medium ${colors[rarity] || colors.COMMON}`}>
+        <span className={`pixel-label px-3 py-1 ${colors[rarity] || colors.COMMON}`}>
             {rarity}
         </span>
     )
@@ -18,12 +18,12 @@ export function RarityBadge({ rarity }: { rarity: string }) {
 
 export function StatusBadge({ status }: { status: string }) {
     const colors: Record<string, string> = {
-        UNCLAIMED: 'bg-gray-600/20 text-gray-400',
-        CLAIMED: 'bg-green-500/10 text-green-400',
-        LOCKED: 'bg-red-500/10 text-red-400',
+        UNCLAIMED: 'bg-[#1a1210] border border-border-strong text-gray-400',
+        CLAIMED: 'bg-[#14532d]/40 border-2 border-[#166534] text-[#4ade80]',
+        LOCKED: 'bg-[#450a0a]/40 border-2 border-[#7f1d1d] text-[#f87171]',
     }
     return (
-        <span className={`px-3 py-1 rounded text-xl font-medium ${colors[status] || colors.UNCLAIMED}`}>
+        <span className={`pixel-label px-3 py-1 text-sm ${colors[status] || colors.UNCLAIMED}`}>
             {status}
         </span>
     )

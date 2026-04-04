@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
-import styles from './friends.module.css'
 import type { Friend } from './types'
 import { AddFriendForm } from './components/AddFriendForm'
 import { FriendCard } from './components/FriendCard'
@@ -169,10 +168,10 @@ export default function FriendsPage() {
 
   if (authLoading) {
     return (
-      <main className={styles.page}>
+      <main className="page-layout overflow-hidden">
         <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} priority />
-        <div className={styles.center}>
-          <p className={styles.loadingText}>Loading...</p>
+        <div className="flex min-h-screen items-center justify-center relative z-10">
+          <p className="text-white">Loading...</p>
         </div>
       </main>
     )
@@ -184,50 +183,48 @@ export default function FriendsPage() {
   const friendUsernames = new Set(friends.map(f => f.username))
 
   return (
-    <main className={styles.page}>
+    <main className="page-layout overflow-hidden">
       <DungeonBackground />
       <SlideUpPage>
-        <div className={styles.overlay}>
-          <section className={styles.panel}>
-            <header className={styles.header}>
-              <h1 className={styles.title}>Friends</h1>
-              <button onClick={() => router.push('/home')} className={styles.backLink}>
+        <div className="page-padded w-full">
+          <section className="pixel-panel w-full max-w-[960px] p-8 flex flex-col gap-6">
+            <header className="flex justify-between items-center gap-6">
+              <h1 className="heading-xl m-0">Friends</h1>
+              <button onClick={() => router.push('/home')} className="text-muted font-medium text-base hover:text-warm transition-colors cursor-pointer border-none bg-transparent">
                 &larr; Back to Home
               </button>
             </header>
-
-            {/* Search for players */}
-            <div className={styles.addForm}>
-              <label className={styles.label}>Find Players</label>
-              <div className={styles.formRow}>
+            <div className="flex flex-col gap-2">
+              <label className="text-lg font-semibold m-0 mb-2 drop-shadow-md text-white">Find Players</label>
+              <div className="flex flex-col sm:flex-row gap-4">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   placeholder="Search by username or display name..."
-                  className={styles.input}
+                  className="pixel-input flex-1 px-4 py-2 text-xl"
                 />
               </div>
-              {searching && <p className={styles.message} style={{ fontSize: '24px' }}>Searching...</p>}
+              {searching && <p className="text-base text-white my-4" style={{ fontSize: '24px' }}>Searching...</p>}
               {searchResults.length > 0 && (
-                <div className={styles.searchResults}>
+                <div className="flex flex-col gap-4 mt-2">
                   {searchResults.map((result) => {
                     const isFriend = friendUsernames.has(result.username)
                     const isAdding = addingUsername === result.username
                     return (
-                      <div key={result.username} className={styles.searchResultCard}>
+                      <div key={result.username} className="flex items-center gap-4 py-4 px-3 pixel-panel bg-black/20">
                         {result.avatarUrl ? (
-                          <img src={result.avatarUrl} alt="" className={styles.searchAvatar} />
+                          <img src={result.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover border-[2px] border-border" />
                         ) : (
-                          <div className={styles.searchAvatarPlaceholder}>👤</div>
+                          <div className="w-9 h-9 rounded-full border-[2px] border-border bg-black/50 flex flex-col items-center justify-center text-[22px] leading-none"><span>👤</span></div>
                         )}
                         <div style={{ flex: 1 }}>
                           <Link href={`/profile/${encodeURIComponent(result.username)}`} style={{ textDecoration: 'none' }}>
-                            <span className={styles.searchName}>
+                            <span className="text-base font-semibold text-white hover:underline cursor-pointer block">
                               {result.displayName || result.username}
                             </span>
                           </Link>
-                          <span className={styles.searchUsername}>@{result.username}</span>
+                          <span className="text-sm text-muted">@{result.username}</span>
                         </div>
                         {isFriend ? (
                           <span style={{ color: '#86efac', fontSize: '20px', fontWeight: 600 }}>Friends ✓</span>
@@ -235,8 +232,7 @@ export default function FriendsPage() {
                           <button
                             onClick={() => addFriendByUsername(result.username)}
                             disabled={isAdding || addingFriend}
-                            className={styles.primaryButton}
-                            style={{ padding: '0.45rem 0.75rem', fontSize: '24px' }}
+                            className="pixel-btn-primary px-4 py-2 text-xl"
                           >
                             {isAdding ? 'Adding...' : 'Add'}
                           </button>
@@ -247,11 +243,9 @@ export default function FriendsPage() {
                 </div>
               )}
               {searchQuery.length >= 2 && !searching && searchResults.length === 0 && (
-                <p className={styles.message} style={{ fontSize: '24px' }}>No players found</p>
+                <p className="text-base text-white my-4" style={{ fontSize: '24px' }}>No players found</p>
               )}
             </div>
-
-            {/* Manual add by exact username */}
             <AddFriendForm
               friendUsername={friendUsername}
               addingFriend={addingFriend}
@@ -259,16 +253,14 @@ export default function FriendsPage() {
               onUsernameChange={setFriendUsername}
               onSubmit={onAddFriend}
             />
-
-            {error && <p className={styles.error}>{error}</p>}
-            {success && <p className={styles.success}>{success}</p>}
-
+            {error && <p className="text-error m-0 text-base">{error}</p>}
+            {success && <p className="text-success m-0 text-base">{success}</p>}
             {loadingFriends ? (
-              <p className={styles.message}>Loading friends...</p>
+              <p className="text-base text-white my-4">Loading friends...</p>
             ) : friends.length === 0 ? (
-              <p className={styles.message}>No friends yet. Search for players above to add them.</p>
+              <p className="text-base text-white my-4">No friends yet. Search for players above to add them.</p>
             ) : (
-              <div className={styles.grid}>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-6">
                 {friends.map((friend) => (
                   <FriendCard key={friend.id} friend={friend} />
                 ))}

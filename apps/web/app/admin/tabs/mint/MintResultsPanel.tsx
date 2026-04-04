@@ -12,10 +12,10 @@ export function MintResultsPanel({ cards, onDismiss }: MintResultsPanelProps) {
     if (cards.length === 0) return null
 
     return (
-        <div className="rounded-xl border p-6" style={{ background: 'var(--color-bg-alpha)', borderColor: 'rgba(74,222,128,0.3)' }}>
+        <div className="pixel-panel p-6 border-green-500/50">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-green-400">
-                    ✓ Minted {cards.length} Card{cards.length > 1 ? 's' : ''}
+                <h2 className="heading-sm text-success">
+                    Minted {cards.length} Card{cards.length > 1 ? 's' : ''}
                 </h2>
                 {cards.length > 1 && (
                     <CopyButton
@@ -24,12 +24,12 @@ export function MintResultsPanel({ cards, onDismiss }: MintResultsPanelProps) {
                     />
                 )}
             </div>
-            <p className="text-sm mb-3" style={{ color: 'var(--color-text-muted)' }}>
+            <p className="text-base mb-3 text-muted">
                 Copy these URLs to program into NFC cards:
             </p>
             <div className="space-y-2 max-h-64 overflow-y-auto">
                 {cards.map((card) => (
-                    <div key={card.id} className="flex items-center gap-3 bg-gray-800/50 rounded-lg px-3 py-2">
+                    <div key={card.id} className="flex items-center gap-3 bg-black/40 px-3 py-2 border border-gray-700">
                         <span className="font-mono text-xs flex-1 truncate" style={{ color: 'var(--color-text-muted)' }}>
                             {getScanUrl(card.publicCode)}
                         </span>
