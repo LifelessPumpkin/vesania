@@ -40,7 +40,6 @@ export type ActionType =
   | "USE_TOOL"
   | "PLAY_SPELL"
   | "END_TURN"
-  | "PASS"
   | "SURRENDER"
 
 /**
@@ -182,6 +181,7 @@ export interface LogEntry {
     damage?: number;
     healing?: number;
     block?: number;
+    attack?: number;
   };
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import yaml from 'yaml'
 import { apiRequest } from '@/lib/api-client'
 import type { CardDefinition } from '../types'
 import { RarityBadge } from '../components/Badges'
@@ -29,6 +30,8 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
     })
     const [submitting, setSubmitting] = useState(false)
     const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
+    const [bulkUploading, setBulkUploading] = useState(false)
+    const [bulkMessage, setBulkMessage] = useState<{ text: string; error: boolean } | null>(null)
 
     const fetchDefinitions = useCallback(async () => {
         try {
@@ -78,6 +81,38 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
             setMessage({ text: err instanceof Error ? err.message : 'Unknown error', error: true })
         } finally {
             setSubmitting(false)
+        }
+    }
+
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setBulkUploading(true)
+        setBulkMessage(null)
+
+        try {
+            const text = await file.text()
+            const parsed = yaml.parse(text)
+
+            if (!Array.isArray(parsed)) {
+                throw new Error("YAML root must be an array of card definitions.")
+            }
+
+            const token = await getToken()
+            const data = await apiRequest<{ message: string; count: number }>('/api/cards/bulk', {
+                method: 'POST',
+                token,
+                body: { cards: parsed }
+            })
+
+            setBulkMessage({ text: data.message, error: false })
+            fetchDefinitions()
+        } catch (err: any) {
+            setBulkMessage({ text: err.message || 'Unknown error during bulk upload', error: true })
+        } finally {
+            setBulkUploading(false)
+            e.target.value = '' // Reset input
         }
     }
 
@@ -152,6 +187,31 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                         )}
                     </div>
                 </form>
+            </div>
+
+            {/* Bulk Upload Form */}
+            <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
+                <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--color-text)' }}>Bulk Upload Definitions</h2>
+                <div className="flex flex-col gap-4">
+                     <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                        Upload a YAML file containing an array of card configurations.
+                     </p>
+                    <div className="flex items-center gap-4">
+                        <input
+                            type="file"
+                            accept=".yaml,.yml"
+                            onChange={handleBulkUpload}
+                            disabled={bulkUploading}
+                            className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 disabled:opacity-50"
+                        />
+                        {bulkUploading && <span className="text-sm text-yellow-500">Uploading...</span>}
+                    </div>
+                    {bulkMessage && (
+                        <span className={`text-sm ${bulkMessage.error ? 'text-red-400' : 'text-green-400'}`}>
+                            {bulkMessage.text}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Definitions List */}
