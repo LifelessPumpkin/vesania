@@ -14,6 +14,7 @@ interface MatchLobbyProps {
   onPlayerNameChange: (value: string) => void;
   onRoomCodeChange: (value: string) => void;
   onSelectedDeckChange: (value: string) => void;
+  onFindMatch: () => void;
   onCreate: () => void;
   onJoin: () => void;
 }
@@ -30,6 +31,7 @@ export function MatchLobby({
   onPlayerNameChange,
   onRoomCodeChange,
   onSelectedDeckChange,
+  onFindMatch,
   onCreate,
   onJoin,
 }: MatchLobbyProps) {
@@ -95,13 +97,17 @@ export function MatchLobby({
           </div>
         )}
 
-        <button onClick={onCreate} disabled={loading} className={styles.primaryButton}>
-          {loading ? "Working..." : "Create Match"}
+        <button onClick={onFindMatch} disabled={loading} className={styles.primaryButton} style={{ marginBottom: "0.5rem" }}>
+          {loading ? "Working..." : "Find Random Opponent"}
         </button>
 
-        <div className={styles.dividerRow}>
+        <button onClick={onCreate} disabled={loading} className={styles.secondaryButton}>
+          {loading ? "Working..." : "Create Custom Room"}
+        </button>
+
+        <div className={styles.dividerRow} style={{ margin: "1rem 0" }}>
           <span className={styles.dividerLine} />
-          <span className={styles.dividerText}>or join</span>
+          <span className={styles.dividerText}>or join with code</span>
           <span className={styles.dividerLine} />
         </div>
 

@@ -18,6 +18,14 @@ export const GAME = {
     FREEZE_SKIP_TURN_CHANCE: 20,      // Full skip — cannot act at all
     FREEZE_BASIC_ONLY_CHANCE: 20,     // Restrict to basic actions (no spells/tools)
     // Remaining 60% = block only
+
+    MMR: {
+        INITIAL: 1000,
+        K_FACTOR: 32,
+        SEARCH_RANGE: 100,
+        SEARCH_RANGE_GROWTH_PER_SECOND: 10,
+        MAX_SEARCH_RANGE: 1000,
+    },
 } as const;
 
 /**

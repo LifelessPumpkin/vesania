@@ -6,7 +6,7 @@
 
 /* ── 1. Color Tokens ─────────────────────────────────────────────────────── */
 
-:root {
+@theme {
     /* Core palette */
     --color-bg-deep:   #110804;
     --color-bg:        #28140c;
@@ -33,6 +33,25 @@
     --color-error-bg:       rgba(239, 68, 68, 0.12);
     --color-info:           #93c5fd;
     --color-info-bg:        rgba(96, 165, 250, 0.12);
+    --color-danger:         #ef4444;
+    --color-danger-bg:      #2a1010;
+
+    /* Panel & surface colors (high-contrast card-table palette) */
+    --color-bg-overlay:     rgba(17, 8, 4, 0.75);
+    --color-panel:          #1a0e08;
+    --color-panel-raised:   #261410;
+    --color-panel-inset:    #0d0604;
+
+    /* Border hierarchy */
+    --color-border-subtle:  #4d2a18;
+    --color-border-medium:  #5d3525;
+    --color-border-strong:  #7a4030;
+
+    /* Extended text hierarchy (warm, high-contrast) */
+    --color-text-warm:      #e8d8c0;
+    --color-text-label:     #d4c4a8;
+    --color-text-dim:       #b09070;
+    --color-text-faintest:  #8a6a50;
 
     /* ── 2. Spacing Scale ────────────────────────────────────────────────── */
     --space-2xs: 0.15rem;   /* 2.4px  */
@@ -48,6 +67,10 @@
     --shadow-card:  0 25px 50px -12px rgba(0, 0, 0, 0.55);
     --shadow-glow:  0 0 24px rgba(218, 165, 32, 0.12);
     --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.45);
+    --shadow-pixel: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-pixel-lg: 3px 3px 0 rgba(0, 0, 0, 0.55);
+    --shadow-pixel-xl: 4px 4px 0 rgba(0, 0, 0, 0.6);
+    --shadow-inset-pixel: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
 
     /* ── 4. Typography Scale ─────────────────────────────────────────────── */
     --text-xs:   14px;
@@ -107,232 +130,7 @@
 }
 
 
-/* ── Glass Card (the most repeated component) ────────────────────────────── */
 
-.glass-card {
-    background: var(--color-bg-alpha);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-2xl);
-    padding: var(--space-2xl) var(--space-xl);
-    box-shadow: var(--shadow-card);
-}
-
-.glass-card--narrow {
-    width: 100%;
-    max-width: 440px;
-}
-
-.glass-card--medium {
-    width: 100%;
-    max-width: 600px;
-}
-
-.glass-card--wide {
-    width: 100%;
-    max-width: 960px;
-}
-
-.glass-card--animated {
-    opacity: 0;
-    transform: translateY(16px);
-    animation: ds-fade-in 0.35s ease forwards;
-}
-
-@keyframes ds-fade-in {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-
-/* ── Panel (like glass-card but less padding, for list views) ────────────── */
-
-.glass-panel {
-    width: 100%;
-    background: var(--color-bg-alpha);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-card);
-    padding: var(--space-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-}
-
-
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xs);
-    padding: var(--space-sm) var(--space-lg);
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: var(--text-base);
-    cursor: pointer;
-    transition: all var(--ease-default);
-    text-decoration: none;
-    border: none;
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
-    box-sizing: border-box;
-    font-family: inherit;
-}
-
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Primary — accent goldenrod */
-.btn-primary {
-    background: linear-gradient(135deg, var(--color-accent), #b8860b);
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-/* Secondary — surface brown */
-.btn-secondary {
-    background: var(--color-surface-alpha);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-}
-
-.btn-secondary:hover:not(:disabled) {
-    background: var(--color-surface);
-    border-color: var(--color-border-hover);
-}
-
-/* Ghost — transparent with border */
-.btn-ghost {
-    background: transparent;
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-}
-
-.btn-ghost:hover:not(:disabled) {
-    background: var(--color-surface-alpha);
-    color: var(--color-text);
-    border-color: var(--color-border-hover);
-}
-
-/* Danger — for destructive actions */
-.btn-danger {
-    background: var(--color-error-bg);
-    color: var(--color-error);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.btn-danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.5);
-}
-
-/* Small button variant */
-.btn-sm {
-    padding: var(--space-xs) var(--space-md);
-    font-size: var(--text-sm);
-}
-
-/* Full-width button */
-.btn-full {
-    width: 100%;
-}
-
-
-/* ── Form Inputs ─────────────────────────────────────────────────────────── */
-
-.input {
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: rgba(17, 8, 4, 0.5);
-    color: var(--color-text);
-    font-size: var(--text-base);
-    outline: none;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color var(--ease-default), box-shadow var(--ease-default);
-    font-family: inherit;
-}
-
-.input::placeholder {
-    color: var(--color-text-faint);
-}
-
-.input:focus {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-alpha);
-}
-
-.textarea {
-    padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: rgba(17, 8, 4, 0.5);
-    color: var(--color-text);
-    font-size: var(--text-base);
-    outline: none;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color var(--ease-default);
-    resize: vertical;
-    min-height: 70px;
-    font-family: inherit;
-}
-
-.textarea:focus {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-alpha);
-}
-
-.label {
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: var(--space-xs);
-    display: block;
-}
-
-.select {
-    padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: rgba(17, 8, 4, 0.5);
-    color: var(--color-text);
-    font-size: var(--text-sm);
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(243,232,216,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.85rem center;
-    padding-right: 2.5rem;
-    transition: border-color var(--ease-default);
-    font-family: inherit;
-}
-
-.select option {
-    background: var(--color-bg);
-    color: var(--color-text);
-}
-
-.select:focus {
-    border-color: var(--color-accent);
-}
 
 
 /* ── Typography ──────────────────────────────────────────────────────────── */
@@ -675,3 +473,187 @@
 .hidden-input {
     display: none;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PIXEL-ART COMPONENT CLASSES (Card-Table Design Language)
+   These classes provide sharp-cornered, pixel-shadow UI components
+   for the Vesania card-game aesthetic. All pages can use these.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pixel-Art Buttons ───────────────────────────────────────────────────── */
+
+.pixel-btn {
+    border-radius: 0;
+    box-shadow: var(--shadow-pixel);
+    transition: none;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pixel-btn:active {
+    box-shadow: none;
+    transform: translate(2px, 2px);
+}
+
+.pixel-btn-primary {
+    border: 2px outset #c8941a;
+    background: var(--color-accent);
+    color: #ffffff;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.4);
+    font-weight: 700;
+}
+
+.pixel-btn-primary:hover:not(:disabled) {
+    background: #e8b42e;
+}
+
+.pixel-btn-primary:active:not(:disabled) {
+    border-style: inset;
+}
+
+.pixel-btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pixel-btn-secondary {
+    border: 2px solid var(--color-border-strong);
+    background: var(--color-panel-raised);
+    color: var(--color-text-warm);
+}
+
+.pixel-btn-secondary:hover:not(:disabled) {
+    color: var(--color-text);
+    border-color: var(--color-accent);
+}
+
+.pixel-btn-danger {
+    background: transparent;
+    border: 1px solid var(--color-danger);
+    color: var(--color-danger);
+}
+
+.pixel-btn-danger:hover:not(:disabled) {
+    background: var(--color-danger-bg);
+}
+
+
+/* ── Pixel-Art Inputs ────────────────────────────────────────────────────── */
+
+.pixel-input {
+    border-radius: 0;
+    border: 2px solid var(--color-border-strong);
+    background: var(--color-panel-raised);
+    color: var(--color-text);
+    font-family: inherit;
+    outline: none;
+    box-shadow: var(--shadow-inset-pixel);
+}
+
+.pixel-input:focus {
+    border-color: var(--color-accent);
+}
+
+.pixel-input::placeholder {
+    color: var(--color-text-dim);
+}
+
+.pixel-select {
+    border-radius: 0;
+    border: 2px solid var(--color-border-strong);
+    background: var(--color-panel-raised);
+    color: var(--color-text-warm);
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+}
+
+.pixel-select option {
+    background: var(--color-panel-raised);
+    color: var(--color-text);
+}
+
+
+/* ── Pixel-Art Panels & Cards ────────────────────────────────────────────── */
+
+.pixel-panel {
+    background: var(--color-panel);
+    border: 2px solid var(--color-border-strong);
+    border-radius: 0;
+    box-shadow: var(--shadow-pixel-lg);
+}
+
+.pixel-card {
+    background: var(--color-panel-raised);
+    border: 2px solid var(--color-border-medium);
+    border-radius: 2px;
+    box-shadow: var(--shadow-pixel);
+}
+
+
+/* ── Pixel-Art Bars (progress / composition) ─────────────────────────────── */
+
+.pixel-bar-track {
+    background: var(--color-panel-inset);
+    border: 1px solid var(--color-border-subtle);
+    overflow: hidden;
+}
+
+.pixel-bar-fill {
+    height: 100%;
+    transition: width 0.1s steps(10);
+}
+
+
+/* ── Pixel-Art Badge ─────────────────────────────────────────────────────── */
+
+.pixel-badge {
+    border-radius: 0;
+    border: 1px solid;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+
+/* ── Pixel-Art Scrollbar ─────────────────────────────────────────────────── */
+
+.pixel-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pixel-scroll::-webkit-scrollbar-track {
+    background: var(--color-panel-inset);
+}
+
+.pixel-scroll::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+}
+
+.pixel-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+}
+
+
+/* ── Textured Page Background ────────────────────────────────────────────── */
+
+.textured-bg {
+    background-image: url('/PlankTexture.png');
+    background-repeat: repeat;
+    background-size: 256px auto;
+    background-attachment: fixed;
+    image-rendering: pixelated;
+}
+
+.textured-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--color-bg-overlay);
+    pointer-events: none;
+    z-index: 1;
+}
+

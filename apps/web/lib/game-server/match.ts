@@ -10,6 +10,35 @@ import {
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
 import { GAME } from "./constants";
+
+interface MatchPlayerOptions {
+  userId?: string | null;
+  deckId?: string;
+  deckCardIds?: string[];
+}
+
+interface MatchmakingEntry {
+  entryId: string;
+  playerName: string;
+  userId: string | null;
+  deckCardIds: string[];
+  mmr: number;
+  joinedAt: number;
+  matchId: string;
+}
+
+interface MatchmakingResult {
+  status: "queued" | "matched";
+  matchId: string;
+  playerId: PlayerId;
+  token: string;
+}
+
+const MATCH_TTL_SECONDS = 900;
+const MATCHMAKING_QUEUE_KEY = "matchmaking:queue";
+const MATCHMAKING_ENTRY_PREFIX = "matchmaking:entry:";
+const MATCHMAKING_MATCH_PREFIX = "matchmaking:match:";
+const MATCHMAKING_USER_PREFIX = "matchmaking:user:";
 import { CardType, CardRarity } from "@/lib/enums";
 import { GameEvent, GameEventType } from "./events";
 import { emit, emitWithCascade, TriggeredEffect } from "./event-bus";
@@ -30,13 +59,16 @@ const RELEASE_LOCK_LUA = `
   end
 `;
 
-async function withMatchLock<T>(matchId: string, fn: () => Promise<T>): Promise<T> {
-  const lockKey = `lock:match:${matchId}`;
+async function withRedisLock<T>(
+  lockKey: string,
+  busyMessage: string,
+  fn: () => Promise<T>
+): Promise<T> {
   const lockValue = crypto.randomBytes(16).toString("hex");
 
   const acquired = await redis.set(lockKey, lockValue, "EX", 5, "NX");
   if (!acquired) {
-    throw new Error("Match is busy, please try again");
+    throw new Error(busyMessage);
   }
 
   try {
@@ -44,6 +76,14 @@ async function withMatchLock<T>(matchId: string, fn: () => Promise<T>): Promise<
   } finally {
     await redis.eval(RELEASE_LOCK_LUA, 1, lockKey, lockValue);
   }
+}
+
+async function withMatchLock<T>(matchId: string, fn: () => Promise<T>): Promise<T> {
+  return withRedisLock(`lock:match:${matchId}`, "Match is busy, please try again", fn);
+}
+
+async function withMatchmakingLock<T>(fn: () => Promise<T>): Promise<T> {
+  return withRedisLock("lock:matchmaking:queue", "Matchmaking queue is busy, please try again", fn);
 }
 
 function generateCode(): string {
@@ -188,18 +228,130 @@ export async function loadDeckIntoPlayerState(
   };
 }
 
+function getMmrSearchRange(waitMs: number): number {
+  const waitSeconds = Math.floor(waitMs / 1000);
+  return Math.min(
+    GAME.MMR.SEARCH_RANGE + waitSeconds * GAME.MMR.SEARCH_RANGE_GROWTH_PER_SECOND,
+    GAME.MMR.MAX_SEARCH_RANGE
+  );
+}
+
+function canPlayersMatch(aMmr: number, aJoinedAt: number, bMmr: number, bJoinedAt: number): boolean {
+  const now = Date.now();
+  const allowedGap = Math.max(
+    getMmrSearchRange(now - aJoinedAt),
+    getMmrSearchRange(now - bJoinedAt)
+  );
+  return Math.abs(aMmr - bMmr) <= allowedGap;
+}
+
+function calculateExpectedScore(playerMmr: number, opponentMmr: number): number {
+  return 1 / (1 + 10 ** ((opponentMmr - playerMmr) / 400));
+}
+
+function calculateUpdatedMmr(playerMmr: number, opponentMmr: number, didWin: boolean): number {
+  const expected = calculateExpectedScore(playerMmr, opponentMmr);
+  const actual = didWin ? 1 : 0;
+  return Math.max(0, Math.round(playerMmr + GAME.MMR.K_FACTOR * (actual - expected)));
+}
+
+async function saveMatchState(state: MatchState) {
+  await redis.set(`match:${state.matchId}`, JSON.stringify(state), "EX", MATCH_TTL_SECONDS);
+}
+
+async function publishMatchState(state: MatchState) {
+  await redis.publish(`match:${state.matchId}`, JSON.stringify(state));
+}
+
+async function getMatchmakingEntry(entryId: string): Promise<MatchmakingEntry | null> {
+  const data = await redis.get(`${MATCHMAKING_ENTRY_PREFIX}${entryId}`);
+  return data ? (JSON.parse(data) as MatchmakingEntry) : null;
+}
+
+async function cleanupMatchmakingEntry(entryId: string, entry?: MatchmakingEntry | null) {
+  const resolvedEntry = entry ?? await getMatchmakingEntry(entryId);
+  const keysToDelete = [
+    `${MATCHMAKING_ENTRY_PREFIX}${entryId}`,
+  ];
+
+  if (resolvedEntry) {
+    keysToDelete.push(`${MATCHMAKING_MATCH_PREFIX}${resolvedEntry.matchId}`);
+    if (resolvedEntry.userId) {
+      keysToDelete.push(`${MATCHMAKING_USER_PREFIX}${resolvedEntry.userId}`);
+    }
+  }
+
+  await redis.multi()
+    .zrem(MATCHMAKING_QUEUE_KEY, entryId)
+    .del(...keysToDelete)
+    .exec();
+}
+
+async function createMatchmakingEntry(
+  state: MatchState,
+  playerName: string,
+  options: MatchPlayerOptions,
+  mmr: number
+): Promise<MatchmakingEntry> {
+  const entry: MatchmakingEntry = {
+    entryId: crypto.randomUUID(),
+    playerName,
+    userId: options.userId ?? null,
+    deckCardIds: options.deckCardIds ?? [],
+    mmr,
+    joinedAt: Date.now(),
+    matchId: state.matchId,
+  };
+
+  const multi = redis.multi();
+  multi.zadd(MATCHMAKING_QUEUE_KEY, entry.joinedAt, entry.entryId);
+  multi.set(
+    `${MATCHMAKING_ENTRY_PREFIX}${entry.entryId}`,
+    JSON.stringify(entry),
+    "EX",
+    MATCH_TTL_SECONDS
+  );
+  multi.set(`${MATCHMAKING_MATCH_PREFIX}${entry.matchId}`, entry.entryId, "EX", MATCH_TTL_SECONDS);
+  if (entry.userId) {
+    multi.set(`${MATCHMAKING_USER_PREFIX}${entry.userId}`, entry.entryId, "EX", MATCH_TTL_SECONDS);
+  }
+  await multi.exec();
+
+  return entry;
+}
+
+async function getExistingMatchmakingEntryForUser(userId: string): Promise<MatchmakingEntry | null> {
+  const entryId = await redis.get(`${MATCHMAKING_USER_PREFIX}${userId}`);
+  if (!entryId) {
+    return null;
+  }
+
+  const entry = await getMatchmakingEntry(entryId);
+  if (!entry) {
+    await redis.del(`${MATCHMAKING_USER_PREFIX}${userId}`);
+    return null;
+  }
+
+  const state = await getMatch(entry.matchId);
+  if (!state || state.status !== "waiting") {
+    await cleanupMatchmakingEntry(entryId, entry);
+    return null;
+  }
+
+  return entry;
+}
+
 export async function createMatch(
   hostName: string,
-  deckId?: string,
-  userId?: string
+  options: MatchPlayerOptions = {}
 ): Promise<MatchState> {
   let matchId = generateCode();
   while (await redis.exists(`match:${matchId}`)) {
     matchId = generateCode();
   }
 
-  const p1State = deckId
-    ? await loadDeckIntoPlayerState(hostName, deckId, userId)
+  const p1State = options.deckId
+    ? await loadDeckIntoPlayerState(hostName, options.deckId, options.userId ?? undefined)
     : defaultPlayerState(hostName);
 
   const state: MatchState = {
@@ -216,11 +368,15 @@ export async function createMatch(
     winner: null,
     p1Token: generateToken(),
     p2Token: null,
-    p1DeckId: deckId ?? null,
+    p1UserId: options.userId ?? null,
+    p2UserId: null,
+    p1DeckCardIds: options.deckCardIds ?? [],
+    p2DeckCardIds: [],
+    p1DeckId: options.deckId ?? null,
     p2DeckId: null,
   };
 
-  await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
+  await saveMatchState(state);
   return state;
 }
 
@@ -232,8 +388,7 @@ export async function getMatch(matchId: string): Promise<MatchState | null> {
 export async function joinMatch(
   matchId: string,
   guestName: string,
-  deckId?: string,
-  userId?: string
+  options: MatchPlayerOptions = {}
 ): Promise<MatchState> {
   return withMatchLock(matchId, async () => {
     const state = await getMatch(matchId);
@@ -241,20 +396,222 @@ export async function joinMatch(
     if (state.status !== "waiting") throw new Error("Match is not accepting players");
     if (state.players.p2 !== null) throw new Error("Match is full");
 
-    state.players.p2 = deckId
-      ? await loadDeckIntoPlayerState(guestName, deckId, userId)
+    state.players.p2 = options.deckId
+      ? await loadDeckIntoPlayerState(guestName, options.deckId, options.userId ?? undefined)
       : defaultPlayerState(guestName);
 
     state.status = "active";
     state.p2Token = generateToken();
-    state.p2DeckId = deckId ?? null;
+    state.p2UserId = options.userId ?? null;
+    state.p2DeckCardIds = options.deckCardIds ?? [];
+    state.p2DeckId = options.deckId ?? null;
     state.log.push({ message: `${guestName} joined! ${state.players.p1.name}'s turn.` });
 
-    await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
-    await redis.publish(`match:${matchId}`, JSON.stringify(state));
+    await saveMatchState(state);
+    await publishMatchState(state);
     return state;
   });
 }
+
+async function updatePlayerMatchStats(
+  userId: string,
+  result: "win" | "loss",
+  deckCardIds: string[],
+  mmr?: number
+) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      gamesPlayed: { increment: 1 },
+      ...(result === "win" ? { wins: { increment: 1 } } : {}),
+      ...(result === "loss" ? { losses: { increment: 1 } } : {}),
+      ...(typeof mmr === "number" ? { mmr } : {}),
+    },
+  });
+
+  if (deckCardIds.length === 0) {
+    return;
+  }
+
+  const uniqueCardIds = Array.from(new Set(deckCardIds));
+
+  await prisma.$transaction(
+    uniqueCardIds.map((cardId) =>
+      prisma.userCardUsage.upsert({
+        where: {
+          userId_cardId: {
+            userId,
+            cardId,
+          },
+        },
+        update: {
+          playCount: { increment: 1 },
+        },
+        create: {
+          userId,
+          cardId,
+          playCount: 1,
+        },
+      })
+    )
+  );
+
+  const topCards = await prisma.userCardUsage.findMany({
+    where: { userId },
+    orderBy: [{ playCount: "desc" }, { updatedAt: "desc" }],
+    take: 3,
+    select: { cardId: true },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      topCard1Id: topCards[0]?.cardId ?? null,
+      topCard2Id: topCards[1]?.cardId ?? null,
+      topCard3Id: topCards[2]?.cardId ?? null,
+    },
+  });
+}
+
+async function recordFinishedMatchStats(state: MatchState) {
+  if (!state.winner) {
+    return;
+  }
+
+  const loserId: PlayerId = state.winner === "p1" ? "p2" : "p1";
+  const winnerUserId = state.winner === "p1" ? state.p1UserId : state.p2UserId;
+  const loserUserId = loserId === "p1" ? state.p1UserId : state.p2UserId;
+  const winnerDeckCardIds = state.winner === "p1" ? state.p1DeckCardIds : state.p2DeckCardIds;
+  const loserDeckCardIds = loserId === "p1" ? state.p1DeckCardIds : state.p2DeckCardIds;
+  const userIds = [winnerUserId, loserUserId].filter((id): id is string => Boolean(id));
+
+  const users = userIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, mmr: true },
+      })
+    : [];
+
+  const mmrByUserId = new Map(users.map((user) => [user.id, user.mmr]));
+  const winnerMmr = winnerUserId ? (mmrByUserId.get(winnerUserId) ?? GAME.MMR.INITIAL) : GAME.MMR.INITIAL;
+  const loserMmr = loserUserId ? (mmrByUserId.get(loserUserId) ?? GAME.MMR.INITIAL) : GAME.MMR.INITIAL;
+
+  const tasks: Promise<void>[] = [];
+
+  if (winnerUserId) {
+    tasks.push(
+      updatePlayerMatchStats(
+        winnerUserId,
+        "win",
+        winnerDeckCardIds,
+        calculateUpdatedMmr(winnerMmr, loserMmr, true)
+      )
+    );
+  }
+
+  if (loserUserId) {
+    tasks.push(
+      updatePlayerMatchStats(
+        loserUserId,
+        "loss",
+        loserDeckCardIds,
+        calculateUpdatedMmr(loserMmr, winnerMmr, false)
+      )
+    );
+  }
+
+  if (tasks.length > 0) {
+    await Promise.all(tasks);
+  }
+}
+
+export async function queueForMatchmaking(
+  playerName: string,
+  options: MatchPlayerOptions = {}
+): Promise<MatchmakingResult> {
+  return withMatchmakingLock(async () => {
+    if (options.userId) {
+      const existingEntry = await getExistingMatchmakingEntryForUser(options.userId);
+      if (existingEntry) {
+        const existingMatch = await getMatch(existingEntry.matchId);
+        if (existingMatch) {
+          return {
+            status: "queued",
+            matchId: existingMatch.matchId,
+            playerId: "p1",
+            token: existingMatch.p1Token,
+          };
+        }
+      }
+    }
+
+    const mmr = options.userId
+      ? (await prisma.user.findUnique({
+          where: { id: options.userId },
+          select: { mmr: true },
+        }))?.mmr ?? GAME.MMR.INITIAL
+      : GAME.MMR.INITIAL;
+
+    const queuedEntryIds = await redis.zrange(MATCHMAKING_QUEUE_KEY, 0, -1);
+    for (const entryId of queuedEntryIds) {
+      const entry = await getMatchmakingEntry(entryId);
+      if (!entry) {
+        await redis.zrem(MATCHMAKING_QUEUE_KEY, entryId);
+        continue;
+      }
+
+      if (entry.userId && options.userId && entry.userId === options.userId) {
+        continue;
+      }
+
+      const existingMatch = await getMatch(entry.matchId);
+      if (!existingMatch || existingMatch.status !== "waiting") {
+        await cleanupMatchmakingEntry(entryId, entry);
+        continue;
+      }
+
+      if (!canPlayersMatch(entry.mmr, entry.joinedAt, mmr, Date.now())) {
+        continue;
+      }
+
+      const joinedState = await joinMatch(entry.matchId, playerName, options);
+      await cleanupMatchmakingEntry(entryId, entry);
+      return {
+        status: "matched",
+        matchId: joinedState.matchId,
+        playerId: "p2",
+        token: joinedState.p2Token!,
+      };
+    }
+
+    const state = await createMatch(playerName, options);
+    await createMatchmakingEntry(state, playerName, options, mmr);
+    return {
+      status: "queued",
+      matchId: state.matchId,
+      playerId: "p1",
+      token: state.p1Token,
+    };
+  });
+}
+
+export async function cancelMatchmaking(matchId: string): Promise<void> {
+  await withMatchmakingLock(async () => {
+    const entryId = await redis.get(`${MATCHMAKING_MATCH_PREFIX}${matchId}`);
+    if (!entryId) {
+      return;
+    }
+
+    const entry = await getMatchmakingEntry(entryId);
+    await cleanupMatchmakingEntry(entryId, entry);
+
+    const state = await getMatch(matchId);
+    if (state?.status === "waiting") {
+      await redis.del(`match:${matchId}`);
+    }
+  });
+}
+
 
 export async function resolvePlayerByToken(
   matchId: string,
@@ -704,7 +1061,7 @@ export async function applyAction(
 
     checkWin();
 
-    if ( state.status === "active") {
+    if (state.status === "active") {
       const turnEndEvent: GameEvent = {
         eventId: makeEventId(),
         turnNumber: state.turnNumber,
@@ -735,8 +1092,12 @@ export async function applyAction(
       checkWin();
     }
 
-    await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
-    await redis.publish(`match:${matchId}`, JSON.stringify(state));
+    if (state.status === "finished") {
+      await recordFinishedMatchStats(state);
+    }
+
+    await saveMatchState(state);
+    await publishMatchState(state);
     return state;
   });
 }

@@ -10,6 +10,7 @@ export interface CardDefinition {
     description: string;
     effectJson: Record<string, unknown>;
     imageUrl: string | null;
+    element?: string; // future DB field — filter is client-side only until added
 }
 
 export interface CardInstance {
@@ -105,10 +106,19 @@ export interface UserProfile {
     createdAt: string;
     profileComplete?: boolean;
     role?: string;
+    favoriteChampion?: string | null;
     stats: {
         cardsOwned: number;
         decksBuilt: number;
         friendsCount: number;
+        gamesPlayed: number;
+        wins: number;
+        losses: number;
+        mmr: number;
     };
+    topCards: Array<{
+        cardId: string;
+        playCount: number;
+        definition: CardDefinition;
+    }>;
 }
-

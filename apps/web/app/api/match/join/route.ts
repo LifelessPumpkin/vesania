@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { joinMatch } from "@/lib/game-server/match";
 import { getAuthenticatedUser } from "@/lib/auth-session";
+import { resolveDeckCardIdsForUser } from "@/lib/game-server/loadout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,11 @@ export async function POST(request: NextRequest) {
       userId = auth.user.id;
     }
 
-    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, deckId ?? undefined, userId);
+    let deckCardIds: string[] = [];
+    if (userId && deckId) {
+      deckCardIds = await resolveDeckCardIdsForUser(userId, deckId).catch(() => []);
+    }
+    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, { deckId: deckId ?? undefined, userId, deckCardIds });
     const token = state.p2Token!; // non-null: joinMatch() always assigns p2Token before returning
 
     return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });

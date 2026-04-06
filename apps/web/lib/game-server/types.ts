@@ -39,6 +39,7 @@ export type ActionType =
   | "UNEQUIP_TOOL"
   | "USE_TOOL"
   | "PLAY_SPELL"
+  | "PASS"
   | "END_TURN"
   | "SURRENDER"
 
@@ -213,18 +214,21 @@ export interface MatchState {
   // Auth / security
   p1Token: string;
   p2Token: string | null;
-
-  // Deck tracking
+  p1UserId: string | null;
+  p2UserId: string | null;
+  p1DeckCardIds: string[];
+  p2DeckCardIds: string[];
   p1DeckId: string | null;
   p2DeckId: string | null;
 }
 
-/**
- * Public-safe version of match state
- */
-export type PublicMatchState = Omit<MatchState, "p1Token" | "p2Token">;
+// MatchState with private auth/identity/loadout fields removed. Safe to send to clients.
+export type PublicMatchState = Omit<
+  MatchState,
+  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1DeckCardIds" | "p2DeckCardIds" | "p1DeckId" | "p2DeckId"
+>;
 
 export function toPublicState(match: MatchState): PublicMatchState {
-  const { p1Token, p2Token, ...pub } = match;
+  const { p1Token, p2Token, p1UserId, p2UserId, p1DeckCardIds, p2DeckCardIds, p1DeckId, p2DeckId, ...pub } = match;
   return pub;
 }

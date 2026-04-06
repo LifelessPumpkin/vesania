@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createMatch } from "@/lib/game-server/match";
 import { getAuthenticatedUser } from "@/lib/auth-session";
+import { resolveDeckCardIdsForUser } from "@/lib/game-server/loadout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,11 @@ export async function POST(request: NextRequest) {
       userId = auth.user.id;
     }
 
-    const state = await createMatch(trimmed, deckId ?? undefined, userId);
+    let deckCardIds: string[] = [];
+    if (userId && deckId) {
+      deckCardIds = await resolveDeckCardIdsForUser(userId, deckId).catch(() => []);
+    }
+    const state = await createMatch(trimmed, { deckId: deckId ?? undefined, userId, deckCardIds });
 
     // p1Token is only sent here — it never appears in subsequent API responses.
     return NextResponse.json({ matchId: state.matchId, playerId: "p1", token: state.p1Token });

@@ -21,9 +21,8 @@ select,
 textarea {
     font-family: var(--font-retganon), sans-serif;
     font-size: calc(1rem * var(--font-scale));
-    -webkit-font-smoothing: none;
+    -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-smoothing: none;
 }
 
 body {

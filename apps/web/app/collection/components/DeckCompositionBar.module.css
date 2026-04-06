@@ -1,0 +1,72 @@
+.container {
+    --c-good: #22c55e;
+    --c-warn: #daa520;
+    --c-bad:  #ef4444;
+
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #1a0e08;
+    border: 1px solid #4d2a18;
+    margin: 0 0.85rem;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.label {
+    font-size: 1.1rem;
+    color: #bfa880;
+    min-width: 6.5rem;
+    white-space: nowrap;
+}
+
+.bar {
+    flex: 1;
+    height: 12px;
+    background: #0d0604;
+    border: 1px solid #4d2a18;
+    overflow: hidden;
+}
+
+.fill {
+    height: 100%;
+    transition: width 0.1s steps(10);
+}
+
+.count {
+    font-size: 1.1rem;
+    color: #bfa880;
+    min-width: 3.5rem;
+    text-align: right;
+}
+
+.good { color: #22c55e; }
+.bad  { color: #ef4444; }
+
+.rarityRow {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.rarityChip {
+    font-size: 1rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 0;
+    border: 1px solid #4d2a18;
+    color: #bfa880;
+    background: #2a1810;
+    white-space: nowrap;
+}
+
+.chipBad {
+    border-color: #ef4444;
+    color: #fca5a5;
+    background: #2a1010;
+}

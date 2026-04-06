@@ -21,6 +21,7 @@ interface MatchSession {
   playerName: string;
   token: string;
   deckId?: string;
+  mode?: "code" | "matchmaking";
 }
 
 export interface DeckOption {
@@ -34,6 +35,7 @@ const SESSION_KEY = "matchSession";
 export default function MatchPage() {
   const { user, getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
+  const [waitingMode, setWaitingMode] = useState<"code" | "matchmaking">("code");
   const [playerName, setPlayerName] = useState("");
   const [roomCode, setRoomCode] = useState("");
   const [matchId, setMatchId] = useState("");
@@ -146,6 +148,7 @@ export default function MatchPage() {
         setPlayerId(session.playerId);
         setPlayerName(session.playerName);
         setMatchToken(session.token);
+        setWaitingMode(session.mode ?? "code");
         setMatchState(state);
         setScreen(state.status === "waiting" ? "waiting" : "game");
         connectSSE(session.matchId);
@@ -208,6 +211,7 @@ export default function MatchPage() {
       setMatchId(data.matchId);
       setPlayerId(data.playerId);
       setMatchToken(data.token);
+      setWaitingMode("code");
       setScreen("waiting");
       connectSSE(data.matchId);
     } catch (e) {
@@ -242,6 +246,7 @@ export default function MatchPage() {
       }
 
       const code = roomCode.trim().toUpperCase();
+      const token = await getToken();
       const res = await fetch("/api/match/join", {
         method: "POST",
         headers,
@@ -271,6 +276,49 @@ export default function MatchPage() {
       connectSSE(data.matchId);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to join match");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleFindMatch() {
+    if (!playerName.trim()) {
+      setError("Enter your name");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/matchmaking/queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ playerName: playerName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      const session: MatchSession = {
+        matchId: data.matchId,
+        playerId: data.playerId,
+        playerName: playerName.trim(),
+        token: data.token,
+        mode: "matchmaking",
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+
+      setMatchId(data.matchId);
+      setPlayerId(data.playerId);
+      setMatchToken(data.token);
+      setWaitingMode("matchmaking");
+      setScreen(data.status === "queued" ? "waiting" : "game");
+      connectSSE(data.matchId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to queue for matchmaking");
     } finally {
       setLoading(false);
     }
@@ -310,7 +358,22 @@ export default function MatchPage() {
     }
   }
 
-  function handleBackToLobby() {
+  async function handleBackToLobby() {
+    if (screen === "waiting" && waitingMode === "matchmaking" && matchId) {
+      try {
+        await fetch("/api/matchmaking/queue", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            ...(matchToken ? { Authorization: `Bearer ${matchToken}` } : {}),
+          },
+          body: JSON.stringify({ matchId }),
+        });
+      } catch {
+        // Best-effort cleanup; the queue entry will still expire if this fails.
+      }
+    }
+
     localStorage.removeItem(SESSION_KEY);
     eventSourceRef.current?.close();
     setMatchState(null);
@@ -319,6 +382,7 @@ export default function MatchPage() {
     setLoading(false);
     setMatchToken("");
     setRoomCode("");
+    setWaitingMode("code");
     setConnectionStatus("connected");
     setConnectionLost(false);
     setScreen("lobby");
@@ -341,6 +405,7 @@ export default function MatchPage() {
             onPlayerNameChange={setPlayerName}
             onRoomCodeChange={setRoomCode}
             onSelectedDeckChange={setSelectedDeckId}
+            onFindMatch={handleFindMatch}
             onCreate={handleCreate}
             onJoin={handleJoin}
           />
