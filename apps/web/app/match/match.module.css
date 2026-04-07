@@ -173,6 +173,18 @@
     background: rgba(17, 8, 4, 0.72);
 }
 
+.inputReadOnly {
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--color-text-muted);
+    font-size: var(--text-base);
+    font-weight: 500;
+}
+
 .codeInput {
     text-align: center;
     text-transform: uppercase;
