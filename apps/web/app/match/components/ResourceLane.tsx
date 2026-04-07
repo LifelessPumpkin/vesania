@@ -61,28 +61,6 @@ export function ResourceLane({
             onClick={() => handlePile("discard")}
           />
         </div>
-        {/* TODO: Add game state buttons, End turn, Surrender */}
-        <div className={styles.pileRow}>
-          <PileButton
-            title="End Turn"
-            count={0}
-            accent="amber"
-            disabled={canDraw ? player.drawDeck.length === 0 : false}
-            onClick={() => handlePile("draw")}
-          />
-          <PileButton
-            title="Surrender"
-            count={0}
-            accent="amber"
-            onClick={() => handlePile("grimoire")}
-          />
-          <PileButton
-            title="Pass"
-            count={0}
-            accent="amber"
-            onClick={() => handlePile("discard")}
-          />
-        </div>
       </div>
     </section>
   );

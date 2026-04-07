@@ -49,6 +49,7 @@ export interface BaseGameEvent {
 export enum GameEventType {
   TURN_STARTED = "TURN_STARTED",
   TURN_ENDED = "TURN_ENDED",
+  SURRENDER = "SURRENDER",
 
   BEFORE_CARD_PLAYED = "BEFORE_CARD_PLAYED",
   CARD_PLAYED = "CARD_PLAYED",

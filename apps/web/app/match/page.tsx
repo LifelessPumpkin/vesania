@@ -297,7 +297,10 @@ export default function MatchPage() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ playerName: playerName.trim() }),
+        body: JSON.stringify({ 
+          playerName: playerName.trim(),
+          deckId: selectedDeckId || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -456,6 +459,8 @@ export default function MatchPage() {
           logEndRef={logEndRef}
           onBackToLobby={handleBackToLobby}
           onDrawCard={() => handleAction("DRAW_CARD")}
+          onEndTurn={() => handleAction("END_TURN")}
+          onSurrender={() => handleAction("SURRENDER")}
           onSelectCard={setSelectedCard}
           onCloseCardModal={() => setSelectedCard(null)}
         />

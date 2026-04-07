@@ -26,6 +26,8 @@ export interface MatchBoardProps {
   onDrawCard: () => void;
   onSelectCard: (card: MatchCard | null) => void;
   onCloseCardModal: () => void;
+  onEndTurn: () => void;
+  onSurrender: () => void;
   // Optional extended handlers — no-op if omitted
   onPileClick?: (pile: PileType) => void;
   onSummonClick?: (summon: SummonEntity) => void;
@@ -44,6 +46,8 @@ export function MatchBoard({
   onDrawCard,
   onSelectCard,
   onCloseCardModal,
+  onEndTurn,
+  onSurrender,
   onPileClick,
   onSummonClick,
   onCharacterClick,
@@ -80,7 +84,13 @@ export function MatchBoard({
       </header>
 
       {/* Turn / result banner */}
-      <TurnBanner isFinished={isFinished} isMyTurn={isMyTurn} iWon={iWon} />
+      <TurnBanner 
+        isFinished={isFinished} 
+        isMyTurn={isMyTurn} 
+        iWon={iWon}
+        onEndTurn={onEndTurn}
+        onSurrender={onSurrender}
+      />
 
       {/* Playmat: opponent (left) | player (right) */}
       <div className={styles.playmat}>
@@ -137,10 +147,14 @@ function TurnBanner({
   isFinished,
   isMyTurn,
   iWon,
+  onEndTurn,
+  onSurrender,
 }: {
   isFinished: boolean;
   isMyTurn: boolean;
   iWon: boolean;
+  onEndTurn: () => void;
+  onSurrender: () => void;
 }) {
   if (isFinished) {
     return (
@@ -152,10 +166,14 @@ function TurnBanner({
     );
   }
   return (
-    <div
-      className={`${styles.turnBanner} ${isMyTurn ? styles.turnBannerActive : styles.turnBannerIdle}`}
-    >
-      {isMyTurn ? "Your Turn" : "Opponent's Turn"}
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        className={`${styles.turnBanner} ${isMyTurn ? styles.turnBannerActive : styles.turnBannerIdle}`}
+      >
+        {isMyTurn ? "Your Turn" : "Opponent's Turn"}
+      </div>
+      <button onClick={onSurrender} className={styles.secondaryButton} style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>Surrender</button>
+      {isMyTurn && <button onClick={onEndTurn} className={styles.primaryButton} style={{ padding: '0.2rem 0.6rem', fontSize: '0.8rem', width: 'auto' }}>End Turn</button>}
     </div>
   );
 }

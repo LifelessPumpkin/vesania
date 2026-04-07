@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     const result = await queueForMatchmaking(trimmedName, {
       userId: auth?.user.id,
+      deckId: deckId || undefined,
       deckCardIds,
     });
 

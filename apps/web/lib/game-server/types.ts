@@ -134,6 +134,7 @@ export interface PlayerState {
   energy: number;
   maxEnergy: number;
   block: number;
+  attack: number;
 
   /**
    * ENTITY MODEL (important change direction)

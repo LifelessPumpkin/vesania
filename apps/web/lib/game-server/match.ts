@@ -120,6 +120,7 @@ function defaultPlayerState(name: string): PlayerState {
     energy: GAME.DEFAULT_ENERGY,
     maxEnergy: GAME.DEFAULT_ENERGY,
     block: 0,
+    attack: 0,
     character: null,
     equippedItems: [],
     equippedTools: [],
@@ -187,25 +188,13 @@ export async function loadDeckIntoPlayerState(
   const charEffect = character.effectJson ?? {};
   const maxHp = (charEffect.health as number) ?? GAME.MAX_HP;
   const maxEnergy = (charEffect.energy as number) ?? GAME.DEFAULT_ENERGY;
+  const attack = (charEffect.attack as number) ?? 0;
+  const block = (charEffect.block as number) ?? 0;
 
-  const itemSlotLimit = (charEffect.itemSlots as number) ?? 0;
-  const toolSlotLimit = (charEffect.toolSlots as number) ?? 0;
-
-  const items: MatchCard[] = [];
-  const tools: MatchCard[] = [];
-  const hand: MatchCard[] = [];
-  const drawDeck: MatchCard[] = [];
-
-  for (const card of remaining) {
-    if (card.type === CardType.ITEM && items.length < itemSlotLimit) {
-      items.push(card);
-    } else if (card.type === CardType.TOOL && tools.length < toolSlotLimit) {
-      tools.push(card);
-    } else if (card.type === CardType.SPELL) {
-      hand.push(card);
-    } else {
-      drawDeck.push(card);
-    }
+  // Fisher-Yates shuffle
+  for (let i = remaining.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
   }
 
   return {
@@ -214,12 +203,13 @@ export async function loadDeckIntoPlayerState(
     maxHp,
     energy: maxEnergy,
     maxEnergy,
-    block: 0,
+    block,
+    attack,
     character,
-    equippedItems: items,
-    equippedTools: tools,
-    hand,
-    drawDeck,
+    equippedItems: [],
+    equippedTools: [],
+    hand: [],
+    drawDeck: remaining,
     grimoire: [],
     discardPile: [],
     statusEffects: [],
@@ -784,13 +774,16 @@ export async function applyAction(
 
     switch (action) {
       case "DRAW_CARD": {
+        if (attacker.energy < 1) throw new Error("Not enough energy to draw a card");
+        attacker.energy -= 1;
+
         const drawnCard = attacker.drawDeck.shift();
         if (!drawnCard) throw new Error("Your draw deck is empty");
 
         placeDrawnCardInHand(attacker, drawnCard);
 
         state.log.push({
-          message: `${attacker.name} drew ${drawnCard.name}`,
+          message: `${attacker.name} spent 1 Energy to draw a card`,
           event: GameEventType.CARD_PLAYED,
           sourceCard: { name: drawnCard.name, imageUrl: drawnCard.imageUrl },
           playerId,
@@ -1061,7 +1054,12 @@ export async function applyAction(
 
     checkWin();
 
-    if (state.status === "active") {
+    const shouldEndTurn = 
+      action === "END_TURN" || 
+      action === "PASS" || 
+      attacker.energy <= 0;
+
+    if (state.status === "active" && shouldEndTurn) {
       const turnEndEvent: GameEvent = {
         eventId: makeEventId(),
         turnNumber: state.turnNumber,
@@ -1077,6 +1075,7 @@ export async function applyAction(
       state.turnNumber += 1;
       attacker.toolUsedThisTurn = false;
       attacker.turnRestriction = "none";
+      target.energy = target.maxEnergy;
     }
 
     if (collectedEffects.length > 0) {

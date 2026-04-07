@@ -21,6 +21,8 @@ export const characterEffectSchema = z.object({
   element: z.enum(ElementType).default(ElementType.NEUTRAL),
   itemSlots: z.number().int().min(0).max(10).default(4),
   toolSlots: z.number().int().min(0).max(10).default(2),
+  block: z.number().int().min(0).max(100).default(0),
+  attack: z.number().int().min(0).max(100).default(0),
 
   /**
    * Placeholder for now.
