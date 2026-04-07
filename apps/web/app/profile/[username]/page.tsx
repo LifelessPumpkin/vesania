@@ -44,9 +44,9 @@ export default function PublicProfilePage() {
         <main className="page-padded">
             <Image src="/background.jpg" alt="Background" fill style={{ objectFit: 'cover' }} priority />
 
-            <div className="pixel-panel p-8 w-full max-w-[500px] mt-8 mx-auto animate-fade-in">
+            <div className="pixel-panel p-8 w-full max-w-[500px] sm:w-[500px] mt-8 mx-auto animate-fade-in flex flex-col items-stretch">
                 <header className="flex items-center justify-between mb-6">
-                    <Link href="/home" className="text-muted text-base hover:text-white transition-colors">&larr; Home</Link>
+                    <Link href="/home" className="text-muted text-base hover:text-white transition-colors">&larr; Back</Link>
                 </header>
 
                 {loading ? (
@@ -65,10 +65,17 @@ export default function PublicProfilePage() {
                                 {profile.username}
                             </h1>
                             <span className="text-base text-muted text-center">@{profile.username}</span>
-                            {profile.bio && <p className="text-base text-muted text-center max-w-[320px] leading-relaxed">{profile.bio}</p>}
+                            {profile.bio && (
+                                <p
+                                    className="text-base text-muted text-center max-w-[400px] leading-relaxed mx-auto"
+                                    style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                                >
+                                    {profile.bio}
+                                </p>
+                            )}
                         </div>
 
-                        <div className="flex justify-center flex-wrap gap-8 py-6 border-y border-border mb-6">
+                        <div className="flex justify-center flex-wrap gap-x-6 gap-y-4 py-6 border-y border-border mb-6">
                             <div className="flex flex-col items-center gap-1">
                                 <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.mmr}</span>
                                 <span className="text-sm text-faint uppercase tracking-[0.04em]">MMR</span>

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
@@ -25,19 +26,22 @@ export default function Home() {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', width: '100%', overflow: 'hidden', paddingTop: '12vh' }}>
       <DungeonBackground />
-      <motion.button
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        style={{
-          position: 'absolute', top: '1rem', left: '1rem',
-          zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
-          animationDelay: '0.2s'
-        }}
-        className="pixel-btn pixel-btn-primary rumble"
-      >
-        About
-      </motion.button>
+      
+      <Link href="/about">
+        <motion.button
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{
+            position: 'absolute', top: '1rem', left: '1rem',
+            zIndex: 20, padding: '0.4rem 0.8rem', fontSize: '20px',
+            animationDelay: '0.2s'
+          }}
+          className="pixel-btn pixel-btn-primary rumble"
+        >
+          About
+        </motion.button>
+      </Link>
 
       <div style={{
         position: 'relative', zIndex: 10, display: 'flex',

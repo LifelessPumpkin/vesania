@@ -191,7 +191,7 @@ export default function FriendsPage() {
             <header className="flex justify-between items-center gap-6">
               <h1 className="heading-xl m-0">Friends</h1>
               <button onClick={() => router.push('/home')} className="text-muted font-medium text-base hover:text-warm transition-colors cursor-pointer border-none bg-transparent">
-                &larr; Back to Home
+                &larr; Back
               </button>
             </header>
             <div className="flex flex-col gap-2">

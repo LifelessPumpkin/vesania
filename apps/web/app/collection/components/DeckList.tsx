@@ -16,7 +16,7 @@ export function DeckList({ decks, newDeckName, onNewDeckNameChange, onCreateDeck
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <button className={styles.backBtn} onClick={onBack}>← Home</button>
+                <button className={styles.backBtn} onClick={onBack}>← Back</button>
                 <h1 className={styles.title}>My Decks</h1>
                 <span />
             </header>

@@ -37,9 +37,9 @@ export default function CardSaved({ result }: CardSavedProps) {
                         View Collection
                     </button>
                 </Link>
-                <Link href="/" className={styles.buttonRowItem}>
+                <Link href="/dashboard" className={styles.buttonRowItem}>
                     <button className={styles.ghostButton}>
-                        Back to Home
+                        Back
                     </button>
                 </Link>
             </div>
