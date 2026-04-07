@@ -1,0 +1,341 @@
+# ==========================================
+# SPELLS & RELATED CHARACTERS
+# ==========================================
+
+- name: Bubble Buddy
+  type: SPELL
+  rarity: UNCOMMON
+  description: "Summons bubble buddy - Water - 1 Energy"
+  effectJson:
+    spellClass: SUMMON
+    manaCost: 1
+    target: ALLY
+    element: WATER
+    summon:
+      health: 1
+      damage: 3
+      damageType: MAGICAL
+
+- name: Bubble Buddy (Char)
+  type: CHARACTER
+  rarity: UNCOMMON
+  description: "Bubble Buddy minion proxy"
+  effectJson:
+    health: 1
+    energy: 1
+    element: WATER
+    itemSlots: 0
+    toolSlots: 0
+
+- name: Surf
+  type: SPELL
+  rarity: LEGENDARY
+  description: "Summon a tidal wave creature - 2 Energy (Tidal Monstrosity - 20 HP, 3 magic damage)"
+  effectJson:
+    spellClass: SUMMON
+    manaCost: 2
+    element: WATER
+    target: ALLY
+    summon:
+      health: 20
+      damage: 3
+      damageType: MAGICAL
+      playLimit: 1
+      statusEffect: FREEZE
+      triggerType: ON_DAMAGE_TAKEN
+
+- name: Tidal Monstrosity (Char)
+  type: CHARACTER
+  rarity: LEGENDARY
+  description: "Tidal Monstrosity minion proxy"
+  effectJson:
+    health: 20
+    energy: 1
+    element: WATER
+    itemSlots: 0
+    toolSlots: 0
+
+- name: Pirate Skeleton Captain
+  type: SPELL
+  rarity: EPIC
+  description: "Summon a pirate skeleton - Water - 1 Energy (6 HP, 2 physical damage)"
+  effectJson:
+    spellClass: SUMMON
+    manaCost: 1
+    element: WATER
+    target: ALLY
+    summon:
+      health: 6
+      damage: 2
+      damageType: PHYSICAL
+
+- name: Pirate Skeleton Captain (Char)
+  type: CHARACTER
+  rarity: EPIC
+  description: "Pirate Skeleton minion proxy"
+  effectJson:
+    health: 6
+    energy: 1
+    element: WATER
+    itemSlots: 1
+    toolSlots: 1
+
+- name: Cleanse
+  type: SPELL
+  rarity: RARE
+  description: "Remove all debuffs, heal for +2 HP."
+  effectJson:
+    spellClass: HEALING
+    manaCost: 1
+    target: SELF
+    element: WATER
+    healing: 2
+
+- name: Water Cannon
+  type: SPELL
+  rarity: COMMON
+  description: "Blast water at a target for 2 magical damage - Water - 1 Energy"
+  effectJson:
+    spellClass: DAMAGE
+    manaCost: 1
+    target: ENEMY
+    element: WATER
+    damage: 2
+    damageType: MAGICAL
+
+- name: Bubble Shield
+  type: SPELL
+  rarity: COMMON
+  description: "Add +3 to block counter - Water - 1 Energy"
+  effectJson:
+    spellClass: BLOCK
+    manaCost: 1
+    target: SELF
+    element: WATER
+    blockBonus: 3
+
+- name: Big Wave
+  type: SPELL
+  rarity: COMMON
+  description: "Call in a big wave to deal 1 magical damage to all enemy summons - Water - 1 Energy"
+  effectJson:
+    spellClass: DAMAGE
+    manaCost: 1
+    target: ALL_ENEMIES
+    element: WATER
+    damage: 1
+    damageType: MAGICAL
+
+- name: Puddle
+  type: SPELL
+  rarity: COMMON
+  description: "Summon a puddle creature - Water - 1 Energy"
+  effectJson:
+    spellClass: SUMMON
+    manaCost: 1
+    target: ALLY
+    element: WATER
+    summon:
+      health: 3
+      damage: 1
+      damageType: MAGICAL
+
+- name: Puddle (Char)
+  type: CHARACTER
+  rarity: COMMON
+  description: "Puddle minion proxy"
+  effectJson:
+    health: 3
+    energy: 1
+    element: WATER
+    itemSlots: 0
+    toolSlots: 0
+
+- name: Whetstone
+  type: SPELL
+  rarity: COMMON
+  description: "Enhance your tools, add + 2 to attack counter."
+  effectJson:
+    spellClass: BUFF
+    manaCost: 1
+    target: SELF
+    element: NEUTRAL
+    attackBonus: 2
+    duration: 1
+
+- name: Gjallarhorn
+  type: SPELL
+  rarity: LEGENDARY
+  description: "Summon 2 wolf creatures - 2 energy [Note: Originally a Tool, changed to Spell to support summons!]"
+  effectJson:
+    spellClass: SUMMON
+    manaCost: 2
+    target: ALLY
+    element: NEUTRAL
+    summon:
+      health: 4
+      damage: 2
+      damageType: PHYSICAL
+
+- name: Wolf (Char)
+  type: CHARACTER
+  rarity: COMMON
+  description: "Wolf minion proxy"
+  effectJson:
+    health: 4
+    energy: 1
+    element: NEUTRAL
+    itemSlots: 0
+    toolSlots: 0
+
+# ==========================================
+# TOOLS
+# ==========================================
+
+- name: Great Sword
+  type: TOOL
+  rarity: EPIC
+  description: "Consume block counter, then deal that much damage - 1 energy"
+  effectJson:
+    slotsRequired: 2
+    target: ENEMY
+    damageType: PHYSICAL
+    damage: 3
+
+- name: Flail
+  type: TOOL
+  rarity: RARE
+  description: "Deal 3 physical damage. If the target is bleeding, add +1 to the bleed duration - 1 energy"
+  effectJson:
+    slotsRequired: 1
+    target: ENEMY
+    damageType: PHYSICAL
+    damage: 3
+    bonusTriggerType: ON_HIT
+    statusEffect: POISON
+
+- name: Whip
+  type: TOOL
+  rarity: COMMON
+  description: "Deal 2 physical damage to a target."
+  effectJson:
+    slotsRequired: 1
+    target: ENEMY
+    damageType: PHYSICAL
+    damage: 2
+
+- name: Tomahawk
+  type: TOOL
+  rarity: COMMON
+  description: "Throw a tomahawk for 2 physical damage."
+  effectJson:
+    slotsRequired: 1
+    target: ENEMY
+    damageType: PHYSICAL
+    damage: 2
+
+- name: Shuriken
+  type: TOOL
+  rarity: UNCOMMON
+  description: "Deal 2 magical damage. Apply the element of your champion to the shuriken’s damage."
+  effectJson:
+    slotsRequired: 1
+    target: ENEMY
+    damageType: MAGICAL
+    damage: 2
+
+- name: Claymore
+  type: TOOL
+  rarity: UNCOMMON
+  description: "Deal 2 physical damage. Smite the target for 1 turn."
+  effectJson:
+    slotsRequired: 2
+    target: ENEMY
+    damageType: PHYSICAL
+    damage: 2
+    bonusTriggerType: ON_HIT
+    statusEffect: STUN
+
+- name: Crossbow
+  type: TOOL
+  rarity: UNCOMMON
+  description: "Fire a bolt at 2 targets. Deal 1 damage to each target."
+  effectJson:
+    slotsRequired: 2
+    target: ALL_ENEMIES
+    damageType: PHYSICAL
+    damage: 1
+
+# ==========================================
+# ITEMS
+# ==========================================
+
+- name: Whale Idol
+  type: ITEM
+  rarity: RARE
+  description: "On ally death, 50% chance to summon a whale creature. Triggers only once a turn."
+  effectJson:
+    triggerType: ON_DEATH
+    procChance: 50
+    target: ALLY
+    healthBonus: 5
+
+- name: Pain Load Balancer
+  type: ITEM
+  rarity: EPIC
+  description: "On damage taken, Transfer 50% of damage (rounded up) to a random ally."
+  effectJson:
+    triggerType: ON_DAMAGE_TAKEN
+    procChance: 100
+    defenseBonus: 2
+    target: ALLY
+
+- name: Opportunistic Lobster
+  type: ITEM
+  rarity: COMMON
+  description: "On summon, add +1 to attack counter"
+  effectJson:
+    triggerType: ON_SUMMON
+    procChance: 100
+    target: SELF
+    attackBonus: 1
+
+- name: Not So Secret Formula
+  type: ITEM
+  rarity: COMMON
+  description: "On enemy heal, heal an ally for 2 HP"
+  effectJson:
+    triggerType: ON_HEAL
+    procChance: 100
+    target: ALLY
+    healing: 2
+
+- name: Coworker’s Screen Play
+  type: ITEM
+  rarity: COMMON
+  description: "On debuff, become enraged until the end of your next turn."
+  effectJson:
+    triggerType: ON_DAMAGE_TAKEN
+    procChance: 100
+    target: SELF
+    attackBonus: 3
+
+- name: Grass Crest
+  type: ITEM
+  rarity: COMMON
+  description: "On guardbreak, add +1 to block counter"
+  effectJson:
+    triggerType: ON_DAMAGE_TAKEN
+    procChance: 100
+    target: SELF
+    defenseBonus: 1
+
+- name: Waterlogged Waders
+  type: ITEM
+  rarity: COMMON
+  description: "On buff, pull the top card from the discard pile into your hand. Triggers only once a turn."
+  effectJson:
+    triggerType: ON_BUFF
+    procChance: 100
+    target: SELF
+    healthBonus: 1

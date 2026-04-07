@@ -21,13 +21,17 @@ const mockRedisPath = path.resolve(
   "mock-redis.ts"
 );
 
+const mockPrismaPath = path.resolve(
+  path.dirname(new URL(import.meta.url).pathname),
+  "mock-prisma.ts"
+);
+
 const webRoot = path.resolve(
   path.dirname(new URL(import.meta.url).pathname),
   ".."
 );
 
-// The redis module resolves to <webRoot>/lib/redis.ts via the @/ alias.
-// We intercept that and point it to our mock instead.
+// Intercept @/lib/redis and @/lib/prisma to use in-memory mocks.
 const originalResolve = (Module as any)._resolveFilename;
 (Module as any)._resolveFilename = function (
   request: string,
@@ -36,7 +40,7 @@ const originalResolve = (Module as any)._resolveFilename;
   options: any
 ) {
   // Match the alias form, the resolved absolute path, and relative imports
-  const resolved =
+  const isRedis =
     request === "@/lib/redis" ||
     request === path.join(webRoot, "lib", "redis") ||
     request === path.join(webRoot, "lib", "redis.ts") ||
@@ -44,9 +48,22 @@ const originalResolve = (Module as any)._resolveFilename;
       typeof parent.filename === "string" &&
       request.endsWith("/lib/redis") &&
       path.resolve(path.dirname(parent.filename), request).startsWith(webRoot));
-  if (resolved) {
+  if (isRedis) {
     return originalResolve.call(this, mockRedisPath, parent, isMain, options);
   }
+
+  const isPrisma =
+    request === "@/lib/prisma" ||
+    request === path.join(webRoot, "lib", "prisma") ||
+    request === path.join(webRoot, "lib", "prisma.ts") ||
+    (parent &&
+      typeof parent.filename === "string" &&
+      request.endsWith("/lib/prisma") &&
+      path.resolve(path.dirname(parent.filename), request).startsWith(webRoot));
+  if (isPrisma) {
+    return originalResolve.call(this, mockPrismaPath, parent, isMain, options);
+  }
+
   return originalResolve.call(this, request, parent, isMain, options);
 };
 

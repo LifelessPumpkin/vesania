@@ -10,7 +10,7 @@ describe("Match Locking", () => {
     // Manually acquire the lock (simulating another in-flight request)
     await redis.set(`lock:match:${joined.matchId}`, "other-owner", "EX", 5, "NX");
 
-    await expect(applyAction(joined.matchId, "p1", "PUNCH")).rejects.toThrow(
+    await expect(applyAction(joined.matchId, "p1", "PASS")).rejects.toThrow(
       "Match is busy"
     );
 
@@ -22,7 +22,7 @@ describe("Match Locking", () => {
     const created = await createMatch("Alice");
     const joined = await joinMatch(created.matchId, "Bob");
 
-    await applyAction(joined.matchId, "p1", "PUNCH");
+    await applyAction(joined.matchId, "p1", "PASS");
 
     // Lock key should no longer exist
     const lockExists = await redis.exists(`lock:match:${joined.matchId}`);
@@ -35,7 +35,7 @@ describe("Match Locking", () => {
 
     // p2 tries to act out of turn — should throw but still release the lock
     try {
-      await applyAction(joined.matchId, "p2", "PUNCH");
+      await applyAction(joined.matchId, "p2", "PASS");
     } catch {
       // expected
     }

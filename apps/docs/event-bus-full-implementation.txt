@@ -1,0 +1,184 @@
+Event Bus — Remaining Implementation Plan
+==========================================
+Branch: event-bus-zts
+Last updated: 2026-03-30
+
+Completed Steps (see event-bus-changelog.txt for details):
+  Step 1: Expanded MatchState & PlayerState with card slots
+  Step 2: Defined GameEvent discriminated union + TriggerType mapping
+  Step 3: Built the event bus dispatcher (emit + emitWithCascade)
+  Step 4: Refactored applyAction() to emit events through the bus
+  Step 4.5: Removed HEAL as basic action (now card-only)
+  Step 5: Built the effect resolver + wired into applyAction()
+  Step 6: Added match setup flow (deck selection, ownership validation,
+          card state display in game UI)
+  Step 7: Added PLAY_SPELL + USE_TOOL action types with full spell
+          resolution by spellClass, energy system (full refill per turn),
+          rarity-based spell costs, once-per-turn tool use, and multi-
+          action turn structure
+  Step 8: Status effect tick system — BURN/POISON damage, REGEN heal,
+          SHIELD block, FREEZE/STUN restrictions, SEND_TO_GRAVEYARD
+          card destruction, duration decrement + expiry
+
+Current state: Steps 1-10 are fully complete. 43/43 tests pass.
+All design decisions (D1-D14) are locked.
+
+Design Decisions Locked:
+  D1 = Full energy refill each turn
+  D2 = Rarity-scaled spell costs (1/1/2/2/3), per-card manaCost override, min 1
+  D3 = Tools free, once per turn
+  D4 = Spells consumed on use (move to graveyard)
+  D5 = Multiple actions per turn (energy-limited), basic actions end turn
+  D6 = FREEZE/STUN: 20% skip, 20% basic-only, 60% block-only
+  D7 = Refresh duration only (no stacking)
+  D8 = Ticks at start of affected player's turn
+  D9 = BURN=3 tick damage, POISON=2 tick damage
+
+
+========================================================================
+STEP 7: Add New Action Types (PLAY_SPELL, USE_TOOL) — COMPLETED
+========================================================================
+See event-bus-changelog.txt for full details.
+
+Decisions locked: D1=full refill, D2=rarity costs (1/1/2/2/3) + manaCost
+override min 1, D3=free once/turn, D4=graveyard, D5=multi-action + basic
+ends turn.
+
+
+========================================================================
+STEP 8: Status Effect Tick System — COMPLETED
+========================================================================
+See event-bus-changelog.txt for full details.
+
+Decisions locked: D6=probabilistic freeze/stun (20% skip, 20% basic-only,
+60% block-only), D7=refresh duration only, D8=start of turn,
+D9=BURN=3dmg POISON=2dmg
+
+
+========================================================================
+STEP 9: Structured Combat Log — COMPLETED
+========================================================================
+Decisions locked: D10=one entry per atomic state change, D11=keep all
+
+All log.push calls converted to LogEntry objects. Client rendering
+updated with color-coding by event type. Tests fixed. 43/43 pass.
+
+
+========================================================================
+STEP 10: Client UI Polish — COMPLETED
+========================================================================
+
+Decisions locked: D12=A (full opponent visibility), D13=C (hover+click),
+D14=B (minimal CSS transitions)
+
+--- 10A: Player Info Panel ---
+  - Character image + name displayed
+  - HP bar color-coded by health % (green >60%, yellow >30%, red <=30%)
+  - Energy bar with smooth transitions
+  - Block shown with shield icon
+  - Status effects color-coded by type (BURN=orange, POISON=green,
+    FREEZE/STUN=cyan, REGEN=emerald, SHIELD=blue)
+  - Active turn indicator: green border glow + pulsing dot
+
+--- 10B: Card Zone Display ---
+  - Reusable CardZones component for both players
+  - Opponent cards fully visible (D12=A)
+  - Equipped items, tools, hand spells all rendered
+  - Graveyard: collapsible section with count, dimmed card tiles
+  - MiniCard shows type + rarity, hover tooltip, click for detail
+
+--- 10C: Action Panel ---
+  - Spells → Tools → Basic actions layout (unchanged from Step 7)
+  - Restriction banners now pulse (animate-pulse)
+
+--- 10D: Turn Banner ---
+  - Animated TurnBanner component (replaces inline text)
+  - "Your Turn" with green pulse animation
+  - "Opponent's Turn" with muted styling
+  - Victory/Defeat banner with fade-in animation
+
+--- Card Detail Modal (D13=C) ---
+  - Click any MiniCard to open full-screen modal
+  - Shows card image, name, rarity, type, description
+  - Effect data table showing all effectJson properties
+  - Type-colored border (amber=item, cyan=tool, violet=spell, purple=char)
+  - Backdrop click or Close button to dismiss
+  - Scale-in + fade-in CSS animations
+
+--- CSS Animations (D14=B) ---
+  - fadeIn: backdrop overlay fade
+  - scaleIn: modal entrance scale
+  - HP/energy bars: 500ms ease-out transitions
+  - Turn banner: 500ms transition + pulse
+  - Active player panel: border glow shadow transition
+
+
+========================================================================
+DESIGN DECISIONS — SUMMARY
+========================================================================
+
+Decisions to make before Step 7:
+  D1.  Energy regeneration (per-turn +1 / full refill / no regen)
+  D2.  Spell energy costs (rarity-based / per-card manaCost)
+  D3.  Tool active use cost (energy / free once-per-turn / free unlimited)
+  D4.  Spell card consumption (graveyard / reusable / uses count)
+  D5.  Actions per turn (one total / basic+spell / unlimited by energy)
+
+Decisions to make before Step 8:
+  D6.  Freeze/Stun behavior (skip turn / block only / partial restrict)
+  D7.  Status effect stacking (refresh / stack damage / independent)
+  D8.  Status effect tick timing (start of turn / end of turn)
+  D9.  Burn vs Poison distinction (damage only / duration / mechanics)
+
+Decisions to make before Step 9:
+  D10. Log entry granularity (per-action / per-atomic-change)
+  D11. Log history limit (unbounded / rolling window / send last N)
+
+Decisions locked for Step 10:
+  D12. Opponent card visibility = A (full visibility)
+  D13. Card detail view = C (hover tooltip + click modal)
+  D14. Animation priority = B (minimal CSS transitions)
+
+
+========================================================================
+FILE INVENTORY — Current Game Server Module
+========================================================================
+
+lib/game-server/
+  types.ts            — MatchCard, ActiveStatusEffect, PlayerState,
+                        MatchState, ActionType, PlayerId, PublicMatchState
+  constants.ts        — GAME balance values, SPELL_COST_BY_RARITY map
+  events.ts           — GameEventType enum, 13 event payload interfaces,
+                        GameEvent union, TRIGGER_MAP, helper functions
+  event-bus.ts        — emit(), emitWithCascade(), TriggeredEffect type,
+                        scanPlayerCards(), rollChance()
+  effect-resolver.ts  — resolveTriggeredEffects(), resolveSpellEffect(),
+                        getSpellCost(), processStatusEffectTicks(),
+                        resolveItemEffect(), resolveToolEffect(),
+                        applyDamage(), applyHealing(),
+                        applyStatusEffect(), resolveTargets()
+  match.ts            — createMatch(), joinMatch(), applyAction(),
+                        getMatch(), resolvePlayerByToken(),
+                        loadDeckIntoPlayerState(), defaultPlayerState()
+
+lib/
+  redis.ts            — Redis client + createSubscriber()
+  prisma.ts           — Prisma client singleton
+  enums.ts            — CardType, CardRarity, TriggerType, SpellType,
+                        DamageType, TargetType, StatusEffect, ElementType
+  card-effect-schemas.ts — Zod schemas for character/spell/item/tool effects
+
+app/match/page.tsx    — Match lobby + game UI with deck selection,
+                        PlayerPanel, MiniCard, card zone display
+
+app/api/match/
+  create/route.ts     — POST create match (optional deck + auth)
+  join/route.ts       — POST join match (optional deck + auth)
+  [id]/action/route.ts — POST game action (PUNCH/KICK/BLOCK)
+  [id]/stream/route.ts — SSE stream for real-time state updates
+
+test-scripts/
+  run.ts              — Test runner with Redis + Prisma mocks
+  mock-redis.ts       — In-memory Redis mock
+  mock-prisma.ts      — Minimal Prisma stub
+  t1-t8 test files    — 43 passing tests

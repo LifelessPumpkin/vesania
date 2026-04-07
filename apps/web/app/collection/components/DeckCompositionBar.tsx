@@ -48,7 +48,7 @@ export function DeckCompositionBar({ cards }: Props) {
                     />
                 </div>
                 <span className={`${styles.count} ${totalOk ? styles.good : totalOver ? styles.bad : ''}`}>
-                    {total}/{MAX_DECK_SIZE}
+                    {total}/{MAX_DECK_SIZE - 1}
                 </span>
             </div>
 

@@ -22,8 +22,8 @@ export function validateDeck(cards: DeckCardEntry[]): ValidationResult {
     }
 
     // Deck size (excludes character)
-    if (total !== MAX_DECK_SIZE) {
-        errors.push(`Deck must have exactly ${MAX_DECK_SIZE} cards (currently ${total})`)
+    if (total !== MAX_DECK_SIZE - 1) {
+        errors.push(`Deck must have exactly ${MAX_DECK_SIZE - 1} cards (currently ${total})`)
     }
 
     const typeCounts: Record<string, number> = {}

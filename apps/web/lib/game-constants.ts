@@ -2,7 +2,7 @@
 // Single source of truth for game-wide magic numbers.
 
 /** Maximum number of cards allowed in a single deck (CHARACTER/champion excluded). */
-export const MAX_DECK_SIZE = 40
+export const MAX_DECK_SIZE = 41
 
 /** Required count per card type in a valid deck. Must sum to MAX_DECK_SIZE. */
 export const DECK_COMPOSITION = {
