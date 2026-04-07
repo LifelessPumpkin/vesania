@@ -22,7 +22,7 @@ export default function AdminDashboard({ adminUser }: { adminUser: AdminUser }) 
                 <header className="border-b sticky top-0 z-10" style={{ borderColor: 'var(--color-border-strong)', background: 'var(--color-panel)' }}>
                     <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                         <div className="flex items-center gap-6">
-                            <Link href="/" className="hover:text-white transition-colors text-base" style={{ color: 'var(--color-text-muted)' }}>
+                            <Link href="/dashboard" className="hover:text-white transition-colors text-base" style={{ color: 'var(--color-text-muted)' }}>
                                 &larr; Back
                             </Link>
                             <h1 className="text-2xl font-bold bg-gradient-to-r bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, #daa520, #f0c040)' }}>

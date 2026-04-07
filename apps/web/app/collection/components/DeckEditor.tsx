@@ -122,7 +122,7 @@ export function DeckEditor({
         <div className={styles.editor}>
             {/* Top bar */}
             <div className={styles.topBar}>
-                <button className={styles.backBtn} onClick={onBack}>{'<-'} Back to Decks</button>
+                <button className={styles.backBtn} onClick={onBack}>{'<-'} Back</button>
                 <span className={styles.deckTitle}>{deck.name}</span>
                 <button className={styles.saveBtn} onClick={onSave}>Save</button>
             </div>

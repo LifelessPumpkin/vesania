@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import yaml from 'yaml'
+import * as yaml from 'yaml'
 import { apiRequest } from '@/lib/api-client'
 import type { CardDefinition } from '../types'
 import { RarityBadge } from '../components/Badges'
