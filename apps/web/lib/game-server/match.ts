@@ -6,6 +6,7 @@ import {
   PlayerId,
   ActionType,
   EntityId,
+  SummonAbility,
 } from "./types";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
@@ -122,6 +123,7 @@ function defaultPlayerState(name: string): PlayerState {
     block: 0,
     attack: 0,
     character: null,
+    abilities: [],
     equippedItems: [],
     equippedTools: [],
     hand: [],
@@ -190,6 +192,7 @@ export async function loadDeckIntoPlayerState(
   const maxEnergy = (charEffect.energy as number) ?? GAME.DEFAULT_ENERGY;
   const attack = (charEffect.attack as number) ?? 0;
   const block = (charEffect.block as number) ?? 0;
+  const abilities = (charEffect.abilities as SummonAbility[]) ?? [];
 
   // Fisher-Yates shuffle
   for (let i = remaining.length - 1; i > 0; i--) {
@@ -206,6 +209,7 @@ export async function loadDeckIntoPlayerState(
     block,
     attack,
     character,
+    abilities,
     equippedItems: [],
     equippedTools: [],
     hand: [],
@@ -217,6 +221,7 @@ export async function loadDeckIntoPlayerState(
     turnRestriction: "none",
   };
 }
+
 
 function getMmrSearchRange(waitMs: number): number {
   const waitSeconds = Math.floor(waitMs / 1000);
