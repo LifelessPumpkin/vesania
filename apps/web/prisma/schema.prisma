@@ -24,6 +24,9 @@ model User {
   friendLinksA    Friendship[] @relation("FriendshipUserA")
   friendLinksB    Friendship[] @relation("FriendshipUserB")
 
+  // Currency
+  gold             Int     @default(500)
+
   // Stats
   wins             Int     @default(0)
   losses           Int     @default(0)

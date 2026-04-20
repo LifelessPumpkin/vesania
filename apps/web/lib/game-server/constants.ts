@@ -5,4 +5,5 @@ export const GAME = {
     KICK_DAMAGE: 8,
     BLOCK_AMOUNT: 5,
     HEAL_AMOUNT: 3,
+    WIN_GOLD_REWARD: 150,
 } as const;

@@ -20,13 +20,29 @@ export async function getUserOwnedDefinitionIds(firebaseUid: string): Promise<st
   return user?.cards.map(c => c.definitionId) ?? []
 }
 
-export async function purchaseCards(firebaseUid: string, definitionIds: string[]) {
+export async function getUserGold(firebaseUid: string): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { firebaseUid },
+    select: { gold: true },
+  })
+  return user?.gold ?? 0
+}
+
+export async function purchaseCards(
+  firebaseUid: string,
+  definitionIds: string[],
+  totalCost: number
+) {
   const user = await prisma.user.findUnique({ where: { firebaseUid } })
   if (!user) throw new Error('User not found')
+  if (user.gold < totalCost) throw new Error('Insufficient gold')
 
-  // Find one UNCLAIMED card per definition and claim it
-  await prisma.$transaction(
-    definitionIds.map(definitionId =>
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { gold: { decrement: totalCost } },
+    }),
+    ...definitionIds.map(definitionId =>
       prisma.card.updateMany({
         where: {
           definitionId,
@@ -39,6 +55,17 @@ export async function purchaseCards(firebaseUid: string, definitionIds: string[]
           claimedAt: new Date(),
         },
       })
-    )
-  )
+    ),
+  ])
+}
+
+export async function purchaseDeck(firebaseUid: string, cost: number): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { firebaseUid } })
+  if (!user) throw new Error('User not found')
+  if (user.gold < cost) throw new Error('Insufficient gold')
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { gold: { decrement: cost } },
+  })
 }

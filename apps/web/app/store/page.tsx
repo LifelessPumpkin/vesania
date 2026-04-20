@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getUserOwnedDefinitionIds, purchaseCards } from './actions'
-import { useAuth } from '@/context/AuthContext'
+import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
+import { getUserOwnedDefinitionIds, getUserGold, purchaseCards, purchaseDeck } from './actions'
+import { useAuth } from '@/context/AuthContext'
+
+// ─── Types (your existing schema, unchanged) ──────────────────────────────────
 
 interface CardDefinition {
   id: string
@@ -22,335 +24,575 @@ interface CardDeck {
   description: string
   cardCount: number
   cost: number
+  origCost?: number
   previewCards: string[]
   theme: string
   icon: string
-  accentColor: string
-  glowColor: string
+  winRate: number
   tag?: string
+  tagBg?: string
+  tagTx?: string
+  styles: ItemStyles
 }
 
-const RARE_STYLES = {
-  color: '#6BAF72',
-  glow: '0 0 18px 5px rgba(107,175,114,0.45)',
-  badge: '#2d6b35',
+interface ItemStyles {
+  accent: string
+  border: string
+  headerBg: string
+  headerTx: string
+  artBg: string
+  rarityBg: string
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  CREATURE: '#c8856a',
-  SPELL:    '#7aab82',
-  CURSE:    '#b07850',
+type TabId = 'singles' | 'decks'
+
+// ─── Shopkeeper dialogue ──────────────────────────────────────────────────────
+// Rarity is intentionally never mentioned.
+
+const LINES = {
+  idle:       'Welcome. Browse my wares and take what you need.',
+  selectCard: (name: string, cost: number) =>
+    `${name} — ${cost.toLocaleString()} gold. A fine addition to any collection.`,
+  selectDeck: (name: string, cost: number) =>
+    `The ${name} deck. ${cost.toLocaleString()} gold for the whole set. Ready to play.`,
+  addedToCart: (n: number) =>
+    n === 1
+      ? 'Good eye. Anything else catch your fancy?'
+      : `${n} items in your sack. Keep browsing or settle up.`,
+  removed:   "Changed your mind? Fair enough. No hard feelings.",
+  purchased: "Pleasure doing business. Come back when your pockets are full again.",
+  poor:      "Hmm. Doesn't look like you have enough gold for that.",
+  owned:     "You already have that one. No sense buying twice.",
+  empty:     "Nothing in your cart yet. Pick something out.",
 }
 
-const BG = {
-  page:   'linear-gradient(160deg, #0e0a06 0%, #1a1108 50%, #110d05 100%)',
-  radial: 'radial-gradient(ellipse at 20% 20%, rgba(120,80,20,0.08) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(80,50,10,0.07) 0%, transparent 60%)',
-  header: 'rgba(14,10,4,0.93)',
+// ─── Keyframes ────────────────────────────────────────────────────────────────
+
+const KEYFRAMES = `
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  @keyframes rpgBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes rpgSlotBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+`
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+interface CardStoreProps {
+  /** Your fetched CardDefinition[] from the DB */
+  cards: CardDefinition[]
+  /** Your fetched CardDeck[] from the DB */
+  decks: CardDeck[]
 }
 
-const RARE_SLOT_CARDS: CardDefinition[] = [
-  {
-    id: 'rare_slot_1',
-    name: 'Sable Wraith',
-    type: 'CREATURE',
-    rarity: 'RARE',
-    cost: 1200,
-    description: 'When Sable Wraith enters play, deal 2 damage to all enemies. Its hollow eyes see through all deceptions.',
-    imageUrl: null,
-  },
-  {
-    id: 'rare_slot_2',
-    name: 'Hex of Undoing',
-    type: 'CURSE',
-    rarity: 'RARE',
-    cost: 950,
-    description: 'Reverse the last spell cast by your opponent. The threads of fate are yours to unravel.',
-    imageUrl: null,
-  },
-]
-
-const STORE_DECKS: CardDeck[] = [
-  {
-    id: 'deck_ashen_tide',
-    name: 'Ashen Tide',
-    description: 'Scorch the earth and leave nothing behind. A relentless aggro deck powered by fire creatures and chain-burn spells that end games before turn 6.',
-    cardCount: 20,
-    cost: 4200,
-    previewCards: ['Ember Wraith', 'Char Surge', 'Cinder Golem', 'Ashfall'],
-    theme: 'Fire · Aggro',
-    icon: '🔥',
-    accentColor: '#d4522a',
-    glowColor: 'rgba(212,82,42,0.35)',
-    tag: 'BEST SELLER',
-  },
-  {
-    id: 'deck_hollow_pact',
-    name: 'Hollow Pact',
-    description: 'Strike dark bargains with ancient entities. Sacrifice your own creatures to summon horrors that grow stronger with every soul consumed.',
-    cardCount: 20,
-    cost: 5100,
-    previewCards: ['Soul Tithe', 'Pale Eidolon', 'Blood Covenant', 'Void Maw'],
-    theme: 'Sacrifice · Control',
-    icon: '💀',
-    accentColor: '#9060c0',
-    glowColor: 'rgba(144,96,192,0.35)',
-    tag: 'NEW',
-  },
-  {
-    id: 'deck_verdant_surge',
-    name: 'Verdant Surge',
-    description: 'Flood the board with forest creatures that multiply faster than your opponent can answer. Win through overwhelming numbers and unstoppable momentum.',
-    cardCount: 20,
-    cost: 3800,
-    previewCards: ['Thornback', 'Grove Tender', 'Spore Burst', 'Canopy Stalker'],
-    theme: 'Nature · Swarm',
-    icon: '🌿',
-    accentColor: '#4a9f5a',
-    glowColor: 'rgba(74,159,90,0.35)',
-  },
-]
-
-export default function CardStore() {
+export default function CardStore({ cards, decks }: CardStoreProps) {
   const { user } = useAuth()
 
-  const [ownedIds, setOwnedIds] = useState<string[]>([])
+  const [ownedCardIds, setOwnedCardIds] = useState<string[]>([])
   const [ownedDeckIds, setOwnedDeckIds] = useState<string[]>([])
-  const [gold] = useState(3200)
-  const [cart, setCart] = useState<string[]>([])
-  const [toast, setToast] = useState<{ msg: string; color: string } | null>(null)
-  const [hoveredCard, setHoveredCard] = useState<string | null>(null)
-  const [hoveredDeck, setHoveredDeck] = useState<string | null>(null)
-  const [purchasing, setPurchasing] = useState<string | null>(null)
+  const [gold, setGold]                 = useState(0)
+  const [cart, setCart]                 = useState<string[]>([])
+  const [selectedId, setSelectedId]     = useState<string | null>(null)
+  const [tab, setTab]                   = useState<TabId>('singles')
+  const [dialogue, setDialogue]         = useState(LINES.idle)
+  const [purchasing, setPurchasing]     = useState(false)
+
+  useEffect(() => {
+    const id = 'rpg-shop-kf'
+    if (!document.getElementById(id)) {
+      const s = document.createElement('style')
+      s.id = id; s.textContent = KEYFRAMES
+      document.head.appendChild(s)
+    }
+  }, [])
 
   useEffect(() => {
     async function load() {
-      const owned = user ? await getUserOwnedDefinitionIds(user.uid) : []
-      setOwnedIds(owned)
+      if (!user) return
+      const [owned, userGold] = await Promise.all([
+        getUserOwnedDefinitionIds(user.uid),
+        getUserGold(user.uid),
+      ])
+      setOwnedCardIds(owned)
+      setGold(userGold)
     }
     load()
   }, [user])
 
-  const showToast = (msg: string, color = '#90c870') => {
-    setToast({ msg, color })
-    setTimeout(() => setToast(null), 2400)
-  }
-
-  const isOwned = (id: string) => ownedIds.includes(id)
+  const isCardOwned = (id: string) => ownedCardIds.includes(id)
   const isDeckOwned = (id: string) => ownedDeckIds.includes(id)
-  const inCart = (id: string) => cart.includes(id)
-
-  const toggleCart = (card: CardDefinition) => {
-    if (isOwned(card.id)) return
-    setCart(prev =>
-      prev.includes(card.id) ? prev.filter(id => id !== card.id) : [...prev, card.id]
-    )
-  }
+  const isOwned     = (id: string) => isCardOwned(id) || isDeckOwned(id)
+  const inCart      = (id: string) => cart.includes(id)
 
   const cartTotal = cart.reduce((sum, id) => {
-    const card = RARE_SLOT_CARDS.find(c => c.id === id)
-    return sum + (card?.cost ?? 0)
+    const card = (cards ?? []).find(c => c.id === id)
+    if (card) return sum + (card.cost ?? 0)
+    const deck = (decks ?? []).find(d => d.id === id)
+    if (deck) return sum + deck.cost
+    return sum
   }, 0)
 
-  const checkout = async () => {
-    if (!user) return showToast('Sign in to purchase cards.', '#e07060')
-    if (cart.length === 0) return showToast('Your cart is empty.', '#e07060')
-    if (gold < cartTotal) return showToast('Not enough gold!', '#e07060')
-    setPurchasing('cart')
+  const selectItem = useCallback((id: string) => {
+    setSelectedId(id)
+    const card = cards.find(c => c.id === id)
+    const deck = decks.find(d => d.id === id)
+    if (isOwned(id)) { setDialogue(LINES.owned); return }
+    if (card) setDialogue(LINES.selectCard(card.name, card.cost ?? 0))
+    else if (deck) setDialogue(LINES.selectDeck(deck.name, deck.cost))
+  }, [cards, decks, ownedCardIds, ownedDeckIds])
+
+  const addToCart = () => {
+    if (!selectedId) return
+    if (isOwned(selectedId)) { setDialogue(LINES.owned); return }
+    if (inCart(selectedId)) return
+    const card = cards.find(c => c.id === selectedId)
+    const deck = decks.find(d => d.id === selectedId)
+    const cost = card?.cost ?? deck?.cost ?? 0
+    if (gold < cost) { setDialogue(LINES.poor); return }
+    const next = [...cart, selectedId]
+    setCart(next)
+    setDialogue(LINES.addedToCart(next.length))
+  }
+
+  const removeFromCart = () => {
+    if (!selectedId) return
+    setCart(prev => prev.filter(x => x !== selectedId))
+    setDialogue(LINES.removed)
+  }
+
+  const buyCart = async () => {
+    if (!user) { setDialogue('Sign in to make purchases.'); return }
+    if (cart.length === 0) { setDialogue(LINES.empty); return }
+    if (gold < cartTotal) { setDialogue(LINES.poor); return }
+    setPurchasing(true)
     try {
-      await purchaseCards(user.uid, cart)
-      setOwnedIds(prev => [...prev, ...cart])
+      const cardIds = cart.filter(id => cards.some(c => c.id === id))
+      const deckIds = cart.filter(id => decks.some(d => d.id === id))
+      if (cardIds.length > 0) {
+        const cardCost = cardIds.reduce((s, id) => s + (cards.find(c => c.id === id)?.cost ?? 0), 0)
+        await purchaseCards(user.uid, cardIds, cardCost)
+        setOwnedCardIds(prev => [...prev, ...cardIds])
+      }
+      for (const id of deckIds) {
+        const deck = decks.find(d => d.id === id)!
+        await purchaseDeck(user.uid, deck.cost)
+        setOwnedDeckIds(prev => [...prev, id])
+      }
+      setGold(prev => prev - cartTotal)
       setCart([])
-      showToast(`Purchased ${cart.length} card${cart.length > 1 ? 's' : ''}! 🎉`)
+      setSelectedId(null)
+      setDialogue(LINES.purchased)
     } catch {
-      showToast('Purchase failed. Try again.', '#e07060')
+      setDialogue('Something went wrong. Try again.')
     } finally {
-      setPurchasing(null)
+      setPurchasing(false)
     }
   }
 
-  const buyDeck = async (deck: CardDeck) => {
-    if (!user) return showToast('Sign in to purchase decks.', '#e07060')
-    if (isDeckOwned(deck.id)) return
-    if (gold < deck.cost) return showToast('Not enough gold!', '#e07060')
-    setPurchasing(deck.id)
-    try {
-      // Replace with your real deck purchase server action
-      await new Promise(r => setTimeout(r, 900))
-      setOwnedDeckIds(prev => [...prev, deck.id])
-      showToast(`"${deck.name}" unlocked! 🎴`)
-    } catch {
-      showToast('Purchase failed. Try again.', '#e07060')
-    } finally {
-      setPurchasing(null)
-    }
-  }
+  const canAdd    = !!selectedId && !isOwned(selectedId) && !inCart(selectedId)
+  const canRemove = !!selectedId && inCart(selectedId)
+  const canBuy    = cart.length > 0 && gold >= cartTotal && !purchasing
+
+  const activeItems: Array<CardDefinition | CardDeck> =
+    tab === 'singles' ? (cards ?? []) : (decks ?? [])
 
   return (
-    <div style={{ minHeight: '100vh', background: BG.page, fontFamily: "'Segoe UI', sans-serif", color: '#e8d5b0', position: 'relative' }}>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', background: BG.radial }} />
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '2rem 1rem',
+      fontFamily: "'Press Start 2P', monospace",
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '600px',
+        background: '#0a0a0f',
+        border: '3px solid #4a4a6a',
+        borderRadius: '4px',
+        boxShadow: '0 0 0 1px #1a1a2e, 0 12px 48px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.03)',
+        overflow: 'hidden',
+      }}>
 
-      {toast && (
-        <div style={{ position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)', background: 'rgba(20,13,4,0.97)', border: `1px solid ${toast.color}`, color: toast.color, padding: '0.75rem 2rem', borderRadius: '0.75rem', zIndex: 1000, boxShadow: `0 0 20px ${toast.color}55`, fontWeight: 600, fontSize: '1rem' }}>
-          {toast.msg}
-        </div>
-      )}
+        {/* Scene */}
+        <ShopScene
+          gold={gold}
+          activeItems={activeItems}
+          cards={cards}
+          decks={decks}
+          selectedId={selectedId}
+          isOwned={isOwned}
+          inCart={inCart}
+          onSelect={selectItem}
+          tab={tab}
+          onTabChange={setTab}
+        />
 
-      {/* Header */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 50, background: BG.header, backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(160,110,40,0.25)', padding: '1rem 2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            {[0,1,2].map(i => <span key={i} style={{ display: 'block', width: '22px', height: '2.5px', background: 'goldenrod', borderRadius: '2px' }} />)}
-          </div>
-          <span style={{ fontSize: '1.7rem', fontWeight: 800, letterSpacing: '0.12em', color: 'goldenrod', textShadow: '0 0 18px rgba(180,130,30,0.6)' }}>VESANIA</span>
-          <span style={{ color: '#7a5c30', fontSize: '1rem', letterSpacing: '0.2em' }}>STORE</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(180,130,30,0.1)', border: '1px solid rgba(180,130,30,0.3)', padding: '0.4rem 1rem', borderRadius: '0.6rem' }}>
-            <span>💰</span>
-            <span style={{ color: 'goldenrod', fontWeight: 700 }}>{gold.toLocaleString()}</span>
-          </div>
-          <button
-            onClick={checkout}
-            disabled={purchasing === 'cart'}
-            style={{ background: cart.length > 0 ? 'goldenrod' : 'rgba(180,130,30,0.12)', color: cart.length > 0 ? '#1a0e00' : 'goldenrod', border: '1px solid goldenrod', borderRadius: '0.6rem', padding: '0.45rem 1.2rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: cart.length > 0 ? '0 0 14px rgba(180,130,30,0.4)' : 'none', opacity: purchasing === 'cart' ? 0.7 : 1 }}
-          >
-            🛒 {cart.length > 0 ? `Checkout — ${cartTotal.toLocaleString()}g` : 'Cart'}
-            {cart.length > 0 && (
-              <span style={{ background: '#1a0e00', color: 'goldenrod', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 800 }}>
-                {cart.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
+        {/* Dialogue */}
+        <DialogueBox text={dialogue} />
 
-      <div style={{ padding: '3rem 2.5rem 4rem', position: 'relative', zIndex: 10, maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
-
-        {/* ── Rare Slots ── */}
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, transparent, rgba(107,175,114,0.4))' }} />
-            <span style={{ color: '#6BAF72', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>✦ Rare Slots — Limited Availability ✦</span>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, rgba(107,175,114,0.4), transparent)' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.4rem' }}>
-            {RARE_SLOT_CARDS.map((card, idx) => {
-              const owned = isOwned(card.id)
-              const inC = inCart(card.id)
-              const hovered = hoveredCard === card.id
-              return (
-                <div
-                  key={card.id}
-                  onMouseEnter={() => setHoveredCard(card.id)}
-                  onMouseLeave={() => setHoveredCard(null)}
-                  style={{ background: 'linear-gradient(135deg, #0d1a0e 0%, #111a0d 50%, #0a1208 100%)', border: `1px solid ${owned ? 'rgba(107,175,114,0.7)' : inC ? RARE_STYLES.color : 'rgba(107,175,114,0.3)'}`, borderRadius: '1.1rem', overflow: 'hidden', position: 'relative', boxShadow: hovered ? `${RARE_STYLES.glow}, 0 10px 40px rgba(0,0,0,0.5)` : owned ? '0 0 16px rgba(107,175,114,0.2)' : '0 4px 20px rgba(0,0,0,0.4)', transform: hovered ? 'translateY(-5px)' : 'none', transition: 'all 0.25s ease', display: 'flex', flexDirection: 'row', minHeight: '155px' }}
-                >
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: `linear-gradient(90deg, transparent, ${RARE_STYLES.color}, transparent)` }} />
-                  <div style={{ position: 'absolute', top: '0.65rem', left: '0.65rem', background: 'rgba(107,175,114,0.12)', border: '1px solid rgba(107,175,114,0.35)', color: '#6BAF72', fontSize: '0.58rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '0.3rem', letterSpacing: '0.12em', zIndex: 2 }}>
-                    SLOT {idx + 1} / 2
-                  </div>
-                  <div style={{ width: '130px', flexShrink: 0, position: 'relative', background: `radial-gradient(ellipse at center, ${RARE_STYLES.color}18 0%, transparent 70%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.8rem' }}>
-                    {card.imageUrl ? <Image src={card.imageUrl} alt={card.name} fill style={{ objectFit: 'cover' }} /> : <span style={{ opacity: 0.2 }}>🃏</span>}
-                  </div>
-                  <div style={{ padding: '1.4rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1, justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#d0ecc0' }}>{card.name}</span>
-                        <span style={{ background: RARE_STYLES.badge, color: '#c0e8c0', fontSize: '0.6rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '0.3rem', letterSpacing: '0.08em' }}>RARE</span>
-                      </div>
-                      <span style={{ color: TYPE_COLOR[card.type] ?? '#8a6f45', fontSize: '0.7rem', background: 'rgba(107,175,114,0.08)', padding: '0.1rem 0.45rem', borderRadius: '0.3rem', fontWeight: 600 }}>
-                        {card.type.charAt(0) + card.type.slice(1).toLowerCase()}
-                      </span>
-                      <p style={{ fontSize: '0.76rem', color: '#6a8f60', lineHeight: 1.5, marginTop: '0.45rem' }}>{card.description}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleCart(card)}
-                      disabled={owned}
-                      style={{ padding: '0.45rem 1rem', background: owned ? 'rgba(107,175,114,0.08)' : inC ? 'rgba(107,175,114,0.22)' : 'rgba(107,175,114,0.1)', border: `1px solid ${owned ? '#6BAF7255' : '#6BAF72'}`, color: owned ? '#6BAF72' : '#90c870', borderRadius: '0.5rem', cursor: owned ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', alignSelf: 'flex-start', transition: 'all 0.2s' }}
-                    >
-                      {owned ? '✓ Owned' : inC ? '✕ Remove' : `🪙 ${(card.cost ?? 0).toLocaleString()}g`}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* ── Decks ── */}
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, transparent, rgba(160,110,40,0.4))' }} />
-            <span style={{ color: '#b08040', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.2em', textTransform: 'uppercase' }}>✦ Pre-Built Decks ✦</span>
-            <div style={{ height: '1px', flex: 1, background: 'linear-gradient(90deg, rgba(160,110,40,0.4), transparent)' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.4rem' }}>
-            {STORE_DECKS.map(deck => {
-              const owned = isDeckOwned(deck.id)
-              const hovered = hoveredDeck === deck.id
-              const loading = purchasing === deck.id
-              return (
-                <div
-                  key={deck.id}
-                  onMouseEnter={() => setHoveredDeck(deck.id)}
-                  onMouseLeave={() => setHoveredDeck(null)}
-                  style={{ background: `linear-gradient(150deg, ${deck.accentColor}0d 0%, #130e04 55%)`, border: `1px solid ${owned ? `${deck.accentColor}77` : hovered ? `${deck.accentColor}55` : `${deck.accentColor}28`}`, borderRadius: '1.1rem', overflow: 'hidden', position: 'relative', boxShadow: hovered && !owned ? `0 0 28px ${deck.glowColor}, 0 8px 32px rgba(0,0,0,0.45)` : owned ? `0 0 16px ${deck.glowColor}` : '0 4px 18px rgba(0,0,0,0.35)', transform: hovered ? 'translateY(-5px)' : 'none', transition: 'all 0.25s ease', display: 'flex', flexDirection: 'column' }}
-                >
-                  {/* Top accent */}
-                  <div style={{ height: '3px', background: `linear-gradient(90deg, transparent, ${deck.accentColor}, transparent)` }} />
-
-                  {deck.tag && (
-                    <div style={{ position: 'absolute', top: '0.8rem', right: '0.8rem', background: `${deck.accentColor}20`, border: `1px solid ${deck.accentColor}88`, color: deck.accentColor, fontSize: '0.58rem', fontWeight: 800, padding: '0.18rem 0.5rem', borderRadius: '0.3rem', letterSpacing: '0.1em' }}>
-                      {deck.tag}
-                    </div>
-                  )}
-
-                  <div style={{ padding: '1.2rem 1.2rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0', flex: 1 }}>
-                    {/* Icon + name */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.6rem' }}>
-                      <span style={{ fontSize: '2rem', lineHeight: 1, filter: `drop-shadow(0 0 8px ${deck.accentColor}70)` }}>{deck.icon}</span>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#e8d5b0', letterSpacing: '0.03em' }}>{deck.name}</div>
-                        <div style={{ color: deck.accentColor, fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.9, marginTop: '0.1rem' }}>{deck.theme}</div>
-                      </div>
-                    </div>
-
-                    <p style={{ fontSize: '0.78rem', color: '#7a6040', lineHeight: 1.55, marginBottom: '0.9rem' }}>{deck.description}</p>
-
-                    {/* Card preview */}
-                    <div style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${deck.accentColor}1a`, borderRadius: '0.6rem', padding: '0.55rem 0.75rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <span style={{ color: '#4a3818', fontSize: '0.68rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Includes</span>
-                        <span style={{ color: deck.accentColor, fontSize: '0.68rem', fontWeight: 700 }}>{deck.cardCount} cards</span>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.28rem' }}>
-                        {deck.previewCards.map(name => (
-                          <span key={name} style={{ background: `${deck.accentColor}10`, border: `1px solid ${deck.accentColor}22`, color: '#a08050', fontSize: '0.66rem', padding: '0.1rem 0.42rem', borderRadius: '0.25rem' }}>{name}</span>
-                        ))}
-                        <span style={{ color: '#3a2810', fontSize: '0.66rem', padding: '0.1rem 0.2rem' }}>& more…</span>
-                      </div>
-                    </div>
-
-                    {/* Buy button */}
-                    <button
-                      onClick={() => buyDeck(deck)}
-                      disabled={owned || !!loading}
-                      style={{ marginTop: 'auto', width: '100%', padding: '0.65rem', background: owned ? `${deck.accentColor}10` : hovered ? `${deck.accentColor}25` : `${deck.accentColor}18`, border: `1px solid ${owned ? `${deck.accentColor}44` : deck.accentColor}`, color: owned ? deck.accentColor : '#e8d5b0', borderRadius: '0.65rem', cursor: owned || loading ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', opacity: loading ? 0.6 : 1, boxShadow: hovered && !owned ? `0 0 14px ${deck.glowColor}` : 'none' }}
-                    >
-                      {loading
-                        ? '⏳ Purchasing…'
-                        : owned
-                        ? '✓ Deck Owned'
-                        : `🪙 ${deck.cost.toLocaleString()}g — Buy Deck`}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+        {/* Actions */}
+        <ActionBar
+          canAdd={canAdd}
+          canRemove={canRemove}
+          canBuy={canBuy}
+          cartCount={cart.length}
+          cartTotal={cartTotal}
+          purchasing={purchasing}
+          onAdd={addToCart}
+          onRemove={removeFromCart}
+          onBuy={buyCart}
+        />
 
       </div>
     </div>
   )
+}
+
+// ─── Shop Scene ───────────────────────────────────────────────────────────────
+
+interface ShopSceneProps {
+  gold: number
+  activeItems: Array<CardDefinition | CardDeck>
+  cards: CardDefinition[]
+  decks: CardDeck[]
+  selectedId: string | null
+  isOwned: (id: string) => boolean
+  inCart: (id: string) => boolean
+  onSelect: (id: string) => void
+  tab: TabId
+  onTabChange: (t: TabId) => void
+}
+
+function ShopScene({
+  gold, activeItems, cards, decks, selectedId, isOwned, inCart, onSelect, tab, onTabChange,
+}: ShopSceneProps) {
+  return (
+    <div style={{ position: 'relative', background: '#1a1008', overflow: 'hidden' }}>
+
+      {/* Background */}
+      <div style={{ height: 200, background: '#1e1208', position: 'relative', overflow: 'hidden' }}>
+        {/* Back wall */}
+        <div style={{ position: 'absolute', inset: 0, background: '#2a1a0c' }} />
+        {/* Shelf planks */}
+        {[30, 80, 130].map((top, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: 0, right: 0, top, height: 7,
+            background: '#4a2808', borderTop: '2px solid #6a3810', borderBottom: '2px solid #1e0c04',
+          }} />
+        ))}
+        {/* Decorative wall items */}
+        <WallDecorations />
+        {/* Floor strip */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 36, background: '#3a2008', borderTop: '3px solid #5a3010' }} />
+        {/* Counter */}
+        <div style={{ position: 'absolute', bottom: 0, left: '18%', right: '18%', height: 24, background: '#6a3808', borderTop: '4px solid #b06020' }} />
+        {/* Keeper */}
+        <Shopkeeper />
+      </div>
+
+      {/* HUD overlay */}
+      <div style={{
+        position: 'absolute', top: 8, left: 10, right: 10,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        zIndex: 10, pointerEvents: 'none',
+      }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 3, pointerEvents: 'all' }}>
+          {(['singles', 'decks'] as TabId[]).map(t => (
+            <button key={t} onClick={() => onTabChange(t)} style={{
+              fontFamily: "'Press Start 2P', monospace",
+              fontSize: 6, padding: '4px 8px',
+              background: tab === t ? '#1e1a50' : '#0c0c18',
+              border: `2px solid ${tab === t ? '#7070e0' : '#2a2a4a'}`,
+              color: tab === t ? '#b0b0ff' : '#4a4a6a',
+              cursor: 'pointer', letterSpacing: 0.5,
+            }}>{t === 'singles' ? 'CARDS' : 'DECKS'}</button>
+          ))}
+        </div>
+        {/* Gold */}
+        <div style={{
+          background: '#0a0a16', border: '2px solid #5050a0',
+          padding: '4px 10px', pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 5, color: '#7070a0', letterSpacing: 1, marginBottom: 2 }}>GOLD</div>
+          <div style={{ fontSize: 10, color: '#d0d0ff', textAlign: 'right' }}>{gold.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* Item rail */}
+      <ItemRail
+        items={activeItems}
+        cards={cards}
+        selectedId={selectedId}
+        isOwned={isOwned}
+        inCart={inCart}
+        onSelect={onSelect}
+      />
+    </div>
+  )
+}
+
+// ─── Wall Decorations ─────────────────────────────────────────────────────────
+
+function WallDecorations() {
+  return (
+    <>
+      {/* Left side weapons */}
+      <div style={{ position:'absolute', left:'6%',  top:38, width:5, height:46, background:'#a0a0a0', transform:'rotate(14deg)' }} />
+      <div style={{ position:'absolute', left:'11%', top:34, width:5, height:38, background:'#7a4010', transform:'rotate(-10deg)' }} />
+      <div style={{ position:'absolute', left:'17%', top:40, width:12,height:32, background:'#3858b0',
+        clipPath:'polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)', transform:'rotate(4deg)' }} />
+      {/* Right side */}
+      <div style={{ position:'absolute', right:'6%',  top:38, width:5, height:46, background:'#a0a0a0', transform:'rotate(-14deg)' }} />
+      <div style={{ position:'absolute', right:'11%', top:34, width:5, height:38, background:'#7a4010', transform:'rotate(10deg)' }} />
+      <div style={{ position:'absolute', right:'17%', top:40, width:12,height:32, background:'#3858b0',
+        clipPath:'polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)', transform:'rotate(-4deg)' }} />
+      {/* Center shelf items */}
+      <div style={{ position:'absolute', left:'45%', top:90, width:4, height:38, background:'#c09020', transform:'rotate(6deg)' }} />
+      <div style={{ position:'absolute', left:'52%', top:88, width:16,height:22, background:'#802010', border:'2px solid #501008' }} />
+    </>
+  )
+}
+
+// ─── Shopkeeper ───────────────────────────────────────────────────────────────
+
+function Shopkeeper() {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 36, left: '50%', transform: 'translateX(-50%)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2,
+    }}>
+      {/* Head */}
+      <div style={{ position: 'relative', width: 44, height: 44 }}>
+        {/* Helm */}
+        <div style={{ position:'absolute', top:-11, left:-3, right:-3, height:16, background:'#2848a8', border:'2px solid #1828808' }}>
+          <div style={{ position:'absolute', top:-11, left:4,  width:6, height:12, background:'#c8c8c8', border:'1px solid #888', transform:'rotate(-7deg)' }} />
+          <div style={{ position:'absolute', top:-11, right:4, width:6, height:12, background:'#c8c8c8', border:'1px solid #888', transform:'rotate(7deg)'  }} />
+        </div>
+        {/* Face */}
+        <div style={{ width:44, height:44, background:'#e0b070', border:'2px solid #603808' }}>
+          <div style={{ position:'absolute', top:16, left:7,  width:7, height:6, background:'#181818' }} />
+          <div style={{ position:'absolute', top:16, right:7, width:7, height:6, background:'#181818' }} />
+          {/* Beard */}
+          <div style={{
+            position:'absolute', bottom:-9, left:5, right:5, height:14,
+            background:'#e8e8e8', border:'1px solid #b0b0b0',
+            clipPath:'polygon(0 0,100% 0,72% 100%,28% 100%)',
+          }} />
+        </div>
+      </div>
+      {/* Body */}
+      <div style={{ width:54, height:40, background:'#a01818', border:'2px solid #680808', marginTop:7, position:'relative' }}>
+        <div style={{ position:'absolute', top:4, left:'50%', transform:'translateX(-50%)', width:13, height:16, background:'#e0b070', border:'1px solid #603808' }} />
+        <div style={{ position:'absolute', left:-12, top:0, width:11, height:28, background:'#a01818', border:'2px solid #680808' }} />
+        <div style={{ position:'absolute', right:-12, top:0, width:11, height:28, background:'#a01818', border:'2px solid #680808', transform:'rotate(-12deg)', transformOrigin:'top center' }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Item Rail ────────────────────────────────────────────────────────────────
+// Driven by your CardDefinition[] / CardDeck[] — no rarity displayed.
+
+interface ItemRailProps {
+  items: Array<CardDefinition | CardDeck>
+  cards: CardDefinition[]
+  selectedId: string | null
+  isOwned: (id: string) => boolean
+  inCart: (id: string) => boolean
+  onSelect: (id: string) => void
+}
+
+function ItemRail({ items, cards, selectedId, isOwned, inCart, onSelect }: ItemRailProps) {
+  const safeItems = items ?? []
+  const safeCards = cards ?? []
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      gap: 6, padding: '8px 10px',
+      background: '#0e0804',
+      borderTop: '3px solid #4a2808',
+      flexWrap: 'wrap', minHeight: 70,
+    }}>
+      {safeItems.map((item, idx) => {
+        const isCard   = safeCards.some(c => c.id === item.id)
+        const cost     = isCard ? ((item as CardDefinition).cost ?? 0) : (item as CardDeck).cost
+        const imageUrl = isCard ? ((item as CardDefinition).imageUrl ?? null) : null
+        // Icon derived from type only — never rarity
+        const icon     = isCard
+          ? typeIcon((item as CardDefinition).type)
+          : (item as CardDeck).icon
+
+        return (
+          <ItemSlot
+            key={item.id}
+            label={item.name}
+            cost={cost}
+            icon={icon}
+            imageUrl={imageUrl}
+            selected={selectedId === item.id}
+            owned={isOwned(item.id)}
+            inCart={inCart(item.id)}
+            animDelay={idx * 0.14}
+            onSelect={() => onSelect(item.id)}
+          />
+        )
+      })}
+
+      {safeItems.length === 0 && (
+        <div style={{ fontSize: 7, color: '#4a4a6a', letterSpacing: 1, padding: '8px 0' }}>
+          NO ITEMS AVAILABLE
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Item Slot ────────────────────────────────────────────────────────────────
+
+interface ItemSlotProps {
+  label: string
+  cost: number
+  icon: string
+  imageUrl: string | null
+  selected: boolean
+  owned: boolean
+  inCart: boolean
+  animDelay: number
+  onSelect: () => void
+}
+
+function ItemSlot({ label, cost, icon, imageUrl, selected, owned, inCart, animDelay, onSelect }: ItemSlotProps) {
+  const [hovered, setHovered] = useState(false)
+
+  const borderColor =
+    owned           ? '#38b038' :
+    inCart          ? '#d09818' :
+    selected || hovered ? '#b0b0f8' :
+    '#3a3a58'
+
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title={label}
+      style={{
+        width: 50, height: 56,
+        background: owned ? '#0a180a' : selected ? '#14142a' : '#0c0c18',
+        border: `2px solid ${borderColor}`,
+        cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        position: 'relative',
+        transition: 'border-color 0.1s, background 0.1s',
+        animation: `rpgSlotBob ${2.2 + animDelay}s ease-in-out infinite`,
+        animationDelay: `${animDelay}s`,
+      }}
+    >
+      {/* Art */}
+      <div style={{ width: 30, height: 30, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2, overflow: 'hidden' }}>
+        {imageUrl
+          ? <Image src={imageUrl} alt={label} fill style={{ objectFit: 'cover' }} />
+          : <span style={{ fontSize: 18, lineHeight: 1, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}>{icon}</span>
+        }
+      </div>
+
+      {/* Price — no rarity label */}
+      <div style={{ fontSize: 5, color: '#d0b030', letterSpacing: 0, textAlign: 'center', lineHeight: 1 }}>
+        {cost.toLocaleString()}G
+      </div>
+
+      {/* Status marks */}
+      {owned  && <div style={{ position:'absolute', top:1, right:2, fontSize:5, color:'#38b038' }}>✓</div>}
+      {inCart && !owned && <div style={{ position:'absolute', top:2, right:3, width:5, height:5, borderRadius:'50%', background:'#d09818' }} />}
+    </div>
+  )
+}
+
+// ─── Dialogue Box ─────────────────────────────────────────────────────────────
+
+function DialogueBox({ text }: { text: string }) {
+  return (
+    <div style={{ background: '#07070e', borderTop: '3px solid #303050', padding: '12px 16px' }}>
+      <div style={{ fontSize: 6, color: '#7070a0', letterSpacing: 2, marginBottom: 7, textTransform: 'uppercase' }}>
+        Shopkeeper
+      </div>
+      <div style={{ fontSize: 8, color: '#d8d8ff', lineHeight: 2.2, minHeight: 36, letterSpacing: 0.4 }}>
+        {text}
+        <span style={{
+          display: 'inline-block', width: 7, height: 10,
+          background: '#d8d8ff', marginLeft: 3, verticalAlign: 'middle',
+          animation: 'rpgBlink 0.65s step-end infinite',
+        }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Action Bar ───────────────────────────────────────────────────────────────
+
+interface ActionBarProps {
+  canAdd: boolean; canRemove: boolean; canBuy: boolean
+  cartCount: number; cartTotal: number; purchasing: boolean
+  onAdd: () => void; onRemove: () => void; onBuy: () => void
+}
+
+function ActionBar({ canAdd, canRemove, canBuy, cartCount, cartTotal, purchasing, onAdd, onRemove, onBuy }: ActionBarProps) {
+  return (
+    <div style={{ display: 'flex', background: '#08080f', borderTop: '2px solid #28283e' }}>
+      <RpgButton label="ADD TO CART" disabled={!canAdd}    onClick={onAdd}    flex={2}   activeColor="#2a2060" borderColor="#5050b0" />
+      <RpgButton label="REMOVE"      disabled={!canRemove} onClick={onRemove} flex={1.4} activeColor="#300808" borderColor="#703030" />
+      <RpgButton
+        label={purchasing ? 'BUYING...' : `BUY (${cartCount})  ${cartTotal.toLocaleString()}G`}
+        disabled={!canBuy} onClick={onBuy} flex={2.5}
+        activeColor="#0a2010" borderColor="#306828"
+      />
+    </div>
+  )
+}
+
+interface RpgButtonProps {
+  label: string; disabled: boolean; onClick: () => void
+  flex: number; activeColor: string; borderColor: string
+}
+
+function RpgButton({ label, disabled, onClick, flex, activeColor, borderColor }: RpgButtonProps) {
+  const [pressed, setPressed] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      style={{
+        flex,
+        fontFamily: "'Press Start 2P', monospace",
+        fontSize: 7, padding: '11px 6px',
+        background: disabled ? '#0c0c18' : pressed ? activeColor : 'transparent',
+        border: 'none',
+        borderRight: `2px solid ${disabled ? '#18182a' : borderColor}`,
+        color: disabled ? '#30305a' : '#c8c8f0',
+        cursor: disabled ? 'default' : 'pointer',
+        letterSpacing: 0.4, lineHeight: 1.7,
+        transition: 'background 0.08s',
+        textAlign: 'center',
+      }}
+    >{label}</button>
+  )
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Returns a fallback emoji icon for a card slot when no imageUrl is present.
+ * Derived from card.type only — rarity is never used.
+ * Extend this map to match your schema's type values.
+ */
+function typeIcon(type: string): string {
+  const map: Record<string, string> = {
+    CREATURE: '🐉', SPELL: '✨', CURSE: '🌀',
+    FIRE: '🔥', WATER: '💧', NATURE: '🌿',
+    BASIC: '⚔️', TRAP: '⚡', DIVINE: '☀️', ITEM: '🎒',
+  }
+  return map[type?.toUpperCase()] ?? '🃏'
 }
