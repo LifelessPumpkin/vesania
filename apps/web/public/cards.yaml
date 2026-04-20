@@ -1,7 +1,33 @@
-# ==========================================
-# SPELLS & RELATED CHARACTERS
-# ==========================================
+# ==========================================================================
+# CHARACTERS
+# ==========================================================================
+- name: Ramsy
+  type: CHARACTER
+  rarity: COMMON
+  description: "Example character"
+  effectJson:
+    health: 50
+    energy: 4
+    element: FIRE
+    itemSlots: 4
+    toolSlots: 2
 
+- name: Maverick
+  type: CHARACTER
+  rarity: COMMON
+  description: "Example character"
+  effectJson:
+    health: 50
+    energy: 4
+    element: WATER
+    itemSlots: 4
+    toolSlots: 2
+
+# ==========================================================================
+# SPELLS
+# ==========================================================================
+
+# DONE
 - name: Bubble Buddy
   type: SPELL
   rarity: UNCOMMON
@@ -9,24 +35,18 @@
   effectJson:
     spellClass: SUMMON
     manaCost: 1
-    target: ALLY
     element: WATER
-    summon:
-      health: 1
-      damage: 3
-      damageType: MAGICAL
+    effects:
+      - type: SUMMON
+        summon:
+          name: Bubble Buddy
+          health: 1
+          attack: 3
+          damageType: MAGICAL
+          element: WATER
+          abilities: []
 
-- name: Bubble Buddy (Char)
-  type: CHARACTER
-  rarity: UNCOMMON
-  description: "Bubble Buddy minion proxy"
-  effectJson:
-    health: 1
-    energy: 1
-    element: WATER
-    itemSlots: 0
-    toolSlots: 0
-
+# DONE
 - name: Surf
   type: SPELL
   rarity: LEGENDARY
@@ -35,26 +55,25 @@
     spellClass: SUMMON
     manaCost: 2
     element: WATER
-    target: ALLY
-    summon:
-      health: 20
-      damage: 3
-      damageType: MAGICAL
-      playLimit: 1
-      statusEffect: FREEZE
-      triggerType: ON_DAMAGE_TAKEN
+    effects:
+      - type: SUMMON
+        summon:
+          name: Tidal Monstrosity
+          health: 20
+          attack: 3
+          damageType: MAGICAL
+          element: WATER
+          playLimit: 1
+          abilities:
+            - trigger: ON_DAMAGE_TAKEN
+              chance: 100
+              effects:
+                - type: STATUS
+                  target: ENEMY
+                  statusEffect: SOAKED
+                  duration: 2
 
-- name: Tidal Monstrosity (Char)
-  type: CHARACTER
-  rarity: LEGENDARY
-  description: "Tidal Monstrosity minion proxy"
-  effectJson:
-    health: 20
-    energy: 1
-    element: WATER
-    itemSlots: 0
-    toolSlots: 0
-
+# DONE
 - name: Pirate Skeleton Captain
   type: SPELL
   rarity: EPIC
@@ -63,23 +82,24 @@
     spellClass: SUMMON
     manaCost: 1
     element: WATER
-    target: ALLY
-    summon:
-      health: 6
-      damage: 2
-      damageType: PHYSICAL
+    effects:
+      - type: SUMMON
+        summon:
+          name: Pirate Skeleton
+          health: 6
+          attack: 2
+          damageType: PHYSICAL
+          element: WATER
+          abilities:
+            - trigger: ON_DEATH
+              chance: 100
+              effects:
+                - type: DAMAGE
+                  target: ENEMY
+                  damage: 2
+                  damageType: PHYSICAL
 
-- name: Pirate Skeleton Captain (Char)
-  type: CHARACTER
-  rarity: EPIC
-  description: "Pirate Skeleton minion proxy"
-  effectJson:
-    health: 6
-    energy: 1
-    element: WATER
-    itemSlots: 1
-    toolSlots: 1
-
+# DONE
 - name: Cleanse
   type: SPELL
   rarity: RARE
@@ -87,10 +107,15 @@
   effectJson:
     spellClass: HEALING
     manaCost: 1
-    target: SELF
     element: WATER
-    healing: 2
+    effects:
+      - type: CLEANSE
+        target: SELF
+      - type: HEAL
+        target: SELF
+        amount: 2
 
+# DONE
 - name: Water Cannon
   type: SPELL
   rarity: COMMON
@@ -98,22 +123,28 @@
   effectJson:
     spellClass: DAMAGE
     manaCost: 1
-    target: ENEMY
     element: WATER
-    damage: 2
-    damageType: MAGICAL
+    effects:
+      - type: DAMAGE
+        target: ENEMY
+        damage: 2
+        damageType: MAGICAL
 
+# DONE
 - name: Bubble Shield
   type: SPELL
   rarity: COMMON
   description: "Add +3 to block counter - Water - 1 Energy"
   effectJson:
-    spellClass: BLOCK
+    spellClass: UTILITY
     manaCost: 1
-    target: SELF
     element: WATER
-    blockBonus: 3
+    effects:
+      - type: BLOCK_COUNTER
+        target: SELF
+        amount: 3
 
+# DONE
 - name: Big Wave
   type: SPELL
   rarity: COMMON
@@ -121,11 +152,14 @@
   effectJson:
     spellClass: DAMAGE
     manaCost: 1
-    target: ALL_ENEMIES
     element: WATER
-    damage: 1
-    damageType: MAGICAL
+    effects:
+      - type: DAMAGE
+        target: ALL_ENEMY_SUMMONS
+        damage: 1
+        damageType: MAGICAL
 
+# DONE
 - name: Puddle
   type: SPELL
   rarity: COMMON
@@ -133,24 +167,18 @@
   effectJson:
     spellClass: SUMMON
     manaCost: 1
-    target: ALLY
     element: WATER
-    summon:
-      health: 3
-      damage: 1
-      damageType: MAGICAL
+    effects:
+      - type: SUMMON
+        summon:
+          name: Puddle
+          health: 3
+          attack: 1
+          damageType: MAGICAL
+          element: WATER
+          abilities: []
 
-- name: Puddle (Char)
-  type: CHARACTER
-  rarity: COMMON
-  description: "Puddle minion proxy"
-  effectJson:
-    health: 3
-    energy: 1
-    element: WATER
-    itemSlots: 0
-    toolSlots: 0
-
+# DONE
 - name: Whetstone
   type: SPELL
   rarity: COMMON
@@ -158,49 +186,48 @@
   effectJson:
     spellClass: BUFF
     manaCost: 1
-    target: SELF
     element: NEUTRAL
-    attackBonus: 2
-    duration: 1
+    effects:
+      - type: ATTACK_COUNTER
+        amount: 2
 
-- name: Gjallarhorn
-  type: SPELL
-  rarity: LEGENDARY
-  description: "Summon 2 wolf creatures - 2 energy [Note: Originally a Tool, changed to Spell to support summons!]"
-  effectJson:
-    spellClass: SUMMON
-    manaCost: 2
-    target: ALLY
-    element: NEUTRAL
-    summon:
-      health: 4
-      damage: 2
-      damageType: PHYSICAL
 
-- name: Wolf (Char)
-  type: CHARACTER
-  rarity: COMMON
-  description: "Wolf minion proxy"
-  effectJson:
-    health: 4
-    energy: 1
-    element: NEUTRAL
-    itemSlots: 0
-    toolSlots: 0
-
-# ==========================================
+# ==========================================================================
 # TOOLS
-# ==========================================
+# ==========================================================================
+
+# DONE
+- name: Gjallarhorn
+  type: TOOL
+  rarity: LEGENDARY
+  description: "Summon 2 wolf creatures - 1 energy"
+  effectJson:
+    slotsRequired: 1
+    effects:
+      - type: SUMMON
+        summon:
+          name: Wolf # It might be funny to call them a Stoat 
+          health: 4
+          attack: 2
+          damageType: PHYSICAL
+          element: NEUTRAL
+          abilities: []
 
 - name: Great Sword
   type: TOOL
   rarity: EPIC
   description: "Consume block counter, then deal that much damage - 1 energy"
   effectJson:
-    slotsRequired: 2
-    target: ENEMY
-    damageType: PHYSICAL
-    damage: 3
+    slotsRequired: 1
+    effects:
+      - type: BLOCK_COUNTER
+        amount: -1
+        # Need to figure out a way to pass the block counter value to the next effect
+      - type: DAMAGE
+        target: ENEMY
+        damageType: PHYSICAL
+        damage: 1
+      # I will need to create a new effect here to specify the damage amount based on the block counter
 
 - name: Flail
   type: TOOL
@@ -208,22 +235,31 @@
   description: "Deal 3 physical damage. If the target is bleeding, add +1 to the bleed duration - 1 energy"
   effectJson:
     slotsRequired: 1
-    target: ENEMY
-    damageType: PHYSICAL
-    damage: 3
-    bonusTriggerType: ON_HIT
-    statusEffect: POISON
-
+    effects:
+      - type: DAMAGE
+        target: ENEMY
+        damageType: PHYSICAL
+        damage: 3
+        # This will apply a new status effect, I could create a new ability called "EXTEND_STATUS_EFFECT"
+      - type: STATUS
+        target: ENEMY
+        statusEffect: BLEED
+        duration: 1
+        
+# DONE
 - name: Whip
   type: TOOL
   rarity: COMMON
   description: "Deal 2 physical damage to a target."
   effectJson:
     slotsRequired: 1
-    target: ENEMY
-    damageType: PHYSICAL
-    damage: 2
+    effects:
+      - type: DAMAGE
+        target: ENEMY
+        damageType: PHYSICAL
+        damage: 2
 
+# DONE
 - name: Tomahawk
   type: TOOL
   rarity: COMMON
@@ -237,25 +273,33 @@
 - name: Shuriken
   type: TOOL
   rarity: UNCOMMON
-  description: "Deal 2 magical damage. Apply the element of your champion to the shuriken’s damage."
+  description: "Deal 2 magical damage. Apply the element of your champion to the shuriken's damage."
   effectJson:
     slotsRequired: 1
     target: ENEMY
     damageType: MAGICAL
+    # If the damage type is magical, then it needs to know the element of the champion
     damage: 2
 
+# DONE
 - name: Claymore
   type: TOOL
   rarity: UNCOMMON
   description: "Deal 2 physical damage. Smite the target for 1 turn."
   effectJson:
-    slotsRequired: 2
-    target: ENEMY
-    damageType: PHYSICAL
-    damage: 2
-    bonusTriggerType: ON_HIT
-    statusEffect: STUN
+    slotsRequired: 1
+    effects:
+      - type: DAMAGE
+        target: ENEMY
+        damageType: PHYSICAL
+        damage: 2
+      - type: STATUS
+        target: ENEMY
+        statusEffect: SMITED
+        duration: 1
+    
 
+# DONE
 - name: Crossbow
   type: TOOL
   rarity: UNCOMMON
@@ -266,9 +310,9 @@
     damageType: PHYSICAL
     damage: 1
 
-# ==========================================
+# ==========================================================================
 # ITEMS
-# ==========================================
+# ==========================================================================
 
 - name: Whale Idol
   type: ITEM
@@ -310,7 +354,7 @@
     target: ALLY
     healing: 2
 
-- name: Coworker’s Screen Play
+- name: Coworker's Screen Play
   type: ITEM
   rarity: COMMON
   description: "On debuff, become enraged until the end of your next turn."
