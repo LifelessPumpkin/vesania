@@ -86,6 +86,14 @@ model CardDefinition {
   cards       Card[]
 }
 
+model Match {
+  id        String   @id
+  state     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+}
+
 model Deck {
   id        String     @id @default(cuid())
   name      String

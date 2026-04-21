@@ -19,19 +19,21 @@ export async function POST(request: NextRequest) {
 
     // When a deckId is provided, authenticate to verify deck ownership.
     let userId: string | undefined;
+    let firebaseUid: string | undefined;
     if (deckId) {
       const auth = await getAuthenticatedUser(request);
       if (!auth) {
         return NextResponse.json({ error: "Authentication required to use a deck" }, { status: 401 });
       }
       userId = auth.user.id;
+      firebaseUid = auth.session.uid;
     }
 
     let deckCardIds: string[] = [];
     if (userId && deckId) {
       deckCardIds = await resolveDeckCardIdsForUser(userId, deckId).catch(() => []);
     }
-    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, { deckId: deckId ?? undefined, userId, deckCardIds });
+    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, { deckId: deckId ?? undefined, userId, firebaseUid, deckCardIds });
     const token = state.p2Token!; // non-null: joinMatch() always assigns p2Token before returning
 
     return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });
