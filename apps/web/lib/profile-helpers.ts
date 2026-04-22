@@ -6,6 +6,7 @@ export const USER_PROFILE_SELECT = {
     avatarUrl: true,
     bio: true,
     createdAt: true,
+    filterSwearWords: true,
     _count: {
         select: {
             cards: true,
@@ -22,6 +23,7 @@ type UserWithCounts = Prisma.UserGetPayload<{ select: typeof USER_PROFILE_SELECT
     losses?: number | null;
     gamesPlayed?: number | null;
     mmr?: number | null;
+    filterSwearWords?: boolean;
 };
 
 /**
@@ -37,10 +39,12 @@ export function mapUserToProfile(user: UserWithCounts) {
         losses,
         gamesPlayed,
         mmr,
+        filterSwearWords,
         ...profile
     } = profileSource;
     return {
         ...profile,
+        filterSwearWords: filterSwearWords ?? false,
         stats: {
             cardsOwned: _count.cards,
             decksBuilt: _count.decks,

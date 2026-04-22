@@ -132,9 +132,8 @@ export function MatchChatPanel({
 
   return (
     <div className={styles.chatPanel}>
-      {/* Header */}
+      {/* Controls row — mute button only, no redundant title */}
       <div className={styles.chatHeader}>
-        <span className={styles.chatHeaderLabel}>Chat</span>
         <button
           className={`${styles.chatMuteBtn} ${muted ? styles.chatMuteBtnActive : ""}`}
           onClick={() => setMuted((v) => !v)}

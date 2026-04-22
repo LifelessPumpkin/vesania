@@ -33,6 +33,9 @@ model User {
   topCard1Id       String?
   topCard2Id       String?
   topCard3Id       String?
+
+  // Settings
+  filterSwearWords Boolean @default(false) @map("muteSwearWords")
 }
 
 model Friendship {
