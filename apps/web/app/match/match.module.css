@@ -200,8 +200,9 @@
 .joinButton,
 .secondaryButton {
     width: 100%;
+    min-height: 48px;
     border-radius: var(--radius-md);
-    font-size: var(--text-base);
+    font-size: var(--text-md);
     font-weight: 600;
     cursor: pointer;
     transition: opacity var(--ease-default), transform var(--ease-default), border-color var(--ease-default), background var(--ease-default);
@@ -214,19 +215,19 @@
 }
 
 .primaryButton {
-    padding: 0.8rem var(--space-xl);
+    padding: var(--space-md) var(--space-xl);
     background: linear-gradient(135deg, #9c7420, #d8ab4a);
 }
 
 .joinButton {
     width: auto;
     min-width: 120px;
-    padding: 0.8rem 1.25rem;
+    padding: var(--space-md) var(--space-lg);
     background: linear-gradient(135deg, #2c7a56, #4fb67b);
 }
 
 .secondaryButton {
-    padding: 0.8rem var(--space-xl);
+    padding: var(--space-md) var(--space-xl);
     border: 1px solid var(--color-border);
     background: rgba(17, 8, 4, 0.5);
     color: var(--color-text);
