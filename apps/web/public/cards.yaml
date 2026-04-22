@@ -1,27 +1,27 @@
 # ==========================================================================
 # CHARACTERS
 # ==========================================================================
-- name: Ramsy
-  type: CHARACTER
-  rarity: COMMON
-  description: "Example character"
-  effectJson:
-    health: 50
-    energy: 4
-    element: FIRE
-    itemSlots: 4
-    toolSlots: 2
+# - name: Ramsy
+#   type: CHARACTER
+#   rarity: COMMON
+#   description: "Example character"
+#   effectJson:
+#     health: 50
+#     energy: 4
+#     element: FIRE
+#     itemSlots: 4
+#     toolSlots: 2
 
-- name: Maverick
-  type: CHARACTER
-  rarity: COMMON
-  description: "Example character"
-  effectJson:
-    health: 50
-    energy: 4
-    element: WATER
-    itemSlots: 4
-    toolSlots: 2
+# - name: Maverick
+#   type: CHARACTER
+#   rarity: COMMON
+#   description: "Example character"
+#   effectJson:
+#     health: 50
+#     energy: 4
+#     element: WATER
+#     itemSlots: 4
+#     toolSlots: 2
 
 # ==========================================================================
 # SPELLS
@@ -213,38 +213,40 @@
           element: NEUTRAL
           abilities: []
 
-- name: Great Sword
-  type: TOOL
-  rarity: EPIC
-  description: "Consume block counter, then deal that much damage - 1 energy"
-  effectJson:
-    slotsRequired: 1
-    effects:
-      - type: BLOCK_COUNTER
-        amount: -1
-        # Need to figure out a way to pass the block counter value to the next effect
-      - type: DAMAGE
-        target: ENEMY
-        damageType: PHYSICAL
-        damage: 1
-      # I will need to create a new effect here to specify the damage amount based on the block counter
+# Need to make a new ability
+# - name: Great Sword
+#   type: TOOL
+#   rarity: EPIC
+#   description: "Consume block counter, then deal that much damage - 1 energy"
+#   effectJson:
+#     slotsRequired: 1
+#     effects:
+#       - type: BLOCK_COUNTER
+#         amount: -1
+#         # Need to figure out a way to pass the block counter value to the next effect
+#       - type: DAMAGE
+#         target: ENEMY
+#         damageType: PHYSICAL
+#         damage: 1
+#       # I will need to create a new effect here to specify the damage amount based on the block counter
 
-- name: Flail
-  type: TOOL
-  rarity: RARE
-  description: "Deal 3 physical damage. If the target is bleeding, add +1 to the bleed duration - 1 energy"
-  effectJson:
-    slotsRequired: 1
-    effects:
-      - type: DAMAGE
-        target: ENEMY
-        damageType: PHYSICAL
-        damage: 3
-        # This will apply a new status effect, I could create a new ability called "EXTEND_STATUS_EFFECT"
-      - type: STATUS
-        target: ENEMY
-        statusEffect: BLEED
-        duration: 1
+# Need a new ability
+# - name: Flail
+#   type: TOOL
+#   rarity: RARE
+#   description: "Deal 3 physical damage. If the target is bleeding, add +1 to the bleed duration - 1 energy"
+#   effectJson:
+#     slotsRequired: 1
+#     effects:
+#       - type: DAMAGE
+#         target: ENEMY
+#         damageType: PHYSICAL
+#         damage: 3
+#         # This will apply a new status effect, I could create a new ability called "EXTEND_STATUS_EFFECT"
+#       - type: STATUS
+#         target: ENEMY
+#         statusEffect: BLEED
+#         duration: 1
         
 # DONE
 - name: Whip
@@ -270,16 +272,17 @@
     damageType: PHYSICAL
     damage: 2
 
-- name: Shuriken
-  type: TOOL
-  rarity: UNCOMMON
-  description: "Deal 2 magical damage. Apply the element of your champion to the shuriken's damage."
-  effectJson:
-    slotsRequired: 1
-    target: ENEMY
-    damageType: MAGICAL
-    # If the damage type is magical, then it needs to know the element of the champion
-    damage: 2
+# Need a new effect for magical damage based on champion element
+# - name: Shuriken
+#   type: TOOL
+#   rarity: UNCOMMON
+#   description: "Deal 2 magical damage. Apply the element of your champion to the shuriken's damage."
+#   effectJson:
+#     slotsRequired: 1
+#     target: ENEMY
+#     damageType: MAGICAL
+#     # If the damage type is magical, then it needs to know the element of the champion
+#     damage: 2
 
 # DONE
 - name: Claymore
@@ -314,26 +317,29 @@
 # ITEMS
 # ==========================================================================
 
-- name: Whale Idol
-  type: ITEM
-  rarity: RARE
-  description: "On ally death, 50% chance to summon a whale creature. Triggers only once a turn."
-  effectJson:
-    triggerType: ON_DEATH
-    procChance: 50
-    target: ALLY
-    healthBonus: 5
+# Need to add a turn trigger limit
+# - name: Whale Idol
+#   type: ITEM
+#   rarity: RARE
+#   description: "On ally death, 50% chance to summon a whale creature. Triggers only once a turn."
+#   effectJson:
+#     triggerType: ON_DEATH
+#     procChance: 50
+#     target: ALLY
+#     healthBonus: 5
 
-- name: Pain Load Balancer
-  type: ITEM
-  rarity: EPIC
-  description: "On damage taken, Transfer 50% of damage (rounded up) to a random ally."
-  effectJson:
-    triggerType: ON_DAMAGE_TAKEN
-    procChance: 100
-    defenseBonus: 2
-    target: ALLY
+# Need a new effect
+# - name: Pain Load Balancer
+#   type: ITEM
+#   rarity: EPIC
+#   description: "On damage taken, Transfer 50% of damage (rounded up) to a random ally."
+#   effectJson:
+#     triggerType: ON_DAMAGE_TAKEN
+#     procChance: 100
+#     defenseBonus: 2
+#     target: ALLY
 
+# DONE
 - name: Opportunistic Lobster
   type: ITEM
   rarity: COMMON
@@ -344,12 +350,13 @@
     target: SELF
     attackBonus: 1
 
+# DONE 
 - name: Not So Secret Formula
   type: ITEM
   rarity: COMMON
   description: "On enemy heal, heal an ally for 2 HP"
   effectJson:
-    triggerType: ON_HEAL
+    triggerType: ON_ENEMY_HEAL
     procChance: 100
     target: ALLY
     healing: 2
