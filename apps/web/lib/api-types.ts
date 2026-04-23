@@ -107,6 +107,7 @@ export interface UserProfile {
     profileComplete?: boolean;
     role?: string;
     favoriteChampion?: string | null;
+    filterSwearWords?: boolean;
     stats: {
         cardsOwned: number;
         decksBuilt: number;

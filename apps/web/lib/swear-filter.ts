@@ -5,9 +5,28 @@
  */
 
 const SWEAR_WORDS = [
-  "fuck", "shit", "bitch", "asshole", "cunt", "dick", "cock",
-  "pussy", "bastard", "damn", "ass", "piss", "crap", "slut",
-  "whore", "faggot", "nigger", "nigga", "motherfucker", "motherfucking",
+  // f-word family
+  "fuck", "fucker", "fucked", "fucking", "fucks", "fuckhead", "fuckface",
+  // s-word family
+  "shit", "shits", "shitting", "shitty", "bullshit",
+  // b-words
+  "bitch", "bitches", "bitching", "bastard", "bastards",
+  // c-words
+  "cunt", "cunts", "cock", "cocks",
+  // d-words
+  "dick", "dicks", "dickhead",
+  // p-words
+  "pussy", "piss", "pissed",
+  // a-words
+  "ass", "asses", "asshole", "assholes", "asshat",
+  // w-words
+  "whore", "whores",
+  // slurs
+  "faggot", "faggots", "fag", "nigger", "niggers", "nigga", "niggas",
+  // compound
+  "motherfucker", "motherfucking", "motherfuckers",
+  "jackass", "dumbass", "smartass", "badass", "dipshit", "horseshit",
+  "shithead", "shithole", "slutty", "slut", "sluts", "crap", "crappy",
 ];
 
 // Pre-compile a single regex that matches any of the words (whole-word, case-insensitive)
