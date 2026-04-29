@@ -5,15 +5,17 @@ import {
   PlayerState,
   PlayerId,
   ActionType,
-  EntityId,
+  CardConstraintState,
   SummonAbility,
 } from "./types";
 import redis from "@/lib/redis";
 import prisma from "@/lib/prisma";
 import { GAME } from "./constants";
+import { makeEventId, getOpponent, getCharacterEntityId } from "./utils";
 
 interface MatchPlayerOptions {
   userId?: string | null;
+  firebaseUid?: string | null;
   deckId?: string;
   deckCardIds?: string[];
 }
@@ -101,17 +103,6 @@ function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
 }
 
-function makeEventId(): string {
-  return crypto.randomUUID();
-}
-
-function getOpponent(playerId: PlayerId): PlayerId {
-  return playerId === "p1" ? "p2" : "p1";
-}
-
-function getCharacterEntityId(playerId: PlayerId): EntityId {
-  return `${playerId}:character`;
-}
 
 function defaultPlayerState(name: string): PlayerState {
   return {
@@ -133,6 +124,7 @@ function defaultPlayerState(name: string): PlayerState {
     statusEffects: [],
     toolUsedThisTurn: false,
     turnRestriction: "none",
+    cardConstraints: {},
   };
 }
 
@@ -200,6 +192,14 @@ export async function loadDeckIntoPlayerState(
     [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
   }
 
+  const cardConstraints: Record<string, CardConstraintState> = {};
+  for (const card of matchCards) {
+    const charges = card.effectJson.charges as number | undefined;
+    if (charges !== undefined) {
+      cardConstraints[card.instanceId] = { chargesRemaining: charges };
+    }
+  }
+
   return {
     name: playerName,
     hp: maxHp,
@@ -219,6 +219,7 @@ export async function loadDeckIntoPlayerState(
     statusEffects: [],
     toolUsedThisTurn: false,
     turnRestriction: "none",
+    cardConstraints,
   };
 }
 
@@ -251,7 +252,16 @@ function calculateUpdatedMmr(playerMmr: number, opponentMmr: number, didWin: boo
 }
 
 async function saveMatchState(state: MatchState) {
-  await redis.set(`match:${state.matchId}`, JSON.stringify(state), "EX", MATCH_TTL_SECONDS);
+  const expiresAt = new Date(Date.now() + MATCH_TTL_SECONDS * 1000);
+  await Promise.all([
+    redis.set(`match:${state.matchId}`, JSON.stringify(state), "EX", MATCH_TTL_SECONDS),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (prisma as any).match.upsert({
+      where: { id: state.matchId },
+      create: { id: state.matchId, state: state as object, expiresAt },
+      update: { state: state as object, expiresAt },
+    }),
+  ]);
 }
 
 async function publishMatchState(state: MatchState) {
@@ -365,6 +375,8 @@ export async function createMatch(
     p2Token: null,
     p1UserId: options.userId ?? null,
     p2UserId: null,
+    p1FirebaseUid: options.firebaseUid ?? null,
+    p2FirebaseUid: null,
     p1DeckCardIds: options.deckCardIds ?? [],
     p2DeckCardIds: [],
     p1DeckId: options.deckId ?? null,
@@ -376,8 +388,17 @@ export async function createMatch(
 }
 
 export async function getMatch(matchId: string): Promise<MatchState | null> {
-  const data = await redis.get(`match:${matchId}`);
-  return data ? JSON.parse(data) : null;
+  const cached = await redis.get(`match:${matchId}`);
+  if (cached) return JSON.parse(cached) as MatchState;
+
+  // Redis miss — try Postgres fallback (crash recovery)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row = await (prisma as any).match.findUnique({ where: { id: matchId } }) as { state: unknown; expiresAt: Date } | null;
+  if (!row || row.expiresAt < new Date()) return null;
+
+  const state = row.state as MatchState;
+  await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", MATCH_TTL_SECONDS);
+  return state;
 }
 
 export async function joinMatch(
@@ -398,6 +419,7 @@ export async function joinMatch(
     state.status = "active";
     state.p2Token = generateToken();
     state.p2UserId = options.userId ?? null;
+    state.p2FirebaseUid = options.firebaseUid ?? null;
     state.p2DeckCardIds = options.deckCardIds ?? [];
     state.p2DeckId = options.deckId ?? null;
     state.log.push({ message: `${guestName} joined! ${state.players.p1.name}'s turn.` });
@@ -418,7 +440,9 @@ async function updatePlayerMatchStats(
     where: { id: userId },
     data: {
       gamesPlayed: { increment: 1 },
-      ...(result === "win" ? { wins: { increment: 1 } } : {}),
+      ...(result === "win"
+        ? { wins: { increment: 1 }, gold: { increment: GAME.WIN_GOLD_REWARD } }
+        : {}),
       ...(result === "loss" ? { losses: { increment: 1 } } : {}),
       ...(typeof mmr === "number" ? { mmr } : {}),
     },
@@ -518,6 +542,10 @@ async function recordFinishedMatchStats(state: MatchState) {
   if (tasks.length > 0) {
     await Promise.all(tasks);
   }
+
+  // Clean up persisted match state now that stats are recorded
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma as any).match.delete({ where: { id: state.matchId } }).catch(() => {});
 }
 
 export async function queueForMatchmaking(
@@ -640,6 +668,26 @@ function drawMatchingCard(
   return card ?? null;
 }
 
+function checkCardConstraints(card: MatchCard, player: PlayerState): void {
+  const c = player.cardConstraints[card.instanceId];
+  if (!c) return;
+  if (c.usedThisTurn) throw new Error(`${card.name} can only be used once per turn`);
+  if (c.cooldownRemaining && c.cooldownRemaining > 0)
+    throw new Error(`${card.name} is on cooldown for ${c.cooldownRemaining} more turn(s)`);
+  if (c.chargesRemaining !== undefined && c.chargesRemaining <= 0)
+    throw new Error(`${card.name} has no charges remaining`);
+}
+
+function consumeCardUse(card: MatchCard, player: PlayerState): void {
+  const oncePer = card.effectJson.oncePer as string | undefined;
+  const cooldown = card.effectJson.cooldown as number | undefined;
+  const c = player.cardConstraints[card.instanceId] ?? {};
+  if (oncePer === "turn") c.usedThisTurn = true;
+  if (cooldown !== undefined) c.cooldownRemaining = cooldown;
+  if (c.chargesRemaining !== undefined) c.chargesRemaining -= 1;
+  player.cardConstraints[card.instanceId] = c;
+}
+
 function isActionAllowedByRestriction(
   action: ActionType,
   restriction: PlayerState["turnRestriction"]
@@ -756,6 +804,11 @@ export async function applyAction(
         state.turnNumber += 1;
         attacker.toolUsedThisTurn = false;
         attacker.turnRestriction = "none";
+        for (const key of Object.keys(attacker.cardConstraints)) {
+          const c = attacker.cardConstraints[key]!;
+          c.usedThisTurn = false;
+          if (c.cooldownRemaining && c.cooldownRemaining > 0) c.cooldownRemaining -= 1;
+        }
 
         await redis.set(`match:${matchId}`, JSON.stringify(state), "EX", 900);
         await redis.publish(`match:${matchId}`, JSON.stringify(state));
@@ -932,10 +985,13 @@ export async function applyAction(
         if (spellIdx === -1) throw new Error("Spell not found in hand");
 
         const spell = attacker.hand[spellIdx]!;
+        checkCardConstraints(spell, attacker);
+
         const cost = getSpellCost(spell);
         if (attacker.energy < cost) throw new Error("Not enough energy");
 
         attacker.energy -= cost;
+        consumeCardUse(spell, attacker);
 
         state.log.push({
           message: `${attacker.name} cast ${spell.name} (${cost} energy)`,
@@ -968,7 +1024,10 @@ export async function applyAction(
         );
         if (!tool) throw new Error("Tool not found in equipped tools");
 
+        checkCardConstraints(tool, attacker);
+
         attacker.toolUsedThisTurn = true;
+        consumeCardUse(tool, attacker);
 
         state.log.push({
           message: `${attacker.name} used ${tool.name}`,
@@ -1080,6 +1139,11 @@ export async function applyAction(
       state.turnNumber += 1;
       attacker.toolUsedThisTurn = false;
       attacker.turnRestriction = "none";
+      for (const key of Object.keys(attacker.cardConstraints)) {
+        const c = attacker.cardConstraints[key]!;
+        c.usedThisTurn = false;
+        if (c.cooldownRemaining && c.cooldownRemaining > 0) c.cooldownRemaining -= 1;
+      }
       target.energy = target.maxEnergy;
     }
 

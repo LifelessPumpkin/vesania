@@ -5,6 +5,7 @@ export const GAME = {
     MAX_HP: 30,
     DEFAULT_ENERGY: 4,
     HEAL_AMOUNT: 3,
+    WIN_GOLD_REWARD: 150,
     MAX_STATUS_EFFECTS: 5,
     MAX_EVENT_CHAIN_DEPTH: 10,
 

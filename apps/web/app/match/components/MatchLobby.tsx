@@ -40,7 +40,7 @@ export function MatchLobby({
     <div className={styles.card}>
       <header className={styles.header}>
         <Link href="/home" className={styles.backLink}>
-          ← Home
+          ← Back
         </Link>
       </header>
 

@@ -24,6 +24,7 @@ import type {
 import type { TriggeredEffect } from "./event-bus";
 import { GameEvent, GameEventType, EventCause } from "./events";
 import { GAME, SPELL_COST_BY_RARITY } from "./constants";
+import { makeEventId, getOpponent, getCharacterEntityId } from "./utils";
 import {
   CardType,
   DamageType,
@@ -37,25 +38,6 @@ import {
 // ---------------------------------------------------------------------------
 // Local helpers
 // ---------------------------------------------------------------------------
-
-function makeEventId(): string {
-  return crypto.randomUUID();
-}
-
-/**
- * In the current player-centric model, a player's "character entity" is just
- * represented by a synthetic entity id.
- *
- * Later, when real entities/summons are added to MatchState, this should be
- * replaced by actual entity lookup.
- */
-function getCharacterEntityId(playerId: PlayerId): EntityId {
-  return `${playerId}:character`;
-}
-
-function getOpponent(playerId: PlayerId): PlayerId {
-  return playerId === "p1" ? "p2" : "p1";
-}
 
 function getPlayerEntities(state: MatchState, playerId: PlayerId): EntityId[] {
   return [

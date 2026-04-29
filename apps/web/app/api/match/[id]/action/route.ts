@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
-import { applyAction, resolvePlayerByToken } from "@/lib/game-server/match";
+import { NextRequest, NextResponse } from "next/server";
+import { applyAction, resolvePlayerByToken, getMatch } from "@/lib/game-server/match";
 import { toPublicState, ActionType } from "@/lib/game-server/types";
+import { verifyRequestAuth } from "@/lib/auth-session";
 
 const VALID_ACTIONS: ActionType[] = [
   "DRAW_CARD",
@@ -26,7 +27,7 @@ const CARD_ACTIONS: ActionType[] = [
 ];
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -48,6 +49,19 @@ export async function POST(
     const playerId = await resolvePlayerByToken(id, matchToken);
     if (!playerId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // If this player slot has a Firebase UID stored, cross-validate that the
+    // request carries a matching Firebase session — prevents token misuse if leaked.
+    const matchState = await getMatch(id);
+    if (matchState) {
+      const storedUid = playerId === "p1" ? matchState.p1FirebaseUid : matchState.p2FirebaseUid;
+      if (storedUid !== null) {
+        const session = await verifyRequestAuth(request);
+        if (!session || session.uid !== storedUid) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
     }
 
     const body = await request.json();

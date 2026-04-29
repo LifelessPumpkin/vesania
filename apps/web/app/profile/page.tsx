@@ -26,6 +26,8 @@ export default function ProfilePage() {
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
+    const [filterSwearWords, setFilterSwearWords] = useState(false)
+    const [savingFilter, setSavingFilter] = useState(false)
 
     const {
         username: editUsername, usernameStatus, handleUsernameChange, setUsername: setEditUsername,
@@ -58,6 +60,9 @@ export default function ProfilePage() {
             if (!res.ok) throw new Error('Failed to load profile')
             const data = await res.json()
             setProfile(data)
+            if (typeof data.filterSwearWords === 'boolean') {
+                setFilterSwearWords(data.filterSwearWords)
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Failed to load profile'
             setError(message)
@@ -83,6 +88,24 @@ export default function ProfilePage() {
     const cancelEditing = () => {
         setEditing(false)
         setError('')
+    }
+
+    const handleFilterToggle = async () => {
+        const next = !filterSwearWords
+        setFilterSwearWords(next)
+        setSavingFilter(true)
+        try {
+            const token = await getToken()
+            await fetch('/api/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ filterSwearWords: next }),
+            })
+        } catch {
+            setFilterSwearWords(!next)
+        } finally {
+            setSavingFilter(false)
+        }
     }
 
     const handleSave = async (e: React.FormEvent) => {
@@ -152,9 +175,9 @@ export default function ProfilePage() {
             <DungeonBackground />
 
             <SlideUpPage>
-                <div className="pixel-panel p-8 w-full max-w-[500px] mt-8 mx-auto animate-fade-in">
+                <div className="pixel-panel p-8 w-full max-w-[500px] sm:w-[500px] mt-8 mx-auto animate-fade-in flex flex-col items-stretch">
                     <header className="flex items-center justify-between mb-6">
-                        <Link href="/home" className="text-muted text-base hover:text-white transition-colors">&larr; Home</Link>
+                        <Link href="/dashboard" className="text-muted text-base hover:text-white transition-colors">&larr; Back</Link>
                     </header>
 
                     {loadingProfile ? (
@@ -245,10 +268,17 @@ export default function ProfilePage() {
                                     {profile.username}
                                 </h1>
                                 <span className="text-base text-muted text-center">@{profile.username}</span>
-                                {profile.bio && <p className="text-base text-muted text-center max-w-[320px] leading-relaxed">{profile.bio}</p>}
+                                {profile.bio && (
+                                    <p
+                                        className="text-base text-muted text-center max-w-[400px] leading-relaxed mx-auto"
+                                        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                                    >
+                                        {profile.bio}
+                                    </p>
+                                )}
                             </div>
 
-                            <div className="flex justify-center flex-wrap gap-8 py-6 border-y border-border mb-6">
+                            <div className="flex justify-center flex-wrap gap-x-6 gap-y-4 py-6 border-y border-border mb-6">
                                 <div className="flex flex-col items-center gap-1">
                                     <span className="text-xl font-bold tracking-wider text-white drop-shadow-md">{profile.stats.cardsOwned ?? 0}</span>
                                     <span className="text-sm text-faint uppercase tracking-[0.04em]">Cards</span>
@@ -298,6 +328,50 @@ export default function ProfilePage() {
                             <p className="text-base text-faint text-center mt-6">
                                 Member since {new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                             </p>
+
+                            {/* Settings */}
+                            <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-border">
+                                <h2 className="heading-sm mb-1">Settings</h2>
+                                <div className="flex items-center justify-between gap-4 p-3 pixel-panel bg-black/20">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-base font-semibold text-white">Swear Word Filter</span>
+                                        <span className="text-sm text-faint">Stars out profanity in chat messages</span>
+                                    </div>
+                                    <button
+                                        role="switch"
+                                        aria-checked={filterSwearWords}
+                                        onClick={handleFilterToggle}
+                                        disabled={savingFilter}
+                                        title={filterSwearWords ? 'Filter on — click to disable' : 'Filter off — click to enable'}
+                                        style={{
+                                            position: 'relative',
+                                            flexShrink: 0,
+                                            width: 48,
+                                            height: 26,
+                                            borderRadius: 999,
+                                            border: '1px solid',
+                                            borderColor: filterSwearWords ? '#16a34a' : 'rgba(255,255,255,0.15)',
+                                            background: filterSwearWords ? '#16a34a' : 'rgba(0,0,0,0.4)',
+                                            cursor: savingFilter ? 'not-allowed' : 'pointer',
+                                            opacity: savingFilter ? 0.5 : 1,
+                                            transition: 'background 0.2s ease, border-color 0.2s ease',
+                                        }}
+                                    >
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: 3,
+                                            left: filterSwearWords ? 23 : 3,
+                                            width: 18,
+                                            height: 18,
+                                            borderRadius: '50%',
+                                            background: 'white',
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                            transition: 'left 0.2s ease',
+                                            display: 'block',
+                                        }} />
+                                    </button>
+                                </div>
+                            </div>
 
                             {error && <p className="text-base text-error text-center">{error}</p>}
                             {success && <p className="text-base text-success text-center">{success}</p>}

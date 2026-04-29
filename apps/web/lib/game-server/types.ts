@@ -183,6 +183,18 @@ export interface PlayerState {
 
   /** Action restriction from FREEZE/STUN */
   turnRestriction: "none" | "block_only" | "basic_only";
+
+  /** Per-card constraint state (once-per-turn, cooldowns, charges) keyed by instanceId */
+  cardConstraints: Record<CardInstanceId, CardConstraintState>;
+}
+
+export interface CardConstraintState {
+  /** True if this card has already been used this turn (once-per-turn cards) */
+  usedThisTurn?: boolean;
+  /** Turns remaining before the card can be used again; 0 means ready */
+  cooldownRemaining?: number;
+  /** Total uses remaining; undefined means unlimited */
+  chargesRemaining?: number;
 }
 
 /**
@@ -240,6 +252,8 @@ export interface MatchState {
   p2Token: string | null;
   p1UserId: string | null;
   p2UserId: string | null;
+  p1FirebaseUid: string | null;
+  p2FirebaseUid: string | null;
   p1DeckCardIds: string[];
   p2DeckCardIds: string[];
   p1DeckId: string | null;
@@ -249,10 +263,10 @@ export interface MatchState {
 // MatchState with private auth/identity/loadout fields removed. Safe to send to clients.
 export type PublicMatchState = Omit<
   MatchState,
-  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1DeckCardIds" | "p2DeckCardIds" | "p1DeckId" | "p2DeckId"
+  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1FirebaseUid" | "p2FirebaseUid" | "p1DeckCardIds" | "p2DeckCardIds" | "p1DeckId" | "p2DeckId"
 >;
 
 export function toPublicState(match: MatchState): PublicMatchState {
-  const { p1Token, p2Token, p1UserId, p2UserId, p1DeckCardIds, p2DeckCardIds, p1DeckId, p2DeckId, ...pub } = match;
+  const { p1Token, p2Token, p1UserId, p2UserId, p1FirebaseUid, p2FirebaseUid, p1DeckCardIds, p2DeckCardIds, p1DeckId, p2DeckId, ...pub } = match;
   return pub;
 }

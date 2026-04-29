@@ -53,6 +53,7 @@ export default function MatchPage() {
   const [selectedDeckId, setSelectedDeckId] = useState("");
   const [decksLoading, setDecksLoading] = useState(false);
   const [selectedCard, setSelectedCard] = useState<MatchCard | null>(null);
+  const [filterSwearWords, setFilterSwearWords] = useState(false);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -100,6 +101,23 @@ export default function MatchPage() {
     }
 
     fetchDecks();
+
+    // Also fetch profile to get the swear filter preference
+    async function fetchFilterPref() {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("/api/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.filterSwearWords === "boolean") {
+          setFilterSwearWords(data.filterSwearWords);
+        }
+      } catch { /* non-essential */ }
+    }
+    fetchFilterPref();
   }, [user, getToken]);
 
   const connectSSE = useCallback((id: string) => {
@@ -466,6 +484,9 @@ export default function MatchPage() {
         <MatchBoard
           matchState={matchState}
           playerId={playerId}
+          playerName={playerName}
+          matchToken={matchToken}
+          filterSwearWords={filterSwearWords}
           error={error}
           connectionStatus={connectionStatus}
           connectionLost={connectionLost}
