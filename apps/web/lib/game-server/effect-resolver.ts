@@ -28,6 +28,8 @@ import { makeEventId, getOpponent, getCharacterEntityId } from "./utils";
 import {
   CardType,
   DamageType,
+  EffectType,
+  ElementType,
   SpellType,
   StatusEffect,
   TargetType,
@@ -165,6 +167,16 @@ function resolveTargets(
         ...getPlayerEntities(state, ownerPlayerId),
         ...getPlayerEntities(state, opponent),
       ];
+
+    case TargetType.ALL_ENEMY_SUMMONS:
+      return state.summons
+        .filter((s) => s.ownerPlayerId === opponent)
+        .map((s) => s.id);
+
+    case TargetType.ALL_ALLIED_SUMMONS:
+      return state.summons
+        .filter((s) => s.ownerPlayerId === ownerPlayerId)
+        .map((s) => s.id);
 
     default:
       return [getCharacterEntityId(ownerPlayerId)];
@@ -537,6 +549,253 @@ function applyStatusEffect(
 }
 
 // ---------------------------------------------------------------------------
+/**
+ * Core helper that iterates through a list of composable effects and applies them
+ * to the match state. Used by spells, tools, items, and triggered abilities.
+ */
+function applyEffectList(
+  state: MatchState,
+  effects: any[],
+  casterId: PlayerId,
+  sourceCard?: MatchCard,
+  sourceEntityId?: EntityId
+): GameEvent[] {
+  const events: GameEvent[] = [];
+  const sourceName = sourceCard?.name ?? sourceEntityId ?? "Unknown Source";
+  const sourceImageUrl = sourceCard?.imageUrl ?? null;
+  const sourceInstanceId = sourceCard?.instanceId;
+
+  for (const eff of effects) {
+    switch (eff.type) {
+      case EffectType.DAMAGE: {
+        const damage = (eff.damage as number) ?? 0;
+        const damageType = (eff.damageType as DamageType) ?? DamageType.MAGICAL;
+        const target = (eff.target as TargetType) ?? TargetType.ENEMY;
+        const targets = resolveTargets(state, target, casterId);
+
+        for (const targetEntityId of targets) {
+          events.push(
+            ...applyDamage(state, {
+              sourcePlayerId: casterId,
+              targetEntityId,
+              sourceEntityId,
+              sourceCardInstanceId: sourceInstanceId,
+              cause: sourceCard ? (sourceCard.type as any) : "PASSIVE",
+              attemptedAmount: damage,
+              damageType,
+              sourceCardName: sourceName,
+              sourceCardImageUrl: sourceImageUrl,
+            })
+          );
+        }
+        break;
+      }
+
+      case EffectType.HEAL: {
+        const amount = (eff.amount as number) ?? 0;
+        const target = (eff.target as TargetType) ?? TargetType.SELF;
+        const targets = resolveTargets(state, target, casterId);
+
+        for (const targetEntityId of targets) {
+          events.push(
+            ...applyHealing(state, {
+              sourcePlayerId: casterId,
+              targetEntityId,
+              sourceEntityId,
+              sourceCardInstanceId: sourceInstanceId,
+              cause: sourceCard ? (sourceCard.type as any) : "PASSIVE",
+              attemptedAmount: amount,
+              sourceCardName: sourceName,
+              sourceCardImageUrl: sourceImageUrl,
+            })
+          );
+        }
+        break;
+      }
+
+      case EffectType.STATUS: {
+        const statusEffect = (eff.statusEffect as StatusEffect) ?? StatusEffect.NONE;
+        const duration = (eff.duration as number) ?? 1;
+        const chance = (eff.procChance as number) ?? 100;
+        const target = (eff.target as TargetType) ?? TargetType.ENEMY;
+
+        if (statusEffect === StatusEffect.NONE) break;
+
+        const targets = resolveTargets(state, target, casterId);
+
+        for (const targetEntityId of targets) {
+          if (Math.random() * 100 < chance) {
+            events.push(
+              ...applyStatusEffect(state, {
+                sourcePlayerId: casterId,
+                targetEntityId,
+                sourceEntityId,
+                sourceCardInstanceId: sourceInstanceId,
+                cause: sourceCard ? (sourceCard.type as any) : "PASSIVE",
+                statusEffect,
+                duration,
+                sourceCardName: sourceName,
+                sourceCardImageUrl: sourceImageUrl,
+              })
+            );
+          }
+        }
+        break;
+      }
+
+      case EffectType.BLOCK_COUNTER: {
+        const amount = (eff.amount as number) ?? 0;
+        const target = (eff.target as TargetType) ?? TargetType.SELF;
+        const targets = resolveTargets(state, target, casterId);
+
+        for (const targetEntityId of targets) {
+          events.push(
+            ...applyBlock(state, {
+              sourcePlayerId: casterId,
+              targetEntityId,
+              sourceCardInstanceId: sourceInstanceId,
+              attemptedAmount: amount,
+              sourceCardName: sourceName,
+              sourceCardImageUrl: sourceImageUrl,
+            })
+          );
+        }
+        break;
+      }
+
+      case EffectType.ATTACK_COUNTER: {
+        const amount = (eff.amount as number) ?? 0;
+        const ownerState = state.players[casterId];
+        if (ownerState && amount > 0) {
+          ownerState.attack += amount;
+
+          pushLog(state, {
+            message: `${sourceName} granted +${amount} attack to ${ownerState.name}`,
+            sourceCard: { name: sourceName, imageUrl: sourceImageUrl },
+            playerId: casterId,
+            values: { attack: amount },
+          });
+        }
+        break;
+      }
+
+      case EffectType.CLEANSE: {
+        const target = (eff.target as TargetType) ?? TargetType.SELF;
+        const targets = resolveTargets(state, target, casterId);
+
+        for (const targetEntityId of targets) {
+          const statusEffects = getEntityStatusEffects(state, targetEntityId);
+          if (statusEffects && statusEffects.length > 0) {
+            const cleansed = [...statusEffects];
+            statusEffects.length = 0;
+
+            for (const se of cleansed) {
+              pushLog(state, {
+                message: `${sourceName} cleansed ${se.effect} from ${getEntityDisplayName(state, targetEntityId)}`,
+                sourceCard: { name: sourceName, imageUrl: sourceImageUrl },
+                playerId: getEntityOwner(state, targetEntityId) ?? casterId,
+              });
+            }
+          }
+        }
+        break;
+      }
+
+      case EffectType.DRAW: {
+        const amount = (eff.amount as number) ?? 1;
+        const ownerState = state.players[casterId];
+        if (ownerState) {
+          for (let i = 0; i < amount; i++) {
+            const drawn = ownerState.drawDeck.shift();
+            if (drawn) {
+              ownerState.hand.push(drawn);
+              pushLog(state, {
+                message: `${ownerState.name} drew ${drawn.name}`,
+                playerId: casterId,
+              });
+            }
+          }
+        }
+        break;
+      }
+
+      case EffectType.SUMMON: {
+        const summon = (eff.summon as Record<string, unknown> | undefined) ?? {};
+        const summonEntityId = `summon:${sourceInstanceId ?? "passive"}:${state.turnNumber}:${Math.random()
+          .toString(36)
+          .slice(2, 8)}`;
+
+        const rawAbilities = (summon.abilities as Array<Record<string, unknown>>) ?? [];
+        const abilities = rawAbilities.map((a) => ({
+          trigger: a.trigger as string,
+          chance: (a.chance as number) ?? 100,
+          effects: (a.effects as Array<Record<string, unknown>>) ?? [],
+          limitPerTurn: a.limitPerTurn as number | undefined,
+        }));
+
+        const newSummon = {
+          id: summonEntityId,
+          ownerPlayerId: casterId,
+          sourceCardInstanceId: sourceInstanceId ?? "passive",
+          name: (summon.name as string) ?? sourceName,
+          imageUrl: sourceImageUrl,
+          hp: (summon.health as number) ?? 1,
+          maxHp: (summon.health as number) ?? 1,
+          damage: (summon.attack as number) ?? 0,
+          damageType: (summon.damageType as DamageType) ?? DamageType.PHYSICAL,
+          element: (summon.element as ElementType) ?? ElementType.NEUTRAL,
+          duration: summon.duration as number | undefined,
+          playLimit: summon.playLimit as number | undefined,
+          abilities: abilities as any,
+          statusEffects: [],
+        };
+
+        state.summons.push(newSummon);
+
+        const ownerName = state.players[casterId]?.name ?? "<no name>";
+
+        pushLog(state, {
+          message: `${ownerName} summoned ${newSummon.name}`,
+          event: GameEventType.SUMMON_CREATED,
+          sourceCard: { name: sourceName, imageUrl: sourceImageUrl },
+          playerId: casterId,
+        });
+
+        events.push({
+          eventId: makeEventId(),
+          turnNumber: state.turnNumber,
+          type: GameEventType.SUMMON_CREATED,
+          ownerPlayerId: casterId,
+          summonEntityId,
+          sourceCardInstanceId: sourceInstanceId ?? "passive",
+          health: newSummon.hp,
+          damage: newSummon.damage,
+          damageType: newSummon.damageType,
+          duration: newSummon.duration,
+          playLimit: newSummon.playLimit ?? 1,
+        });
+
+        break;
+      }
+    }
+  }
+
+  return events;
+}
+
+// Ability Effect Resolver
+function resolveAbilityEffect(
+  triggered: TriggeredEffect,
+  state: MatchState
+): GameEvent[] {
+  const ability = triggered.ability!;
+  const owner = triggered.ownerPlayerId;
+  const entityId = triggered.sourceEntityId;
+  const effects = (ability.effects as any[]) ?? [];
+
+  return applyEffectList(state, effects, owner, undefined, entityId);
+}
+
 // Item Effect Resolver
 // ---------------------------------------------------------------------------
 
@@ -545,107 +804,20 @@ function resolveItemEffect(
   state: MatchState
 ): GameEvent[] {
   const events: GameEvent[] = [];
-  const effect = triggered.card.effectJson;
+  const card = triggered.card!;
+  const effect = card.effectJson;
   const owner = triggered.ownerPlayerId;
-  const targetType = (effect.target as TargetType) ?? TargetType.SELF;
-  const targets = resolveTargets(state, targetType, owner);
-  const damageType = (effect.damageType as DamageType) ?? DamageType.PHYSICAL;
+  const effects = (effect.effects as any[]) ?? [];
 
-  const damage = (effect.damage as number) ?? 0;
-  if (damage > 0) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyDamage(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "ITEM",
-          attemptedAmount: damage,
-          damageType,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
+  // Apply composable effects
+  events.push(...applyEffectList(state, effects, owner, card));
 
-  const healing = (effect.healing as number) ?? 0;
-  if (healing > 0) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyHealing(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "ITEM",
-          attemptedAmount: healing,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
-  const statusEffect = (effect.statusEffect as StatusEffect | undefined) ?? undefined;
-  if (statusEffect && statusEffect !== StatusEffect.NONE) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyStatusEffect(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "ITEM",
-          statusEffect,
-          duration: 1,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
-  const ownerState = state.players[owner];
-  if (ownerState) {
-    const healthBonus = (effect.healthBonus as number) ?? 0;
-    if (healthBonus > 0) {
-      ownerState.maxHp += healthBonus;
-      ownerState.hp += healthBonus;
-
-      pushLog(state, {
-        message: `${triggered.card.name} granted +${healthBonus} max HP to ${ownerState.name}`,
-        sourceCard: { name: triggered.card.name, imageUrl: triggered.card.imageUrl },
-        playerId: owner,
-      });
-    }
-
-    const attackBonus = (effect.attackBonus as number) ?? 0;
-    if (attackBonus > 0) {
-      pushLog(state, {
-        message: `${triggered.card.name} granted +${attackBonus} attack to ${ownerState.name}`,
-        sourceCard: { name: triggered.card.name, imageUrl: triggered.card.imageUrl },
-        playerId: owner,
-      });
-    }
-
-    const defenseBonus = (effect.defenseBonus as number) ?? 0;
-    if (defenseBonus > 0) {
-      events.push(
-        ...applyBlock(state, {
-          sourcePlayerId: owner,
-          targetEntityId: getCharacterEntityId(owner),
-          sourceCardInstanceId: triggered.card.instanceId,
-          attemptedAmount: defenseBonus,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
+  // Handle consumable items
   const isConsumable = Boolean(effect.isConsumable);
+  const ownerState = state.players[owner];
   if (isConsumable && ownerState) {
     const idx = ownerState.equippedItems.findIndex(
-      (c) => c.instanceId === triggered.card.instanceId
+      (c) => c.instanceId === card.instanceId
     );
 
     if (idx !== -1) {
@@ -683,68 +855,14 @@ function resolveToolEffect(
   triggered: TriggeredEffect,
   state: MatchState
 ): GameEvent[] {
-  const events: GameEvent[] = [];
-  const effect = triggered.card.effectJson;
+  const card = triggered.card!;
+  const effect = card.effectJson;
   const owner = triggered.ownerPlayerId;
-  const targetType = (effect.target as TargetType) ?? TargetType.ENEMY;
-  const targets = resolveTargets(state, targetType, owner);
-  const damageType = (effect.damageType as DamageType) ?? DamageType.PHYSICAL;
+  const effects = (effect.effects as any[]) ?? [];
 
-  const damage = (effect.damage as number) ?? 0;
-  if (damage > 0) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyDamage(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "TOOL",
-          attemptedAmount: damage,
-          damageType,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
-  const healing = (effect.healing as number) ?? 0;
-  if (healing > 0) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyHealing(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "TOOL",
-          attemptedAmount: healing,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
-  const statusEffect = (effect.statusEffect as StatusEffect | undefined) ?? undefined;
-  if (statusEffect && statusEffect !== StatusEffect.NONE) {
-    for (const targetEntityId of targets) {
-      events.push(
-        ...applyStatusEffect(state, {
-          sourcePlayerId: owner,
-          targetEntityId,
-          sourceCardInstanceId: triggered.card.instanceId,
-          cause: "TOOL",
-          statusEffect,
-          duration: 1,
-          sourceCardName: triggered.card.name,
-          sourceCardImageUrl: triggered.card.imageUrl,
-        })
-      );
-    }
-  }
-
-  return events;
+  return applyEffectList(state, effects, owner, card);
 }
+
 
 // ---------------------------------------------------------------------------
 // Status effect ticking
@@ -772,228 +890,17 @@ export function processStatusEffectTicks(
 
   for (const se of player.statusEffects) {
     switch (se.effect) {
-      case StatusEffect.BURN: {
-        const dmg = GAME.BURN_TICK_DAMAGE;
-
-        pushLog(state, {
-          message: `${player.name} takes ${dmg} burn damage`,
-          event: GameEventType.STATUS_TICK,
-          playerId,
-          values: { damage: dmg },
-        });
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: StatusEffect.BURN,
-          tickDamage: dmg,
-          tickHealing: 0,
-        });
-
-        events.push(
-          ...applyDamage(state, {
-            sourcePlayerId: opponent,
-            targetEntityId: entityId,
-            sourceEntityId: se.sourceEntityId,
-            sourceCardInstanceId: se.sourceCardInstanceId ?? undefined,
-            cause: "STATUS",
-            attemptedAmount: dmg,
-            damageType: DamageType.MAGICAL,
-          })
-        );
-        break;
-      }
-
-      case StatusEffect.POISON: {
-        const dmg = GAME.POISON_TICK_DAMAGE;
-
-        pushLog(state, {
-          message: `${player.name} takes ${dmg} poison damage`,
-          event: GameEventType.STATUS_TICK,
-          playerId,
-          values: { damage: dmg },
-        });
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: StatusEffect.POISON,
-          tickDamage: dmg,
-          tickHealing: 0,
-        });
-
-        events.push(
-          ...applyDamage(state, {
-            sourcePlayerId: opponent,
-            targetEntityId: entityId,
-            sourceEntityId: se.sourceEntityId,
-            sourceCardInstanceId: se.sourceCardInstanceId ?? undefined,
-            cause: "STATUS",
-            attemptedAmount: dmg,
-            damageType: DamageType.MAGICAL,
-          })
-        );
-        break;
-      }
-
-      case StatusEffect.REGEN: {
-        const heal = Math.min(GAME.REGEN_TICK_HEALING, player.maxHp - player.hp);
-
-        pushLog(state, {
-          message: `${player.name} regenerates ${heal} HP`,
-          event: GameEventType.STATUS_TICK,
-          playerId,
-          values: { healing: heal },
-        });
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: StatusEffect.REGEN,
-          tickDamage: 0,
-          tickHealing: heal,
-        });
-
-        if (heal > 0) {
-          events.push(
-            ...applyHealing(state, {
-              sourcePlayerId: playerId,
-              targetEntityId: entityId,
-              sourceEntityId: se.sourceEntityId,
-              sourceCardInstanceId: se.sourceCardInstanceId ?? undefined,
-              cause: "STATUS",
-              attemptedAmount: heal,
-            })
-          );
-        }
-        break;
-      }
-
-      case StatusEffect.FREEZE:
-      case StatusEffect.STUN: {
-        const roll = Math.random() * 100;
-
-        if (roll < GAME.FREEZE_SKIP_TURN_CHANCE) {
-          restriction = "skip_turn";
-          pushLog(state, {
-            message: `${player.name} is ${se.effect === StatusEffect.FREEZE ? "frozen" : "stunned"} and cannot act!`,
-            event: GameEventType.STATUS_TICK,
-            playerId,
-          });
-        } else if (
-          roll <
-          GAME.FREEZE_SKIP_TURN_CHANCE + GAME.FREEZE_BASIC_ONLY_CHANCE
-        ) {
-          if (restriction !== "skip_turn") restriction = "basic_only";
-          pushLog(state, {
-            message: `${player.name} is ${se.effect === StatusEffect.FREEZE ? "partially frozen" : "dazed"} — basic actions only!`,
-            event: GameEventType.STATUS_TICK,
-            playerId,
-          });
-        } else {
-          if (restriction === "none") restriction = "block_only";
-          pushLog(state, {
-            message: `${player.name} is ${se.effect === StatusEffect.FREEZE ? "chilled" : "staggered"} — can only block!`,
-            event: GameEventType.STATUS_TICK,
-            playerId,
-          });
-        }
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: se.effect,
-          tickDamage: 0,
-          tickHealing: 0,
-        });
-        break;
-      }
-
-      case StatusEffect.SHIELD: {
-        const block = GAME.SHIELD_TICK_BLOCK;
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: StatusEffect.SHIELD,
-          tickDamage: 0,
-          tickHealing: 0,
-        });
-
-        events.push(
-          ...applyBlock(state, {
-            sourcePlayerId: playerId,
-            targetEntityId: entityId,
-            sourceCardInstanceId: se.sourceCardInstanceId ?? undefined,
-            attemptedAmount: block,
-          })
-        );
-        break;
-      }
-
-      case StatusEffect.SEND_TO_GRAVEYARD: {
-        const allEquipped = [
-          ...player.equippedItems.map((c, i) => ({ card: c, zone: "items" as const, idx: i })),
-          ...player.equippedTools.map((c, i) => ({ card: c, zone: "tools" as const, idx: i })),
-        ];
-
-        if (allEquipped.length > 0) {
-          const pick = allEquipped[Math.floor(Math.random() * allEquipped.length)]!;
-
-          if (pick.zone === "items") {
-            player.equippedItems.splice(pick.idx, 1);
-          } else {
-            player.equippedTools.splice(pick.idx, 1);
-          }
-
-          player.discardPile.push(pick.card);
-
-          pushLog(state, {
-            message: `${pick.card.name} was destroyed by ${se.effect}`,
-            event: GameEventType.CARD_DESTROYED,
-            sourceCard: { name: pick.card.name, imageUrl: pick.card.imageUrl },
-            playerId,
-          });
-
-          events.push({
-            eventId: makeEventId(),
-            turnNumber: state.turnNumber,
-            type: GameEventType.CARD_DESTROYED,
-            ownerPlayerId: playerId,
-            cardInstanceId: pick.card.instanceId,
-            destroyedFromZone: "EQUIPPED",
-          });
-        }
-
-        events.push({
-          eventId: makeEventId(),
-          turnNumber: state.turnNumber,
-          type: GameEventType.STATUS_TICK,
-          playerId,
-          targetEntityId: entityId,
-          statusEffect: StatusEffect.SEND_TO_GRAVEYARD,
-          tickDamage: 0,
-          tickHealing: 0,
-        });
-        break;
-      }
-
       case StatusEffect.NONE:
+        break;
+
+      // -----------------------------------------------------------------
+      // TODO: Re-add status tick handlers when StatusEffect enum is
+      // expanded. Previously handled: BURN, POISON, REGEN, FREEZE,
+      // STUN, SHIELD, SEND_TO_GRAVEYARD
+      // -----------------------------------------------------------------
+
+      default:
+        // Unknown / future status effects — no-op for now
         break;
     }
   }
@@ -1061,9 +968,6 @@ export function resolveSpellEffect(
 ): GameEvent[] {
   const events: GameEvent[] = [];
   const effect = card.effectJson as Record<string, unknown>;
-  const spellClass = (effect.spellClass as SpellType) ?? SpellType.DAMAGE;
-  const targetType = (effect.target as TargetType) ?? TargetType.ENEMY;
-  const targets = resolveTargets(state, targetType, casterPlayerId);
 
   // card played event
   const energyCost = getSpellCost(card);
@@ -1097,159 +1001,13 @@ export function resolveSpellEffect(
     energyCost,
   });
 
-  switch (spellClass) {
-    case SpellType.DAMAGE: {
-      const damage = (effect.damage as number) ?? 0;
-      const damageType = (effect.damageType as DamageType) ?? DamageType.MAGICAL;
-
-      for (const targetEntityId of targets) {
-        events.push(
-          ...applyDamage(state, {
-            sourcePlayerId: casterPlayerId,
-            targetEntityId,
-            sourceCardInstanceId: card.instanceId,
-            cause: "SPELL",
-            attemptedAmount: damage,
-            damageType,
-            sourceCardName: card.name,
-            sourceCardImageUrl: card.imageUrl,
-          })
-        );
-      }
-      break;
-    }
-
-    case SpellType.HEALING: {
-      const healing = (effect.healing as number) ?? 0;
-
-      for (const targetEntityId of targets) {
-        events.push(
-          ...applyHealing(state, {
-            sourcePlayerId: casterPlayerId,
-            targetEntityId,
-            sourceCardInstanceId: card.instanceId,
-            cause: "SPELL",
-            attemptedAmount: healing,
-            sourceCardName: card.name,
-            sourceCardImageUrl: card.imageUrl,
-          })
-        );
-      }
-      break;
-    }
-
-    case SpellType.BLOCK: {
-      const blockBonus = (effect.blockBonus as number) ?? 0;
-
-      for (const targetEntityId of targets) {
-        events.push(
-          ...applyBlock(state, {
-            sourcePlayerId: casterPlayerId,
-            targetEntityId,
-            sourceCardInstanceId: card.instanceId,
-            attemptedAmount: blockBonus,
-            sourceCardName: card.name,
-            sourceCardImageUrl: card.imageUrl,
-          })
-        );
-      }
-      break;
-    }
-
-    case SpellType.BUFF: {
-      const attackBonus = (effect.attackBonus as number) ?? 0;
-      const duration = (effect.duration as number) ?? 1;
-
-      // You do not yet have a structured ATTACK_UP status, so this is only a log bridge.
-      for (const targetEntityId of targets) {
-        pushLog(state, {
-          message: `${card.name} granted +${attackBonus} attack to ${getEntityDisplayName(state, targetEntityId)} for ${duration} turns`,
-          sourceCard: { name: card.name, imageUrl: card.imageUrl },
-          playerId: getEntityOwner(state, targetEntityId) ?? casterPlayerId,
-        });
-      }
-      break;
-    }
-
-    case SpellType.DEBUFF: {
-      const statusEffect = (effect.statusEffect as StatusEffect) ?? StatusEffect.NONE;
-      const duration = (effect.duration as number) ?? 1;
-
-      if (statusEffect !== StatusEffect.NONE) {
-        for (const targetEntityId of targets) {
-          events.push(
-            ...applyStatusEffect(state, {
-              sourcePlayerId: casterPlayerId,
-              targetEntityId,
-              sourceCardInstanceId: card.instanceId,
-              cause: "SPELL",
-              statusEffect,
-              duration,
-              sourceCardName: card.name,
-              sourceCardImageUrl: card.imageUrl,
-            })
-          );
-        }
-      }
-      break;
-    }
-
-    case SpellType.SUMMON: {
-      const summon = (effect.summon as Record<string, unknown> | undefined) ?? {};
-      const summonEntityId = `summon:${card.instanceId}:${state.turnNumber}:${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
-
-      const newSummon = {
-        id: summonEntityId,
-        ownerPlayerId: casterPlayerId,
-        sourceCardInstanceId: card.instanceId,
-        name: card.name,
-        imageUrl: card.imageUrl,
-        hp: (summon.health as number) ?? 1,
-        maxHp: (summon.health as number) ?? 1,
-        damage: (summon.damage as number) ?? 0,
-        damageType: (summon.damageType as DamageType) ?? DamageType.PHYSICAL,
-        duration: summon.duration as number | undefined,
-        statusEffect: summon.statusEffect as StatusEffect | undefined,
-        triggerType: summon.triggerType as any,
-        procChance: (summon.procChance as number) ?? 100,
-        playLimit: (summon.playLimit as number) ?? 1,
-        statusEffects: [],
-      };
-
-      state.summons.push(newSummon);
-
-      const ownerState = state.players[casterPlayerId]?.name ?? "<no name>";
-
-      pushLog(state, {
-        message: `${ownerState} summoned ${card.name}`,
-        event: GameEventType.SUMMON_CREATED,
-        sourceCard: { name: card.name, imageUrl: card.imageUrl },
-        playerId: casterPlayerId,
-      });
-
-      events.push({
-        eventId: makeEventId(),
-        turnNumber: state.turnNumber,
-        type: GameEventType.SUMMON_CREATED,
-        ownerPlayerId: casterPlayerId,
-        summonEntityId,
-        sourceCardInstanceId: card.instanceId,
-        health: newSummon.hp,
-        damage: newSummon.damage,
-        damageType: newSummon.damageType,
-        duration: newSummon.duration,
-        playLimit: newSummon.playLimit ?? 1,
-        statusEffect: newSummon.statusEffect,
-      });
-
-      break;
-    }
-  }
+  // --- Composable effects[] iteration ---
+  const effectsList = (effect.effects as any[]) ?? [];
+  events.push(...applyEffectList(state, effectsList, casterPlayerId, card));
 
   return events;
 }
+
 
 export function processSummonDurations(
   state: MatchState,
@@ -1316,19 +1074,30 @@ export function resolveTriggeredEffects(
   const newEvents: GameEvent[] = [];
 
   for (const triggered of effects) {
-    switch (triggered.card.type) {
-      case CardType.ITEM:
-        newEvents.push(...resolveItemEffect(triggered, state));
-        break;
-
-      case CardType.TOOL:
-        newEvents.push(...resolveToolEffect(triggered, state));
-        break;
-
-      default:
-        break;
+    if (triggered.ability) {
+      newEvents.push(...resolveAbilityEffect(triggered, state));
+      continue;
     }
+
+    if (triggered.card) {
+      switch (triggered.card.type) {
+        case CardType.ITEM:
+          newEvents.push(...resolveItemEffect(triggered, state));
+          break;
+
+        case CardType.TOOL:
+          newEvents.push(...resolveToolEffect(triggered, state));
+          break;
+
+        default:
+          break;
+      }
+      continue;
+    }
+
+    console.warn("Triggered effect has neither card nor ability:", triggered);
   }
 
   return { updatedState: state, newEvents };
 }
+

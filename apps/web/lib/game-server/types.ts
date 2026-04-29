@@ -1,4 +1,4 @@
-import type { CardType, CardRarity, StatusEffect, DamageType, TriggerType } from "@/lib/enums";
+import type { CardType, CardRarity, StatusEffect, DamageType, TriggerType, ElementType, EffectType } from "@/lib/enums";
 import type { GameEventType } from "./events";
 
 /**
@@ -91,6 +91,26 @@ export interface ActiveStatusEffect {
 }
 
 /**
+ * ---------------------------------------------------------------------------
+ * Summon Ability (runtime mirror of summonAbilitySchema)
+ * ---------------------------------------------------------------------------
+ *
+ * Each ability is a triggered behavior with its own chance and composable
+ * effects array. This replaces the old flat statusEffect/triggerType fields.
+ */
+export interface SummonAbilityEffect {
+  type: EffectType;
+  [key: string]: unknown;
+}
+
+export interface SummonAbility {
+  trigger: TriggerType;
+  chance: number;
+  effects: SummonAbilityEffect[];
+  limitPerTurn?: number;
+}
+
+/**
  * Real board entity for summons.
  * Character is still stored separately for now as player.character.
  * Later you may want character to become an entity too.
@@ -108,13 +128,13 @@ export interface SummonEntity {
 
   damage: number;
   damageType: DamageType;
+  element: ElementType;
 
   duration?: number;
-
-  statusEffect?: StatusEffect;
-  triggerType?: TriggerType;
-  procChance?: number;
   playLimit?: number;
+
+  /** Triggered abilities — replaces old flat statusEffect/triggerType/procChance */
+  abilities: SummonAbility[];
 
   statusEffects: ActiveStatusEffect[];
 }
@@ -139,14 +159,17 @@ export interface PlayerState {
   /**
    * ENTITY MODEL (important change direction)
    * Right now character is implicitly the entity.
-   * Long term this should move toward:
-   *   entities: Entity[]
    */
-
   character: MatchCard | null;
+
+  /**
+   * Champion's triggered abilities (from character card)
+   */
+  abilities: SummonAbility[];
 
   equippedItems: MatchCard[];
   equippedTools: MatchCard[];
+
 
   hand: MatchCard[];
   drawDeck: MatchCard[];
