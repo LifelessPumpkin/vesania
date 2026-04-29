@@ -435,7 +435,9 @@ async function updatePlayerMatchStats(
     where: { id: userId },
     data: {
       gamesPlayed: { increment: 1 },
-      ...(result === "win" ? { wins: { increment: 1 } } : {}),
+      ...(result === "win"
+        ? { wins: { increment: 1 }, gold: { increment: GAME.WIN_GOLD_REWARD } }
+        : {}),
       ...(result === "loss" ? { losses: { increment: 1 } } : {}),
       ...(typeof mmr === "number" ? { mmr } : {}),
     },

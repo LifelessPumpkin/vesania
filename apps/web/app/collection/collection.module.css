@@ -1,3 +1,83 @@
+/* ─── Page Layout ───────────────────────────────────────────────────── */
+.page {
+  position: relative;
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(17, 8, 4, 0.65) 0%, rgba(40, 20, 12, 0.5) 40%, rgba(17, 8, 4, 0.65) 100%),
+    url('/PlankTexture.png');
+  background-size: cover, 600px;
+  background-repeat: no-repeat, repeat;
+  image-rendering: pixelated;
+  color: var(--color-text);
+  padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+}
+.header {
+  max-width: 1200px;
+  margin: 0 auto var(--space-xl);
+}
+.backLink {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: color var(--ease-default);
+}
+.backLink:hover {
+  color: #c8a96e;
+}
+.title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--color-text), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+}
+
+/* ─── Tabs ──────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: var(--space-xs);
+  max-width: 1200px;
+  margin: 0 auto var(--space-xl);
+  background: rgba(17, 8, 4, 0.4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xs);
+  border: 1px solid var(--color-border);
+}
+.tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--ease-default);
+}
+.tab:hover {
+  color: var(--color-text);
+  background: var(--color-surface-alpha);
+}
+.tabActive {
+  background: var(--color-accent-alpha);
+  color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+/* ─── Loading ───────────────────────────────────────────────────────── */
+.loadingWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl) var(--space-lg);
+  gap: var(--space-lg);
 .root {
     position: relative;
     min-height: 100vh;
@@ -25,7 +105,6 @@
     background-attachment: fixed;
     image-rendering: pixelated;
 }
-
 .spinner {
     width: 2rem;
     height: 2rem;
@@ -35,6 +114,59 @@
     animation: spin 0.6s steps(8) infinite;
     position: relative;
     z-index: 10;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loadingText {
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* ─── Toast Notification ────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: var(--color-bg-deep-alpha);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-xl);
+  font-size: var(--text-base);
+  color: var(--color-text);
+  z-index: 1000;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+  pointer-events: none;
+}
+.toastError {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--color-error);
+}
+.toastSuccess {
+  border-color: rgba(74, 222, 128, 0.3);
+  color: var(--color-success);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page {
+    padding: var(--space-xl) var(--space-lg) var(--space-3xl);
+  }
+
+  .title {
+    font-size: 2.25rem;
+  }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
