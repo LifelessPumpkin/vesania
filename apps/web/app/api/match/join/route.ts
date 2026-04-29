@@ -17,19 +17,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "playerName must be 20 characters or fewer" }, { status: 400 });
     }
 
-    const auth = await getAuthenticatedUser(request);
-    const deckCardIds = auth ? await resolveDeckCardIdsForUser(auth.user.id, deckId) : [];
+    // When a deckId is provided, authenticate to verify deck ownership.
+    let userId: string | undefined;
+    let firebaseUid: string | undefined;
+    if (deckId) {
+      const auth = await getAuthenticatedUser(request);
+      if (!auth) {
+        return NextResponse.json({ error: "Authentication required to use a deck" }, { status: 401 });
+      }
+      userId = auth.user.id;
+      firebaseUid = auth.session.uid;
+    }
 
-    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, {
-      userId: auth?.user.id,
-      deckCardIds,
-    });
+    let deckCardIds: string[] = [];
+    if (userId && deckId) {
+      deckCardIds = await resolveDeckCardIdsForUser(userId, deckId).catch(() => []);
+    }
+    const state = await joinMatch(matchId.trim().toUpperCase(), trimmedName, { deckId: deckId ?? undefined, userId, firebaseUid, deckCardIds });
     const token = state.p2Token!; // non-null: joinMatch() always assigns p2Token before returning
 
     return NextResponse.json({ matchId: state.matchId, playerId: "p2", token });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
-    const status = message === "Match not found" ? 404 : 400;
+    const status =
+      message === "Match not found" ? 404 :
+      message === "Deck not found" || message === "Deck does not belong to you" ? 400 :
+      400;
     return NextResponse.json({ error: message }, { status });
   }
 }

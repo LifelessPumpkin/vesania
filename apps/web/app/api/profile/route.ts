@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
                 wins: true,
                 losses: true,
                 gamesPlayed: true,
+                mmr: true,
                 topCard1Id: true,
                 topCard2Id: true,
                 topCard3Id: true,
@@ -78,7 +79,7 @@ export async function PATCH(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { username, bio, avatarUrl } = body;
+        const { username, bio, avatarUrl, filterSwearWords } = body;
 
         // Validate username if provided
         if (username !== undefined) {
@@ -113,6 +114,7 @@ export async function PATCH(req: NextRequest) {
 
         if (bio !== undefined) updateData.bio = bio || null;
         if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null;
+        if (typeof filterSwearWords === "boolean") updateData.filterSwearWords = filterSwearWords;
         updateData.profileComplete = true;
 
         const updated = await prisma.user.update({

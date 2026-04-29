@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import myImage from '@/app/images/card.webp'
 import styles from './auth.module.css'
@@ -13,11 +14,13 @@ interface ScanCardProps {
 }
 
 export default function ScanCard({ code, onChangeCode, onScan, loading, error }: ScanCardProps) {
+    const router = useRouter()
+
     return (
         <div className={styles.card}>
             {/* Go back to home page */}
-            <button onClick={() => window.location.href = '/home'} className={styles.backButton}>
-                &larr; Back to Home
+            <button onClick={() => router.push('/dashboard')} className={styles.backButton}>
+                &larr; Back
             </button>
             <h1 className={styles.scanTitle}>Vesania</h1>
 

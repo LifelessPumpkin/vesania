@@ -30,12 +30,12 @@ describe("Action Route Auth", () => {
   }
 
   it("returns 401 without Authorization header", async () => {
-    const res = await POST(makeRequest(null, { type: "PUNCH" }), params(matchId));
+    const res = await POST(makeRequest(null, { type: "PASS" }), params(matchId));
     expect(res.status).toBe(401);
   });
 
   it("returns 401 with an invalid token", async () => {
-    const res = await POST(makeRequest("badtoken", { type: "PUNCH" }), params(matchId));
+    const res = await POST(makeRequest("badtoken", { type: "PASS" }), params(matchId));
     expect(res.status).toBe(401);
   });
 
@@ -45,13 +45,18 @@ describe("Action Route Auth", () => {
   });
 
   it("returns 200 with valid token and action", async () => {
-    const res = await POST(makeRequest(p1Token, { type: "PUNCH" }), params(matchId));
+    const res = await POST(makeRequest(p1Token, { type: "PASS" }), params(matchId));
     expect(res.status).toBe(200);
   });
 
   it("returns 401 for non-existent match (token fails before match lookup)", async () => {
-    const res = await POST(makeRequest(p1Token, { type: "PUNCH" }), params("ZZZZZZ"));
+    const res = await POST(makeRequest(p1Token, { type: "PASS" }), params("ZZZZZZ"));
     // The token is valid for the original match, not "ZZZZZZ", so auth fails first
     expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when a card action is missing cardId", async () => {
+    const res = await POST(makeRequest(p1Token, { type: "PLAY_SPELL" }), params(matchId));
+    expect(res.status).toBe(400);
   });
 });

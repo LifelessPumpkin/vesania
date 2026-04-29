@@ -49,13 +49,13 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
     return (
         <button
             onClick={handleCopy}
-            className={`text-lg px-3 py-1 rounded transition-all duration-200 ${copied
-                ? 'bg-green-600/20 text-green-400 border border-green-500/30'
-                : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
+            className={`pixel-btn px-4 py-1 text-lg ${copied
+                ? '!bg-success/20 !text-success !border-success'
+                : 'bg-panel border-2 border-border-strong text-warm hover:border-accent hover:text-white'
                 }`}
             title={copied ? 'Copied!' : `Copy ${label || 'URL'}`}
         >
-            {copied ? '✓ Copied' : label || 'Copy'}
+            {copied ? 'Copied' : label || 'Copy'}
         </button>
     )
 }

@@ -44,9 +44,9 @@ export function UsersTab({ getToken, currentUserId }: { getToken: () => Promise<
     }
 
     return (
-        <div className="rounded-xl border p-8" style={{ background: 'var(--color-bg-alpha)', borderColor: 'var(--color-border)' }}>
-            <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--color-text)' }}>
-                All Users <span className="text-sm font-normal" style={{ color: 'var(--color-text-faint)' }}>({users.length})</span>
+        <div className="pixel-panel p-8">
+            <h2 className="heading-md mb-6">
+                All Users <span className="text-base text-faint font-normal">({users.length})</span>
             </h2>
             {loading ? (
                 <p className="text-sm" style={{ color: 'var(--color-text-faint)' }}>Loading...</p>
@@ -56,7 +56,7 @@ export function UsersTab({ getToken, currentUserId }: { getToken: () => Promise<
                 <div className="overflow-x-auto">
                     <table className="w-full text-base">
                         <thead>
-                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}>
+                            <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border-strong)' }}>
                                 <th className="text-left py-3 px-4">Username</th>
                                 <th className="text-left py-3 px-4">Email</th>
                                 <th className="text-left py-3 px-4">Role</th>
@@ -67,7 +67,7 @@ export function UsersTab({ getToken, currentUserId }: { getToken: () => Promise<
                         </thead>
                         <tbody>
                             {users.map((u) => (
-                                <tr key={u.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border)' }}>
+                                <tr key={u.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border-strong)' }}>
                                     <td className="py-3 px-4 font-medium">{u.username}</td>
                                     <td className="py-3 px-4 text-gray-400">{u.email}</td>
                                     <td className="py-3 px-4">
@@ -80,19 +80,19 @@ export function UsersTab({ getToken, currentUserId }: { getToken: () => Promise<
                                         </span>
                                     </td>
                                     <td className="py-3 px-4" style={{ color: 'var(--color-text-muted)' }}>{u._count.cards}</td>
-                                    <td className="py-3 px-4 text-xs" style={{ color: 'var(--color-text-faint)' }}>
+                                    <td className="py-3 px-4" style={{ color: 'var(--color-text-faint)' }}>
                                         {new Date(u.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="py-3 px-4">
                                         {u.id === currentUserId ? (
-                                            <span className="text-xs" style={{ color: 'var(--color-text-faint)' }}>You</span>
+                                            <span style={{ color: 'var(--color-text-faint)' }}>You</span>
                                         ) : (
                                             <button
                                                 onClick={() => toggleRole(u.id, u.role)}
                                                 disabled={updating === u.id}
-                                                className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${u.role === 'ADMIN'
-                                                    ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                    : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+                                                className={`px-4 py-2 font-medium disabled:opacity-50 pixel-btn ${u.role === 'ADMIN'
+                                                    ? 'pixel-btn-danger'
+                                                    : 'pixel-btn-secondary text-green-400 hover:text-green-300'
                                                     }`}
                                             >
                                                 {updating === u.id ? '...' : u.role === 'ADMIN' ? 'Demote' : 'Promote'}

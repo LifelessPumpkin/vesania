@@ -31,10 +31,14 @@ model User {
   wins             Int     @default(0)
   losses           Int     @default(0)
   gamesPlayed      Int     @default(0)
+  mmr              Int     @default(1000)
   favoriteChampion String?
   topCard1Id       String?
   topCard2Id       String?
   topCard3Id       String?
+
+  // Settings
+  filterSwearWords Boolean @default(false) @map("muteSwearWords")
 }
 
 model Friendship {
@@ -86,6 +90,14 @@ model CardDefinition {
   effectJson  Json?
   imageUrl    String?
   cards       Card[]
+}
+
+model Match {
+  id        String   @id
+  state     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
 }
 
 model Deck {

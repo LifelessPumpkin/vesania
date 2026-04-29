@@ -1,14 +1,12 @@
-/* ── Card Container ── */
 .card {
-    background-color: var(--color-bg-alpha);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background-color: var(--color-panel);
     padding: var(--space-3xl);
-    border-radius: var(--radius-xl);
-    border: 1px solid var(--color-border);
+    border-radius: 0;
+    border: 2px solid var(--color-border-strong);
     width: 100%;
     max-width: 400px;
     box-sizing: border-box;
+    box-shadow: var(--shadow-pixel-lg);
     opacity: 0;
     transform: translateY(16px);
     animation: fadeIn 0.35s ease forwards;
@@ -72,14 +70,15 @@
 /* ── Inputs ── */
 .input {
     padding: var(--space-md) var(--space-lg);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background-color: rgba(17, 8, 4, 0.5);
+    border-radius: 0;
+    border: 2px solid var(--color-border-strong);
+    background-color: var(--color-panel-raised);
     color: var(--color-text);
     font-size: 1.15rem;
     outline: none;
     width: 100%;
     box-sizing: border-box;
+    box-shadow: var(--shadow-inset-pixel);
     transition: border-color var(--ease-default);
 }
 
@@ -113,21 +112,27 @@
 /* ── Primary Button ── */
 .primaryButton {
     padding: var(--space-md);
-    border-radius: var(--radius-md);
-    border: none;
+    border-radius: 0;
+    border: 2px outset #c8941a;
     background-color: var(--color-accent);
-    color: white;
+    color: var(--color-bg-deep);
     font-size: 1.15rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     width: 100%;
     margin-top: var(--space-sm);
-    transition: background-color var(--ease-default), transform 0.1s;
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
+    transition: none;
+    box-shadow: var(--shadow-pixel);
 }
 
 .primaryButton:hover:not(:disabled) {
-    background-color: #b8860b;
+    background-color: #e8b42e;
+}
+
+.primaryButton:active:not(:disabled) {
+    border-style: inset;
+    box-shadow: none;
+    transform: translate(2px, 2px);
 }
 
 .primaryButton:disabled {
@@ -140,6 +145,7 @@
     composes: primaryButton;
     background-color: #fff;
     color: #333;
+    border-color: #ccc;
     text-shadow: none;
 }
 
@@ -150,29 +156,37 @@
 /* ── Ghost Button ── */
 .ghostButton {
     padding: var(--space-md);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background-color: transparent;
-    color: var(--color-text-muted);
+    border-radius: 0;
+    border: 2px solid var(--color-border-strong);
+    background-color: var(--color-panel-raised);
+    color: var(--color-text-warm);
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     width: 100%;
     margin-top: var(--space-xs);
-    transition: border-color var(--ease-default), color var(--ease-default), background-color var(--ease-default);
+    box-shadow: var(--shadow-pixel);
+    transition: none;
+}
+
+.ghostButton:active:not(:disabled) {
+    box-shadow: none;
+    transform: translate(2px, 2px);
 }
 
 .ghostButton:hover {
-    background-color: var(--color-surface-alpha);
+    color: var(--color-text);
+    border-color: var(--color-accent);
 }
 
 .ghostButtonLight {
     composes: ghostButton;
-    border-color: var(--color-border-hover);
+    border-color: var(--color-accent);
     color: var(--color-text);
 }
 
 .ghostButtonLight:hover {
-    background-color: var(--color-surface-alpha);
+    background-color: var(--color-panel);
 }
 
 /* ── Back Button ── */
