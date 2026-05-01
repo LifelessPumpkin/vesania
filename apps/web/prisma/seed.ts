@@ -11,11 +11,20 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // TODO: Add seed data here when needed.
-  // Example:
-  // await prisma.cardDefinition.upsert({ ... })
+  await prisma.user.upsert({
+    where: { email: "logan3harmon@gmail.com" },
+    update: {
+      role: "ADMIN",
+    },
+    create: {
+      email: "logan3harmon@gmail.com",
+      username: "Greed",
+      firebaseUid: "um77krZ6FUbTRW01PIKrQjyemVq2",
+      role: "ADMIN",
+    },
+  });
 
-  console.log("✅ Seeding complete!");
+  console.log("✅ Admin user ensured!");
 }
 
 main()
