@@ -28,12 +28,13 @@ export interface DeckOption {
   id: string;
   name: string;
   cardCount: number;
+  isValid: boolean;
 }
 
 const SESSION_KEY = "matchSession";
 
 export default function MatchPage() {
-  const { user, getToken } = useAuth();
+  const { user, dbUser, getToken } = useAuth();
   const [screen, setScreen] = useState<"lobby" | "waiting" | "game">("lobby");
   const [waitingMode, setWaitingMode] = useState<"code" | "matchmaking">("code");
   const [playerName, setPlayerName] = useState("");
@@ -57,6 +58,13 @@ export default function MatchPage() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
   const reconnectDelay = useRef(1000);
+  const username = dbUser?.username || "";
+
+  useEffect(() => {
+    if (username) {
+      setPlayerName(username);
+    }
+  }, [username]);
 
   useEffect(() => {
     if (!user) {
@@ -77,9 +85,16 @@ export default function MatchPage() {
         if (!res.ok) return;
 
         const data = await res.json();
-        setDecks(data.decks ?? []);
+        const loadedDecks: DeckOption[] = data.decks ?? [];
+        setDecks(loadedDecks);
+        if (loadedDecks.length > 0) {
+          const firstValid = loadedDecks.find(d => d.isValid) || loadedDecks[0];
+          setSelectedDeckId(firstValid.id);
+        } else {
+          setSelectedDeckId("");
+        }
       } catch {
-        // Decks are optional in casual play.
+        // Handle gracefully
       } finally {
         setDecksLoading(false);
       }
@@ -187,8 +202,8 @@ export default function MatchPage() {
   }, [matchState?.log.length]);
 
   async function handleCreate() {
-    if (!playerName.trim()) {
-      setError("Enter your name");
+    if (!playerName) {
+      setError("Waiting for user profile...");
       return;
     }
 
@@ -240,8 +255,8 @@ export default function MatchPage() {
   }
 
   async function handleJoin() {
-    if (!playerName.trim()) {
-      setError("Enter your name");
+    if (!playerName) {
+      setError("Waiting for user profile...");
       return;
     }
 
@@ -300,8 +315,8 @@ export default function MatchPage() {
   }
 
   async function handleFindMatch() {
-    if (!playerName.trim()) {
-      setError("Enter your name");
+    if (!playerName) {
+      setError("Waiting for user profile...");
       return;
     }
 
@@ -423,7 +438,6 @@ export default function MatchPage() {
             decks={decks}
             decksLoading={decksLoading}
             selectedDeckId={selectedDeckId}
-            onPlayerNameChange={setPlayerName}
             onRoomCodeChange={setRoomCode}
             onSelectedDeckChange={setSelectedDeckId}
             onFindMatch={handleFindMatch}
