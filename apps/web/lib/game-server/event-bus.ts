@@ -14,7 +14,7 @@
  * The effect resolver (Step 5) reads these results and applies them.
  */
 
-import type { MatchState, MatchCard, PlayerState, PlayerId } from "./types";
+import type { MatchState, MatchCard, PlayerState, PlayerId, SummonAbility, EntityId } from "./types";
 import {
   GameEvent,
   GameEventType,
@@ -29,17 +29,22 @@ import { TriggerType, CardType } from "@/lib/enums";
 // Types
 // ---------------------------------------------------------------------------
 
-/** A card effect that was successfully triggered by an event. */
+/** A card or entity effect that was successfully triggered by an event. */
 export interface TriggeredEffect {
-  /** The card whose effect fired. */
-  card: MatchCard;
-  /** The player who owns this card. */
+  /** The player who owns the triggering source. */
   ownerPlayerId: PlayerId;
-  /** Which trigger on the card matched. */
+  /** Which trigger type matched. */
   triggerType: TriggerType;
   /** The event that caused this trigger. */
   sourceEvent: GameEvent;
+
+  /** The card whose effect fired (for Items/Tools). */
+  card?: MatchCard;
+  /** The specific ability and its source entity (for Summons/Characters). */
+  ability?: SummonAbility;
+  sourceEntityId?: EntityId;
 }
+
 
 /** Result of emitting an event through the bus. */
 export interface EmitResult {
@@ -54,13 +59,10 @@ export interface EmitResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Scans a player's equipped items and tools for cards whose trigger type
- * matches, then rolls against the card's trigger chance.
- *
- * Items use `trigger` and `triggerChance` fields.
- * Tools use `conditionTrigger` and `conditionChance` fields.
+ * Scans a player's equipped items, tools, and the character itself for
+ * triggered abilities.
  */
-function scanPlayerCards(
+function scanPlayerSources(
   player: PlayerState,
   playerId: PlayerId,
   triggerType: TriggerType,
@@ -68,24 +70,68 @@ function scanPlayerCards(
 ): TriggeredEffect[] {
   const results: TriggeredEffect[] = [];
 
-  // Scan equipped items
+  // 1. Scan character abilities
+  for (const ability of player.abilities) {
+    if (ability.trigger === triggerType && rollChance(ability.chance)) {
+      results.push({
+        ownerPlayerId: playerId,
+        triggerType,
+        sourceEvent,
+        ability,
+        sourceEntityId: `player:${playerId}`,
+      });
+    }
+  }
+
+  // 2. Scan equipped items
   for (const card of player.equippedItems) {
     const effect = card.effectJson;
-    if (effect.trigger === triggerType) {
-      const chance = (effect.triggerChance as number) ?? 100;
+    // Items now have a top-level triggerType and procChance
+    if (effect.triggerType === triggerType) {
+      const chance = (effect.procChance as number) ?? 100;
       if (rollChance(chance)) {
         results.push({ card, ownerPlayerId: playerId, triggerType, sourceEvent });
       }
     }
   }
 
-  // Scan equipped tools
+  // 3. Scan equipped tools (Tools usually trigger on USE, but can have condition triggers)
   for (const card of player.equippedTools) {
     const effect = card.effectJson;
-    if (effect.conditionTrigger === triggerType) {
-      const chance = (effect.conditionChance as number) ?? 100;
+    if (effect.triggerType === triggerType) {
+      const chance = (effect.procChance as number) ?? 100;
       if (rollChance(chance)) {
         results.push({ card, ownerPlayerId: playerId, triggerType, sourceEvent });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Scans all active summons for abilities that match the trigger.
+ */
+function scanSummonSources(
+  state: MatchState,
+  playerIds: PlayerId[],
+  triggerType: TriggerType,
+  sourceEvent: GameEvent
+): TriggeredEffect[] {
+  const results: TriggeredEffect[] = [];
+
+  for (const summon of state.summons) {
+    if (!playerIds.includes(summon.ownerPlayerId)) continue;
+
+    for (const ability of summon.abilities) {
+      if (ability.trigger === triggerType && rollChance(ability.chance)) {
+        results.push({
+          ownerPlayerId: summon.ownerPlayerId,
+          triggerType,
+          sourceEvent,
+          ability,
+          sourceEntityId: summon.id,
+        });
       }
     }
   }
@@ -108,7 +154,7 @@ function rollChance(chance: number): boolean {
 // ---------------------------------------------------------------------------
 
 /**
- * Emits a GameEvent into the bus and collects all card effects that trigger.
+ * Emits a GameEvent into the bus and collects all card/entity effects that trigger.
  *
  * This is the main entry point. Game logic (match.ts / effect-resolver.ts)
  * calls this after each state change. The returned TriggeredEffects are then
@@ -141,22 +187,26 @@ export function emit(
   const triggers = getTriggersForEvent(event);
 
   for (const { triggerType, perspective } of triggers) {
-    // Determine whose cards to scan
-    const targetPlayer = resolveTriggeredPlayer(event, perspective);
-    const playerIds: PlayerId[] =
-      targetPlayer === "both" ? ["p1", "p2"] : [targetPlayer];
+    // Determine whose cards/abilities to scan
+    const targetPerspective = resolveTriggeredPlayer(event, perspective);
+    const pids: PlayerId[] =
+      targetPerspective === "both" ? ["p1", "p2"] : [targetPerspective];
 
-    for (const pid of playerIds) {
+    // 1. Scan Player Sources (Character + Items + Tools)
+    for (const pid of pids) {
       const player = state.players[pid];
       if (!player) continue;
 
-      const effects = scanPlayerCards(player, pid, triggerType, event);
-      triggeredEffects.push(...effects);
+      triggeredEffects.push(...scanPlayerSources(player, pid, triggerType, event));
     }
+
+    // 2. Scan Summons
+    triggeredEffects.push(...scanSummonSources(state, pids, triggerType, event));
   }
 
   return { triggeredEffects, eventLog };
 }
+
 
 /**
  * Emits an event and then recursively emits any secondary events produced

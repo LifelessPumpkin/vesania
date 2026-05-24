@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { getAuthenticatedUser } from '@/lib/auth-session'
 import { apiError } from '@/lib/api-helpers'
 import { MAX_DECK_SIZE } from '@/lib/game-constants'
+import { validateDeck } from '@/lib/deck-validator'
 
 export async function GET(req: NextRequest) {
     try {
@@ -13,18 +14,31 @@ export async function GET(req: NextRequest) {
 
         const decks = await prisma.deck.findMany({
             where: { ownerId: auth.user.id },
-            include: { _count: { select: { cards: true } } },
+            include: { 
+                _count: { select: { cards: true } },
+                cards: {
+                    include: {
+                        card: {
+                            include: { definition: true }
+                        }
+                    }
+                }
+            },
             orderBy: { updatedAt: 'desc' },
         })
 
         return NextResponse.json({
-            decks: decks.map((d) => ({
-                id: d.id,
-                name: d.name,
-                cardCount: d._count.cards,
-                createdAt: d.createdAt,
-                updatedAt: d.updatedAt,
-            })),
+            decks: decks.map((d) => {
+                const isValid = validateDeck(d.cards as any).valid;
+                return {
+                    id: d.id,
+                    name: d.name,
+                    cardCount: d._count.cards,
+                    createdAt: d.createdAt,
+                    updatedAt: d.updatedAt,
+                    isValid,
+                };
+            }),
         })
     } catch (error) {
         console.error('Error fetching decks:', error)

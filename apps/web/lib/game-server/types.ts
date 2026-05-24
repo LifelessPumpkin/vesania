@@ -1,4 +1,4 @@
-import type { CardType, CardRarity, StatusEffect, DamageType, TriggerType } from "@/lib/enums";
+import type { CardType, CardRarity, StatusEffect, DamageType, TriggerType, ElementType, EffectType } from "@/lib/enums";
 import type { GameEventType } from "./events";
 
 /**
@@ -91,6 +91,26 @@ export interface ActiveStatusEffect {
 }
 
 /**
+ * ---------------------------------------------------------------------------
+ * Summon Ability (runtime mirror of summonAbilitySchema)
+ * ---------------------------------------------------------------------------
+ *
+ * Each ability is a triggered behavior with its own chance and composable
+ * effects array. This replaces the old flat statusEffect/triggerType fields.
+ */
+export interface SummonAbilityEffect {
+  type: EffectType;
+  [key: string]: unknown;
+}
+
+export interface SummonAbility {
+  trigger: TriggerType;
+  chance: number;
+  effects: SummonAbilityEffect[];
+  limitPerTurn?: number;
+}
+
+/**
  * Real board entity for summons.
  * Character is still stored separately for now as player.character.
  * Later you may want character to become an entity too.
@@ -108,13 +128,13 @@ export interface SummonEntity {
 
   damage: number;
   damageType: DamageType;
+  element: ElementType;
 
   duration?: number;
-
-  statusEffect?: StatusEffect;
-  triggerType?: TriggerType;
-  procChance?: number;
   playLimit?: number;
+
+  /** Triggered abilities — replaces old flat statusEffect/triggerType/procChance */
+  abilities: SummonAbility[];
 
   statusEffects: ActiveStatusEffect[];
 }
@@ -139,14 +159,17 @@ export interface PlayerState {
   /**
    * ENTITY MODEL (important change direction)
    * Right now character is implicitly the entity.
-   * Long term this should move toward:
-   *   entities: Entity[]
    */
-
   character: MatchCard | null;
+
+  /**
+   * Champion's triggered abilities (from character card)
+   */
+  abilities: SummonAbility[];
 
   equippedItems: MatchCard[];
   equippedTools: MatchCard[];
+
 
   hand: MatchCard[];
   drawDeck: MatchCard[];
@@ -160,6 +183,18 @@ export interface PlayerState {
 
   /** Action restriction from FREEZE/STUN */
   turnRestriction: "none" | "block_only" | "basic_only";
+
+  /** Per-card constraint state (once-per-turn, cooldowns, charges) keyed by instanceId */
+  cardConstraints: Record<CardInstanceId, CardConstraintState>;
+}
+
+export interface CardConstraintState {
+  /** True if this card has already been used this turn (once-per-turn cards) */
+  usedThisTurn?: boolean;
+  /** Turns remaining before the card can be used again; 0 means ready */
+  cooldownRemaining?: number;
+  /** Total uses remaining; undefined means unlimited */
+  chargesRemaining?: number;
 }
 
 /**
@@ -217,6 +252,8 @@ export interface MatchState {
   p2Token: string | null;
   p1UserId: string | null;
   p2UserId: string | null;
+  p1FirebaseUid: string | null;
+  p2FirebaseUid: string | null;
   p1DeckCardIds: string[];
   p2DeckCardIds: string[];
   p1DeckId: string | null;
@@ -226,10 +263,10 @@ export interface MatchState {
 // MatchState with private auth/identity/loadout fields removed. Safe to send to clients.
 export type PublicMatchState = Omit<
   MatchState,
-  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1DeckCardIds" | "p2DeckCardIds" | "p1DeckId" | "p2DeckId"
+  "p1Token" | "p2Token" | "p1UserId" | "p2UserId" | "p1FirebaseUid" | "p2FirebaseUid" | "p1DeckCardIds" | "p2DeckCardIds" | "p1DeckId" | "p2DeckId"
 >;
 
 export function toPublicState(match: MatchState): PublicMatchState {
-  const { p1Token, p2Token, p1UserId, p2UserId, p1DeckCardIds, p2DeckCardIds, p1DeckId, p2DeckId, ...pub } = match;
+  const { p1Token, p2Token, p1UserId, p2UserId, p1FirebaseUid, p2FirebaseUid, p1DeckCardIds, p2DeckCardIds, p1DeckId, p2DeckId, ...pub } = match;
   return pub;
 }

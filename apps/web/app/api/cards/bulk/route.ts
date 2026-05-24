@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
                 type,
                 rarity,
                 description,
-                effectJson: validatedEffect,
+                effectJson: JSON.parse(JSON.stringify(validatedEffect)),
             })
         } catch (validationError: any) {
              return NextResponse.json({ 

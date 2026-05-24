@@ -11,7 +11,6 @@ interface MatchLobbyProps {
   decks: DeckOption[];
   decksLoading: boolean;
   selectedDeckId: string;
-  onPlayerNameChange: (value: string) => void;
   onRoomCodeChange: (value: string) => void;
   onSelectedDeckChange: (value: string) => void;
   onFindMatch: () => void;
@@ -28,13 +27,15 @@ export function MatchLobby({
   decks,
   decksLoading,
   selectedDeckId,
-  onPlayerNameChange,
   onRoomCodeChange,
   onSelectedDeckChange,
   onFindMatch,
   onCreate,
   onJoin,
 }: MatchLobbyProps) {
+  const isSelectedDeckValid = decks.find(d => d.id === selectedDeckId)?.isValid;
+  const isActionDisabled = loading || !isSelectedDeckValid || decks.length === 0;
+
   return (
     <div className={styles.card}>
       <header className={styles.header}>
@@ -51,18 +52,10 @@ export function MatchLobby({
 
       <div className={styles.formStack}>
         <div className={styles.fieldGroup}>
-          <label className={styles.label} htmlFor="player-name">
-            Your Name
-          </label>
-          <input
-            id="player-name"
-            type="text"
-            value={playerName}
-            onChange={(e) => onPlayerNameChange(e.target.value)}
-            placeholder="Enter your name"
-            maxLength={20}
-            className={styles.input}
-          />
+          <label className={styles.label}>Champion Name</label>
+          <div className={styles.inputReadOnly}>
+            {playerName || "Guest"}
+          </div>
         </div>
 
         {userSignedIn && (
@@ -86,10 +79,9 @@ export function MatchLobby({
                 onChange={(e) => onSelectedDeckChange(e.target.value)}
                 className={styles.select}
               >
-                <option value="">No deck (casual mode)</option>
                 {decks.map((deck) => (
                   <option key={deck.id} value={deck.id}>
-                    {deck.name} ({deck.cardCount} cards)
+                    {deck.name} ({deck.cardCount} cards){deck.isValid ? "" : " - INVALID"}
                   </option>
                 ))}
               </select>
@@ -97,12 +89,12 @@ export function MatchLobby({
           </div>
         )}
 
-        <button onClick={onFindMatch} disabled={loading} className={styles.primaryButton} style={{ marginBottom: "0.5rem" }}>
-          {loading ? "Working..." : "Find Random Opponent"}
+        <button onClick={onFindMatch} disabled={isActionDisabled} className={styles.primaryButton} style={{ marginBottom: "0.5rem" }}>
+          {loading ? "Working..." : !isSelectedDeckValid ? "Invalid Deck Selected" : "Find Random Opponent"}
         </button>
 
-        <button onClick={onCreate} disabled={loading} className={styles.secondaryButton}>
-          {loading ? "Working..." : "Create Custom Room"}
+        <button onClick={onCreate} disabled={isActionDisabled} className={styles.secondaryButton}>
+          {loading ? "Working..." : !isSelectedDeckValid ? "Invalid Deck" : "Create Custom Room"}
         </button>
 
         <div className={styles.dividerRow} style={{ margin: "1rem 0" }}>

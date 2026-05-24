@@ -8,7 +8,7 @@ import type {
   SummonEntity,
 } from "@/lib/game-server/types";
 import { BoardSide } from "./BoardSide";
-import { CombatLog } from "./CombatLog";
+import { CombatLogAndChat } from "./CombatLogAndChat";
 import { CardDetailModal } from "./CardDetailModal";
 import styles from "../match.module.css";
 
@@ -17,6 +17,9 @@ type PileType = "draw" | "grimoire" | "discard";
 export interface MatchBoardProps {
   matchState: PublicMatchState;
   playerId: PlayerId;
+  playerName: string;
+  matchToken: string;
+  filterSwearWords: boolean;
   error: string;
   connectionStatus: "connected" | "reconnecting";
   connectionLost: boolean;
@@ -37,6 +40,9 @@ export interface MatchBoardProps {
 export function MatchBoard({
   matchState,
   playerId,
+  playerName,
+  matchToken,
+  filterSwearWords,
   error,
   connectionStatus,
   connectionLost,
@@ -122,10 +128,16 @@ export function MatchBoard({
         />
       </div>
 
-      {/* Combat log — full width, fixed height */}
-      <div className={styles.bottomPanel}>
-        <CombatLog entries={matchState.log} logEndRef={logEndRef} />
-      </div>
+      {/* Chat + Combat log panel — full width, expands on chat */}
+      <CombatLogAndChat
+        entries={matchState.log}
+        logEndRef={logEndRef}
+        matchId={matchState.matchId}
+        playerId={playerId}
+        playerName={playerName}
+        matchToken={matchToken}
+        filterSwearWords={filterSwearWords}
+      />
 
       {/* Inline messages */}
       {error && <p className={styles.error}>{error}</p>}

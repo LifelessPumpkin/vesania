@@ -1,0 +1,28 @@
+STEPS TO ACTIVATE MATCH PERSISTENCE (#38)
+==========================================
+
+The code for crash/disconnect recovery is written but needs a DB migration to work.
+Run these commands once your database is running:
+
+1. cd apps/web
+
+2. npx prisma migrate dev --name add-match-persistence
+   (Creates the Match table in Postgres)
+
+3. npx prisma generate
+   (Regenerates the Prisma client with the new Match model — removes the `(prisma as any)` TS workarounds)
+
+4. After step 3, clean up the two `(prisma as any)` casts in:
+   apps/web/lib/game-server/match.ts
+   - saveMatchState() around line 250 — change `(prisma as any).match.upsert` to `prisma.match.upsert`
+   - getMatch() around line 262 — change `(prisma as any).match.findUnique` to `prisma.match.findUnique`
+   - recordFinishedMatchStats() around line 540 — change `(prisma as any).match.delete` to `prisma.match.delete`
+
+The Match model added to schema.prisma:
+  model Match {
+    id        String   @id
+    state     Json
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    expiresAt DateTime
+  }
