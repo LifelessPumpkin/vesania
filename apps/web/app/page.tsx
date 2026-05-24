@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import VortexLocal from '@/components/VortexLocal'
+import Vortex from '@/components/Vortex'
 import DungeonBackground from '@/components/DungeonBackground'
 
 export default function Home() {
@@ -56,7 +56,7 @@ export default function Home() {
           style={{ position: 'relative', width: 840, height: 300 }}
           className="logo-float"
         >
-          <VortexLocal />
+          <Vortex mode="local" />
           <Image
             src="/VesaniaLogo3.png"
             alt="Vesania"

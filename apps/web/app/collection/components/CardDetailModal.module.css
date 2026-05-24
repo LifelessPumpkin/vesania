@@ -1,0 +1,248 @@
+/* CardDetailModal — Stitch Design System (Eldritch Pixel Archive) */
+
+.backdrop {
+    font-family: var(--font-pixelify), var(--font-retganon), sans-serif;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.modal {
+    background: #311911;
+    border: 4px solid #4f4535;
+    max-width: 56rem;
+    width: 100%;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.6);
+    position: relative;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    background: #230d06;
+    border: 2px solid #4f4535;
+    color: #9c8f7c;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 1;
+    font-size: 1.5rem;
+    transition: color 0.1s, border-color 0.1s;
+}
+.closeBtn:hover {
+    color: #ffca69;
+    border-color: #ffca69;
+}
+
+/* ── Left: Image ────────────────────────────────────── */
+.imagePane {
+    width: 50%;
+    padding: 1.5rem;
+    border-right: 4px solid #4f4535;
+    background: #230d06;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardImage {
+    width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    border: 4px solid #4f4535;
+    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── Right: Details ─────────────────────────────────── */
+.detailPane {
+    width: 50%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #311911;
+}
+
+.detailContent {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.badgeRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.rarityBadge {
+    padding: 0.25rem 0.5rem;
+    border: 2px solid currentColor;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.rarityIcon {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 1;
+    font-size: 14px;
+}
+
+.typeBadge {
+    padding: 0.25rem 0.5rem;
+    background: #492e24;
+    border: 2px solid #4f4535;
+    color: #d4c4af;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.cardName {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffca69;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+}
+
+.descriptionBox {
+    background: #230d06;
+    border: 2px solid #4f4535;
+    padding: 1.5rem;
+    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.descriptionText {
+    font-size: 1.125rem;
+    line-height: 1.5;
+    color: #ffdbcf;
+}
+
+/* ── Stats Grid ─────────────────────────────────────── */
+.statsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.statBox {
+    background: #230d06;
+    border: 2px solid #4f4535;
+    padding: 0.75rem;
+}
+
+.statLabel {
+    display: block;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #9c8f7c;
+    margin-bottom: 0.25rem;
+}
+
+.statValue {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ffca69;
+}
+
+/* ── Add to Deck Button ─────────────────────────────── */
+.addBtn {
+    width: 100%;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: #ffca69;
+    border: 2px solid #e6ad3b;
+    color: #422d00;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+    transition: background 0.1s;
+}
+.addBtn:hover {
+    background: #e6ad3b;
+}
+.addBtn:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}
+.addBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.addBtn:disabled:active {
+    transform: none;
+}
+
+.addBtnIcon {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 1;
+    font-size: 1.5rem;
+}
+
+/* Full / already in deck variant */
+.addBtnDisabled {
+    background: #3d231a;
+    border-color: #4f4535;
+    color: #9c8f7c;
+    cursor: not-allowed;
+}
+.addBtnDisabled:hover {
+    background: #3d231a;
+}
+
+/* Remove button variant */
+.removeBtn {
+    width: 100%;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: transparent;
+    border: 2px solid #ffb4ab;
+    color: #ffb4ab;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+    transition: background 0.1s;
+}
+.removeBtn:hover {
+    background: rgba(255, 180, 171, 0.1);
+}
+.removeBtn:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+}

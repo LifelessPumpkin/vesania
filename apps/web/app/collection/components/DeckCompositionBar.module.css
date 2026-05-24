@@ -1,72 +1,80 @@
+/* DeckCompositionBar — Stitch Design System (New UI) */
 .container {
-    --c-good: #22c55e;
-    --c-warn: #daa520;
-    --c-bad:  #ef4444;
-
+    font-family: var(--font-pixelify), var(--font-retganon), sans-serif;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: #1a0e08;
-    border: 1px solid #4d2a18;
-    margin: 0 0.85rem;
+    gap: 0.75rem;
 }
 
+/* ── Progress bar rows ──────────────────────────────── */
 .row {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.75rem;
 }
 
 .label {
-    font-size: 1.1rem;
-    color: #bfa880;
-    min-width: 6.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #d4c4af;
+    min-width: 4rem;
     white-space: nowrap;
 }
 
 .bar {
     flex: 1;
     height: 12px;
-    background: #0d0604;
-    border: 1px solid #4d2a18;
+    background: #230d06;
+    border: 2px solid #492e24;
     overflow: hidden;
+    position: relative;
 }
 
 .fill {
+    position: absolute;
+    top: 0;
+    left: 0;
     height: 100%;
-    transition: width 0.1s steps(10);
+    box-shadow: inset 0px -2px 0px rgba(0, 0, 0, 0.3);
+    transition: width 0.15s steps(10);
 }
 
 .count {
-    font-size: 1.1rem;
-    color: #bfa880;
-    min-width: 3.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    min-width: 3rem;
     text-align: right;
+    white-space: nowrap;
 }
 
-.good { color: #22c55e; }
-.bad  { color: #ef4444; }
-
+/* ── Rarity cap chips ───────────────────────────────── */
 .rarityRow {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
+    gap: 0.5rem;
     flex-wrap: wrap;
 }
 
 .rarityChip {
-    font-size: 1rem;
-    padding: 0.35rem 0.85rem;
-    border-radius: 0;
-    border: 1px solid #4d2a18;
-    color: #bfa880;
-    background: #2a1810;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    border: 2px solid #492e24;
+    background: #230d06;
     white-space: nowrap;
 }
 
-.chipBad {
-    border-color: #ef4444;
-    color: #fca5a5;
-    background: #2a1010;
+.rarityChipIcon {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 1;
+    font-size: 14px;
+}
+
+.chipOver {
+    border-color: #ffb4ab;
+    color: #ffb4ab;
 }
