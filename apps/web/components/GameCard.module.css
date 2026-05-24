@@ -1,0 +1,295 @@
+/* ─── GameCard ─────────────────────────────────────────────────────── */
+/* Card art fills entire card. All info overlaid on top.              */
+
+.cardFrame {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+    transition: transform 0.12s ease;
+    background: #1a0e08;
+    cursor: default;
+    border: 3px solid #5d3525;
+}
+
+.cardFrame:hover {
+    transform: translateY(-2px);
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+/* ─── Size variants ─────────────────────────────────────────────── */
+.sizeSmall {
+    width: 150px;
+    height: 210px;
+}
+
+.sizeMedium {
+    width: 180px;
+    height: 260px;
+}
+
+.sizeLarge {
+    width: 280px;
+    height: 400px;
+}
+
+/* ─── Background art (fills the whole card) ─────────────────────── */
+.cardBg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.cardBgImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cardBgPlaceholder {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    opacity: 0.35;
+}
+
+/* ─── Content overlay (stacked on top of art) ───────────────────── */
+.cardContent {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* ─── Cost Gem ──────────────────────────────────────────────────── */
+.costGem {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gemImage {
+    display: block;
+    image-rendering: pixelated;
+}
+
+.gemCost {
+    position: absolute;
+    color: #fff;
+    font-weight: 900;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        0 2px 4px rgba(0, 0, 0, 0.6);
+    line-height: 1;
+}
+
+/* Gem sizes by card size */
+.sizeSmall .costGem {
+    width: 30px;
+    height: 30px;
+}
+.sizeSmall .gemImage {
+    width: 30px;
+    height: 30px;
+}
+.sizeSmall .gemCost {
+    font-size: 14px;
+}
+
+.sizeMedium .costGem {
+    width: 36px;
+    height: 36px;
+}
+.sizeMedium .gemImage {
+    width: 36px;
+    height: 36px;
+}
+.sizeMedium .gemCost {
+    font-size: 17px;
+}
+
+.sizeLarge .costGem {
+    width: 50px;
+    height: 50px;
+}
+.sizeLarge .gemImage {
+    width: 50px;
+    height: 50px;
+}
+.sizeLarge .gemCost {
+    font-size: 24px;
+}
+
+/* ─── Title Banner (overlaid on art, top area) ──────────────────── */
+.titleBanner {
+    text-align: center;
+    background: rgba(30, 18, 10, 0.75);
+    color: #f3e8d8;
+    font-weight: 700;
+    text-shadow:
+        1px 1px 0 #000,
+        -1px -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 1px 0 #000;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    flex-shrink: 0;
+}
+
+.sizeSmall .titleBanner {
+    padding: 4px 24px 3px 8px;
+    font-size: 12px;
+    line-height: 1.25;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.sizeMedium .titleBanner {
+    padding: 6px 30px 5px 10px;
+    font-size: 14px;
+    line-height: 1.25;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.sizeLarge .titleBanner {
+    padding: 10px 42px 8px 14px;
+    font-size: 20px;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+/* ─── Spacer (pushes type badge + description to bottom) ────────── */
+.artSpacer {
+    flex: 1;
+}
+
+/* ─── Type Badge (centered, floating over art) ──────────────────── */
+.typeBadge {
+    align-self: center;
+    background: rgba(42, 24, 16, 0.85);
+    border: 1px solid #7a4030;
+    color: #bfa880;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
+    flex-shrink: 0;
+}
+
+.sizeSmall .typeBadge {
+    padding: 2px 8px;
+    font-size: 9px;
+    margin-bottom: 4px;
+}
+
+.sizeMedium .typeBadge {
+    padding: 3px 10px;
+    font-size: 10px;
+    margin-bottom: 6px;
+}
+
+.sizeLarge .typeBadge {
+    padding: 4px 14px;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+/* ─── Description (overlaid at bottom, semi-transparent bg) ─────── */
+.descriptionArea {
+    background: rgba(20, 12, 6, 0.8);
+    color: #e8dcc8;
+    text-align: center;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.7);
+    flex-shrink: 0;
+}
+
+.sizeSmall .descriptionArea {
+    padding: 4px 6px;
+    font-size: 9px;
+    line-height: 1.3;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.sizeMedium .descriptionArea {
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.35;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+}
+
+.sizeLarge .descriptionArea {
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.4;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+}
+
+/* ─── Dimmed state (already in deck) ────────────────────────────── */
+.dimmed {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+/* ─── Stack badge ─────────────────────────────────────────────── */
+.stackBadge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 25;
+    min-width: 20px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #daa520;
+    background: #0d0604;
+    border: 2px solid #daa520;
+    box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+    padding: 0 3px;
+}
+
+.sizeMedium .stackBadge {
+    min-width: 24px;
+    height: 20px;
+    font-size: 12px;
+    top: 3px;
+    right: 3px;
+}
+
+.sizeLarge .stackBadge {
+    min-width: 30px;
+    height: 24px;
+    font-size: 15px;
+    top: 4px;
+    right: 4px;
+}

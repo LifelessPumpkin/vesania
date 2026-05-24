@@ -80,12 +80,7 @@ export interface DeckDetail {
 
 export interface ScanResult {
     message: string;
-    card?: {
-        definition: { name: string; description: string };
-        status: string;
-    };
-    definition?: { name: string; description: string };
-    status?: string;
+    card?: CardInstance;
     alreadyOwned?: boolean;
     newlyClaimed?: boolean;
 }

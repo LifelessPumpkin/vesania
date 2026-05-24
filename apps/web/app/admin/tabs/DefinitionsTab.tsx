@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import * as yaml from 'yaml'
+import Image from 'next/image'
 import { apiRequest } from '@/lib/api-client'
 import type { CardDefinition } from '../types'
 import { RarityBadge } from '../components/Badges'
@@ -11,6 +12,8 @@ import {
     getEffectSchemaByType,
 } from '@/lib/card-effect-schemas'
 import { CardType } from '@/lib/enums'
+
+const DEFAULT_ART = '/card-art/CardFrontTempArt.png'
 
 export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | null> }) {
     const [definitions, setDefinitions] = useState<CardDefinition[]>([])
@@ -32,6 +35,19 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
     const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
     const [bulkUploading, setBulkUploading] = useState(false)
     const [bulkMessage, setBulkMessage] = useState<{ text: string; error: boolean } | null>(null)
+
+    // Edit modal state
+    const [editingDef, setEditingDef] = useState<CardDefinition | null>(null)
+    const [editForm, setEditForm] = useState<{
+        name: string
+        type: string
+        rarity: string
+        description: string
+    }>({ name: '', type: '', rarity: '', description: '' })
+    const [editSubmitting, setEditSubmitting] = useState(false)
+    const [editMessage, setEditMessage] = useState<{ text: string; error: boolean } | null>(null)
+    const [artUploading, setArtUploading] = useState(false)
+    const [artMessage, setArtMessage] = useState<{ text: string; error: boolean } | null>(null)
 
     const fetchDefinitions = useCallback(async () => {
         try {
@@ -113,6 +129,83 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
         } finally {
             setBulkUploading(false)
             e.target.value = '' // Reset input
+        }
+    }
+
+    // ─── Edit Modal Handlers ────────────────────────────────────────
+
+    const openEditModal = (def: CardDefinition) => {
+        setEditingDef(def)
+        setEditForm({
+            name: def.name,
+            type: def.type,
+            rarity: def.rarity,
+            description: def.description,
+        })
+        setEditMessage(null)
+        setArtMessage(null)
+    }
+
+    const closeEditModal = () => {
+        setEditingDef(null)
+        setEditMessage(null)
+        setArtMessage(null)
+    }
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingDef) return
+        setEditSubmitting(true)
+        setEditMessage(null)
+
+        try {
+            const token = await getToken()
+            await apiRequest<{ card: CardDefinition }>(`/api/cards/${editingDef.id}`, {
+                method: 'PATCH',
+                token,
+                body: editForm,
+            })
+            setEditMessage({ text: 'Definition updated!', error: false })
+            fetchDefinitions()
+        } catch (err: unknown) {
+            setEditMessage({ text: err instanceof Error ? err.message : 'Update failed', error: true })
+        } finally {
+            setEditSubmitting(false)
+        }
+    }
+
+    const handleArtUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !editingDef) return
+
+        setArtUploading(true)
+        setArtMessage(null)
+
+        try {
+            const token = await getToken()
+            const form = new FormData()
+            form.append('file', file)
+            form.append('definitionId', editingDef.id)
+
+            const res = await fetch('/api/upload/card-art', {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: form,
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.message || 'Upload failed')
+
+            setArtMessage({ text: 'Card art uploaded!', error: false })
+
+            // Update the editing def locally to show the new image
+            setEditingDef(prev => prev ? { ...prev, imageUrl: data.imageUrl } : null)
+            fetchDefinitions()
+        } catch (err: unknown) {
+            setArtMessage({ text: err instanceof Error ? err.message : 'Upload failed', error: true })
+        } finally {
+            setArtUploading(false)
+            e.target.value = ''
         }
     }
 
@@ -228,15 +321,32 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                         <table className="w-full text-base">
                             <thead>
                                 <tr className="border-b" style={{ color: 'var(--color-text-muted)', borderColor: 'var(--color-border-strong)' }}>
+                                    <th className="text-left py-3 px-4">Art</th>
                                     <th className="text-left py-3 px-4">Name</th>
                                     <th className="text-left py-3 px-4">Type</th>
                                     <th className="text-left py-3 px-4">Rarity</th>
                                     <th className="text-left py-3 px-4">ID</th>
+                                    <th className="text-left py-3 px-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {definitions.map((def) => (
                                     <tr key={def.id} className="border-b hover:bg-gray-800/30" style={{ borderColor: 'var(--color-border-strong)' }}>
+                                        <td className="py-3 px-4">
+                                            <Image
+                                                src={def.imageUrl || DEFAULT_ART}
+                                                alt={def.name}
+                                                width={40}
+                                                height={56}
+                                                unoptimized
+                                                style={{
+                                                    objectFit: 'cover',
+                                                    border: '1px solid #5d3525',
+                                                    borderRadius: '2px',
+                                                    opacity: def.imageUrl ? 1 : 0.4,
+                                                }}
+                                            />
+                                        </td>
                                         <td className="py-3 px-4 font-medium">{def.name}</td>
                                         <td className="py-3 px-4">
                                             <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded text-sm">{def.type}</span>
@@ -245,6 +355,14 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                                             <RarityBadge rarity={def.rarity} />
                                         </td>
                                         <td className="py-3 px-4 font-mono" style={{ color: 'var(--color-text-faint)' }}>{def.id}</td>
+                                        <td className="py-3 px-4">
+                                            <button
+                                                onClick={() => openEditModal(def)}
+                                                className="pixel-btn pixel-btn-secondary px-4 py-1 text-sm"
+                                            >
+                                                Edit
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -252,6 +370,152 @@ export function DefinitionsTab({ getToken }: { getToken: () => Promise<string | 
                     </div>
                 )}
             </div>
+
+            {/* Edit Modal */}
+            {editingDef && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(4px)',
+                    }}
+                    onClick={closeEditModal}
+                >
+                    <div
+                        className="pixel-panel"
+                        style={{
+                            width: '100%',
+                            maxWidth: '600px',
+                            maxHeight: '90vh',
+                            overflow: 'auto',
+                            padding: '2rem',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
+                                Edit: {editingDef.name}
+                            </h2>
+                            <button onClick={closeEditModal} style={{ color: '#a08060', fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
+                        </div>
+
+                        {/* Card Art Section */}
+                        <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                            <p className="text-sm mb-2" style={{ color: 'var(--color-text-muted)' }}>Card Art</p>
+                            <div style={{
+                                display: 'inline-block',
+                                border: '2px solid #5d3525',
+                                borderRadius: '4px',
+                                padding: '4px',
+                                background: '#1a0e08',
+                                marginBottom: '0.75rem',
+                            }}>
+                                <Image
+                                    src={editingDef.imageUrl || DEFAULT_ART}
+                                    alt={editingDef.name}
+                                    width={120}
+                                    height={168}
+                                    unoptimized
+                                    style={{
+                                        objectFit: 'cover',
+                                        borderRadius: '2px',
+                                        opacity: editingDef.imageUrl ? 1 : 0.4,
+                                    }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'center' }}>
+                                <label className="pixel-btn pixel-btn-secondary px-4 py-2 text-sm" style={{ cursor: 'pointer' }}>
+                                    {artUploading ? 'Uploading...' : '📷 Upload Art'}
+                                    <input
+                                        type="file"
+                                        accept=".png,.jpg,.jpeg,.webp"
+                                        onChange={handleArtUpload}
+                                        disabled={artUploading}
+                                        style={{ display: 'none' }}
+                                    />
+                                </label>
+                            </div>
+                            {artMessage && (
+                                <p className={`text-sm mt-2 ${artMessage.error ? 'text-red-400' : 'text-green-400'}`}>
+                                    {artMessage.text}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Edit Fields */}
+                        <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+                            <div>
+                                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm(p => ({ ...p, name: e.target.value }))}
+                                    className="w-full px-4 py-2 pixel-input"
+                                />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <div>
+                                    <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Type</label>
+                                    <select
+                                        value={editForm.type}
+                                        onChange={(e) => setEditForm(p => ({ ...p, type: e.target.value }))}
+                                        className="w-full px-4 py-2 pixel-select"
+                                    >
+                                        {Object.values(CardType).map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Rarity</label>
+                                    <select
+                                        value={editForm.rarity}
+                                        onChange={(e) => setEditForm(p => ({ ...p, rarity: e.target.value }))}
+                                        className="w-full px-4 py-2 pixel-select"
+                                    >
+                                        {['COMMON', 'UNCOMMON', 'RARE', 'EPIC', 'LEGENDARY'].map(r => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm mb-1" style={{ color: 'var(--color-text-muted)' }}>Description</label>
+                                <textarea
+                                    required
+                                    value={editForm.description}
+                                    onChange={(e) => setEditForm(p => ({ ...p, description: e.target.value }))}
+                                    rows={3}
+                                    className="w-full px-4 py-2 pixel-input resize-none"
+                                />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                                <button
+                                    type="submit"
+                                    disabled={editSubmitting}
+                                    className="pixel-btn pixel-btn-primary px-8 py-2 text-base font-medium"
+                                >
+                                    {editSubmitting ? 'Saving...' : 'Save Changes'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={closeEditModal}
+                                    className="pixel-btn pixel-btn-secondary px-6 py-2 text-base"
+                                >
+                                    Cancel
+                                </button>
+                                {editMessage && (
+                                    <span className={`text-sm ${editMessage.error ? 'text-red-400' : 'text-green-400'}`}>
+                                        {editMessage.text}
+                                    </span>
+                                )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

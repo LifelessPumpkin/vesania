@@ -118,8 +118,8 @@
 .spinner {
     width: 2rem;
     height: 2rem;
-    border: 3px solid rgba(218, 165, 32, 0.3);
-    border-top-color: #daa520;
+    border: 3px solid rgba(230, 173, 59, 0.3);
+    border-top-color: #e6ad3b;
     border-radius: 0;
     animation: spin 0.6s steps(8) infinite;
     position: relative;
@@ -205,17 +205,19 @@
     }
 }
 
+/* Toast notifications */
 .toast {
     position: fixed;
     bottom: 1.5rem;
     left: 50%;
     transform: translateX(-50%);
-    background: #2a1810;
-    border: 2px solid #daa520;
+    background: #311911;
+    border: 2px solid #e6ad3b;
     border-radius: 0;
-    padding: 0.5rem 1.25rem;
-    font-size: 0.85rem;
-    color: #f3e8d8;
+    padding: 0.6rem 1.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #ffdbcf;
     z-index: 200;
     animation: toastIn 0.15s ease, toastOut 0.15s ease 2.85s forwards;
     pointer-events: none;

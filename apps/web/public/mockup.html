@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Card Collection - TESTINGDECK</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;family=JetBrains+Mono:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Pixel art specific styles */
+        .pixelated {
+            image-rendering: pixelated;
+        }
+        
+        /* Custom scrollbar for deck list */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #230d06; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4f4535; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9c8f7c; 
+        }
+
+        /* Card Hover Effects */
+        .card-container:hover .card-inner {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 0 #000;
+        }
+        .card-inner {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        /* Sunken Button Effect */
+        .btn-sunk {
+            transition: all 0.1s;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+        }
+        .btn-sunk:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        /* Modal Logic */
+        #card-modal:not(.hidden) {
+            display: flex;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+          
+<truncated 21828 bytes>
+ry
+                        </span>
+<span class="px-2 py-1 bg-surface-variant border-2 border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase tracking-widest">
+                            Tool
+                        </span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-primary uppercase">Golden Spatula</h2>
+</div>
+<div class="bg-surface-dim border-2 border-outline-variant p-6 shadow-inner">
+<p class="font-card-body text-card-body text-on-surface leading-relaxed">
+                        Jab at a single player. Deal 4 damage.
+                    </p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-dim border-2 border-outline-variant p-3">
+<span class="block font-label-sm text-label-sm text-outline uppercase mb-1">Cost</span>
+<span class="font-headline-lg text-primary text-[24px]">2 AP</span>
+</div>
+<div class="bg-surface-dim border-2 border-outline-variant p-3">
+<span class="block font-label-sm text-label-sm text-outline uppercase mb-1">Durability</span>
+<span class="font-headline-lg text-primary text-[24px]">3/3</span>
+</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-headline-lg text-[20px] uppercase py-4 border-2 border-primary-container hover:bg-primary-container flex items-center justify-center gap-3 btn-sunk mt-8">
+<span class="material-symbols-outlined">add_circle</span> Add to Deck
+            </button>
+</div>
+</div>
+</div>
+</body></html> this is the new UI for the collections page can you implement it, for cards that dont have art in their schema I want the vesania card back to be displayed I may not have it in there yet
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-05-23T20:19:11-04:00.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Claude Opus 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

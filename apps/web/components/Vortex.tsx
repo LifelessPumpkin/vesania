@@ -3,7 +3,13 @@
 import { useEffect, useRef } from "react"
 import { createNoise3D } from "simplex-noise"
 
-export default function Vortex() {
+interface VortexProps {
+    mode?: "fixed" | "local";
+    particleCount?: number;
+    baseHue?: number;
+}
+
+export default function Vortex({ mode = "fixed", particleCount: customCount, baseHue }: VortexProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const animationRef = useRef<number | null>(null)
 
@@ -14,11 +20,25 @@ export default function Vortex() {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        const updateSize = () => {
+            if (mode === 'local') {
+                const parent = canvas.parentElement
+                if (parent) {
+                    canvas.width = parent.clientWidth
+                    canvas.height = parent.clientHeight
+                } else {
+                    canvas.width = window.innerWidth
+                    canvas.height = window.innerHeight
+                }
+            } else {
+                canvas.width = window.innerWidth
+                canvas.height = window.innerHeight
+            }
+        }
+        updateSize()
 
         const noise3D = createNoise3D()
-        const particleCount = 700
+        const particleCount = customCount || (mode === 'local' ? 300 : 700)
         const particlePropCount = 9
         const particlePropsLength = particleCount * particlePropCount
         const particleProps = new Float32Array(particlePropsLength)
@@ -34,15 +54,24 @@ export default function Vortex() {
         const lerp = (n1: number, n2: number, speed: number) => (1 - speed) * n1 + speed * n2
 
         const initParticle = (i: number) => {
-            const x = rand(canvas.width)
-            const y = canvas.height / 2 + randRange(100)
+            let x, y, ttl, speed, radius;
+            if (mode === 'local') {
+                x = (canvas.width / 2) + randRange(canvas.width / 2)
+                y = (canvas.height / 2) + randRange(canvas.height / 4)
+                ttl = 75 + rand(50)
+                speed = 0.35 + rand(1.8)
+                radius = 1.75 + rand(1)
+            } else {
+                x = rand(canvas.width)
+                y = canvas.height / 2 + randRange(100)
+                ttl = 50 + rand(150)
+                speed = rand(1.5)
+                radius = 1 + rand(2)
+            }
             const vx = 0
             const vy = 0
             const life = 0
-            const ttl = 50 + rand(150)
-            const speed = rand(1.5)
-            const radius = 1 + rand(2)
-            const hue = 35 + rand(20)
+            const hue = baseHue !== undefined ? baseHue + rand(20) : 35 + rand(20)
             particleProps.set([x, y, vx, vy, life, ttl, speed, radius, hue], i)
         }
 
@@ -53,8 +82,13 @@ export default function Vortex() {
         const draw = () => {
             tick++
 
-            ctx.fillStyle = "rgba(20, 10, 0, 0.1)"
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            if (mode === 'local') {
+                ctx.fillStyle = "rgba(0, 0, 0, 0)"
+                ctx.clearRect(0, 0, canvas.width, canvas.height)
+            } else {
+                ctx.fillStyle = "rgba(20, 10, 0, 0.1)"
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+            }
 
             for (let i = 0; i < particlePropsLength; i += particlePropCount) {
                 const x = particleProps[i]
@@ -98,8 +132,7 @@ export default function Vortex() {
         draw()
 
         const handleResize = () => {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
+            updateSize()
         }
         window.addEventListener('resize', handleResize)
 
@@ -107,12 +140,16 @@ export default function Vortex() {
             if (animationRef.current) cancelAnimationFrame(animationRef.current)
             window.removeEventListener('resize', handleResize)
         }
-    }, [])
+    }, [mode, customCount, baseHue])
+
+    const style: React.CSSProperties = mode === 'local'
+        ? { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }
+        : { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }
 
     return (
         <canvas
             ref={canvasRef}
-            style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+            style={style}
         />
     )
 }

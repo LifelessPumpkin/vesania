@@ -1,45 +1,43 @@
+/* FilterBar — Stitch Design System (chip-style filters) */
 .filterBar {
+    font-family: var(--font-pixelify), var(--font-retganon), sans-serif;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: #1a0e08;
-    border-top: 1px solid #4d2a18;
-    border-bottom: 1px solid #4d2a18;
+    gap: 0.6rem;
 }
 
 .row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 
 .rowLabel {
-    font-size: 1.15rem;
-    color: #a08060;
-    font-weight: 700;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    min-width: 6.5rem;
+    color: #9c8f7c;
+    min-width: 4.5rem;
 }
 
 .pill {
-    padding: 0.45rem 1.1rem;
-    font-size: 1.25rem;
-    border-radius: 0;
-    border: 2px solid #4d2a18;
-    background: #2a1810;
-    color: #bfa880;
+    padding: 0.25rem 1rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 2px solid #4f4535;
+    background: #230d06;
+    color: #ffdbcf;
     cursor: pointer;
-    font-family: inherit;
     white-space: nowrap;
-    transition: none;
+    transition: border-color 0.1s, background 0.1s;
+    border-radius: 0;
 }
 
 .pill:hover {
-    border-color: #7a4030;
-    color: #f3e8d8;
+    border-color: #9c8f7c;
+    color: #ffdbcf;
 }
 
 .pill:active {
@@ -47,32 +45,32 @@
 }
 
 .pillActive {
-    background: #daa520;
-    border-color: #c8941a;
-    color: #100804;
-    font-weight: 500;
+    background: rgba(255, 202, 105, 0.1);
+    border-color: #ffca69;
+    color: #ffca69;
 }
 
 .pillElement {
-    opacity: 0.55;
+    opacity: 0.7;
 }
 
-.pillElement:hover {
-    opacity: 0.8;
+.pillElement.pillActive {
+    opacity: 1;
 }
 
 .clearBtn {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.8rem;
-    border-radius: 0;
-    border: 1px solid #ef4444;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid #ffb4ab;
     background: transparent;
-    color: #ef4444;
+    color: #ffb4ab;
     cursor: pointer;
-    font-family: inherit;
-    transition: none;
+    border-radius: 0;
+    transition: background 0.1s;
 }
 
 .clearBtn:hover {
-    background: #2a1010;
+    background: rgba(255, 180, 171, 0.1);
 }

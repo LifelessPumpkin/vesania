@@ -1,4 +1,6 @@
+/* DeckList — Stitch Design System (Eldritch Pixel Archive) */
 .page {
+    font-family: var(--font-pixelify), var(--font-retganon), sans-serif;
     position: relative;
     z-index: 10;
     max-width: 1100px;
@@ -7,169 +9,198 @@
     min-height: 100vh;
 }
 
+/* ── Header ─────────────────────────────────────────── */
 .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 4px solid #4f4535;
 }
 
 .backBtn {
-    background: #3d2218;
-    border: 2px solid #7a4030;
-    border-radius: 0;
-    color: #e0d0b8;
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #230d06;
+    border: 2px solid #4f4535;
+    color: #ffca69;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     cursor: pointer;
-    font-family: inherit;
-    padding: 0.5rem 1rem;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-    transition: none;
+    padding: 0.5rem 1.25rem;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+    transition: border-color 0.1s, background 0.1s;
+    border-radius: 0;
 }
-.backBtn:hover {
-    color: #f3e8d8;
-    border-color: #daa520;
-}
-.backBtn:active {
-    box-shadow: none;
-    transform: translate(2px, 2px);
-}
+.backBtn:hover  { border-color: #9c8f7c; background: #492e24; }
+.backBtn:active { transform: translate(2px, 2px); box-shadow: none; }
 
 .title {
-    font-size: 3.5rem;
-    color: #f3e8d8;
-    font-weight: 500;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffdbcf;
     text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
     margin: 0;
     text-transform: uppercase;
+    letter-spacing: -0.05em;
 }
 
-/* Create form */
+/* ── Create form ─────────────────────────────────────── */
 .createForm {
     display: flex;
     gap: 1rem;
     margin-bottom: 2.5rem;
-    max-width: 560px;
+    max-width: 600px;
 }
 
 .createInput {
     flex: 1;
     padding: 0.75rem 1rem;
-    border-radius: 0;
-    border: 2px solid #7a4030;
-    background: #2a1810;
-    color: #f3e8d8;
-    font-size: 1.1rem;
-    font-family: inherit;
+    border: 2px solid #4f4535;
+    background: #230d06;
+    color: #ffdbcf;
+    font-size: 1rem;
     outline: none;
-    box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: inset 2px 2px 0 rgba(0,0,0,0.3);
+    border-radius: 0;
+    transition: border-color 0.1s;
 }
-.createInput:focus { border-color: #daa520; }
-.createInput::placeholder { color: #a08060; }
+.createInput:focus       { border-color: #ffca69; }
+.createInput::placeholder { color: #9c8f7c; }
 
 .createBtn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0;
-    border: 2px outset #c8941a;
-    background: #daa520;
-    color: #1a0c06;
-    font-size: 1.1rem;
-    font-family: inherit;
+    padding: 0.75rem 1.75rem;
+    border: 2px solid #ffca69;
+    background: #ffca69;
+    color: #422d00;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-    transition: none;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+    border-radius: 0;
+    transition: background 0.1s;
 }
-.createBtn:hover:not(:disabled) { background: #e8b42e; }
-.createBtn:active:not(:disabled) {
-    border-style: inset;
-    box-shadow: none;
-    transform: translate(2px, 2px);
-}
-.createBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.createBtn:hover:not(:disabled)  { background: #e6ad3b; border-color: #e6ad3b; }
+.createBtn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+.createBtn:disabled              { opacity: 0.4; cursor: not-allowed; }
 
-/* Empty */
+/* ── Empty state ─────────────────────────────────────── */
 .empty {
     text-align: center;
     padding: 5rem 1rem;
 }
-.emptyIcon { font-size: 2.5rem; margin-bottom: 1rem; color: #7a4030; }
-.emptyTitle { font-size: 1.4rem; color: #bfa880; margin-bottom: 0.5rem; }
-.emptySubtitle { font-size: 1rem; color: #a08060; }
+.emptyIcon {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 1;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #4f4535;
+    display: block;
+}
 
-/* Deck grid */
+/* ── Deck grid ───────────────────────────────────────── */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 1.5rem;
 }
 
 .deckTile {
-    background: #2a1810;
-    border: 2px solid #7a4030;
+    background: #311911;
+    border: 2px solid #4f4535;
     border-radius: 0;
-    padding: 1.25rem;
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
     box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
-    transition: none;
+    transition: border-color 0.1s;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
 }
-.deckTile:hover {
-    border-color: #daa520;
+.deckTile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,202,105,0.02), rgba(255,202,105,0));
+    pointer-events: none;
 }
+.deckTile:hover { border-color: #9c8f7c; }
 
+/* Top row: name + delete */
 .tileTop {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.5rem;
 }
 
 .deckName {
-    font-size: 1.3rem;
-    color: #f3e8d8;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffdbcf;
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
 }
 
 .deleteBtn {
     background: none;
     border: none;
-    color: #a08060;
+    color: #9c8f7c;
     cursor: pointer;
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1;
     padding: 0.3rem;
-    transition: none;
     font-family: inherit;
+    border-radius: 0;
+    transition: color 0.1s;
+    flex-shrink: 0;
 }
-.deleteBtn:hover { color: #ef4444; }
+.deleteBtn:hover { color: #ffb4ab; }
 
+/* Progress bar */
 .countRow {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
+
 .countBar {
     flex: 1;
-    height: 10px;
-    background: #1a0e08;
-    border: 1px solid #4d2a18;
+    height: 12px;
+    background: #230d06;
+    border: 2px solid #4f4535;
     overflow: hidden;
+    position: relative;
 }
+
 .countFill {
     height: 100%;
-    transition: width 0.1s steps(10);
+    box-shadow: inset 0px -2px 0px rgba(0,0,0,0.3);
+    transition: width 0.15s steps(10);
 }
-.countLabel { font-size: 1rem; color: #bfa880; min-width: 3rem; text-align: right; }
-.countGood { color: #22c55e; }
-.countBad  { color: #ef4444; }
 
+.countLabel {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: #d4c4af;
+    min-width: 3.5rem;
+    text-align: right;
+}
+.countGood { color: #2ECC71; }
+.countBad  { color: #ffb4ab; }
+
+/* Bottom row: status + enter */
 .tileBottom {
     display: flex;
     align-items: center;
@@ -177,30 +208,32 @@
 }
 
 .statusBadge {
-    font-size: 0.9rem;
-    padding: 0.3rem 0.7rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.75rem;
+    border: 2px solid;
     border-radius: 0;
-    border: 1px solid;
 }
-.badgeValid   { border-color: #22c55e; color: #86efac; background: #0a1f0e; }
-.badgeInvalid { border-color: #7a4030; color: #bfa880; background: transparent; }
+.badgeValid   { border-color: #2ECC71; color: #2ECC71; background: rgba(46,204,113,0.08); }
+.badgeInvalid { border-color: #4f4535; color: #9c8f7c; background: transparent; }
 
 .enterBtn {
-    padding: 0.5rem 1.1rem;
-    border-radius: 0;
-    border: 2px outset #c8941a;
-    background: #daa520;
-    color: #1a0c06;
-    font-size: 1rem;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.25rem;
+    border: 2px solid #ffca69;
+    background: #ffca69;
+    color: #422d00;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-    transition: none;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.3);
+    border-radius: 0;
+    transition: background 0.1s;
 }
-.enterBtn:hover { background: #e8b42e; }
-.enterBtn:active {
-    border-style: inset;
-    box-shadow: none;
-    transform: translate(2px, 2px);
-}
+.enterBtn:hover  { background: #e6ad3b; border-color: #e6ad3b; }
+.enterBtn:active { transform: translate(2px, 2px); box-shadow: none; }

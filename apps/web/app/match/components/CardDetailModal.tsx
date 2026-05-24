@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import type { MatchCard } from "@/lib/game-server/types";
+import { GameCard } from "@/components/GameCard";
 import styles from "../match.module.css";
 
 interface CardDetailModalProps {
@@ -13,27 +13,22 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
       <div
-        className={`${styles.modalCard} ${typeBorderClass(card.type)}`}
+        className={styles.modalCardWrapper}
         onClick={(e) => e.stopPropagation()}
       >
-        {card.imageUrl && (
-          <Image
-            src={card.imageUrl}
-            alt={card.name}
-            width={420}
-            height={192}
-            className={styles.modalImage}
-          />
-        )}
+        <GameCard
+          card={{
+            name: card.name,
+            type: card.type,
+            rarity: card.rarity,
+            description: card.description,
+            imageUrl: card.imageUrl,
+            effectJson: card.effectJson,
+          }}
+          size="large"
+        />
 
-        <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>{card.name}</h3>
-          <span className={styles.modalRarity}>{card.rarity}</span>
-        </div>
-
-        <p className={styles.modalType}>{card.type}</p>
-        <p className={styles.modalDescription}>{card.description}</p>
-
+        {/* Effect data (if any) */}
         {card.effectJson && Object.keys(card.effectJson).length > 0 && (
           <div className={styles.effectCard}>
             <p className={styles.effectTitle}>Effect Data</p>
@@ -54,13 +49,4 @@ export function CardDetailModal({ card, onClose }: CardDetailModalProps) {
       </div>
     </div>
   );
-}
-
-function typeBorderClass(type: MatchCard["type"]): string {
-  switch (type) {
-    case "ITEM":  return styles.modalBorderAmber;
-    case "TOOL":  return styles.modalBorderCyan;
-    case "SPELL": return styles.modalBorderViolet;
-    default:      return styles.modalBorderCharacter;
-  }
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import VortexLocal from '@/components/VortexLocal'
+import Vortex from '@/components/Vortex'
 import FloatingCards from '@/components/FloatingCards'
 import { useAuth } from '@/context/AuthContext'
 import DungeonBackground from '@/components/DungeonBackground'
@@ -78,7 +78,7 @@ export default function HomePage() {
                     style={{ position: 'relative', width: 840, height: 300 }}
                     className={shouldAnimate ? 'logo-settle' : 'logo-float'}
                 >
-                    <VortexLocal />
+                    <Vortex mode="local" />
                     <Image
                         src="/VesaniaLogo3.png"
                         alt="Vesania"

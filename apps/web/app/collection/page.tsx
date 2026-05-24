@@ -34,6 +34,7 @@ export default function CollectionPage() {
         deckCards, deckLoading, selectedDeck, deckCardIds,
         newDeckName, setNewDeckName,
         createDeck, deleteDeck, addCardToDeck, removeCardFromDeck,
+        bulkAddCardsToDeck,
     } = useDecks(showToast)
 
     // Auth gate
@@ -100,6 +101,7 @@ export default function CollectionPage() {
                         deckLoading={deckLoading}
                         deckCardIds={deckCardIds}
                         availableCards={cards}
+                        allCards={[...cards, ...characterCards]}
                         characterCards={characterCards}
                         cardsLoading={cardsLoading}
                         cardError={cardError}
@@ -113,6 +115,7 @@ export default function CollectionPage() {
                         onElementFilterChange={setElementFilter}
                         onAddCard={addCardToDeck}
                         onRemoveCard={removeCardFromDeck}
+                        onBulkAdd={bulkAddCardsToDeck}
                         onBack={handleBackToList}
                         onSave={handleSave}
                     />

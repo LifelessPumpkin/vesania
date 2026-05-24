@@ -102,6 +102,27 @@ export function useDecks(showToast: (message: string, type?: ToastType) => void)
         }
     }
 
+    const bulkAddCardsToDeck = async (cardIds: string[]) => {
+        if (!selectedDeckId) return
+        try {
+            const token = await getToken()
+            let added = 0
+            for (const cardId of cardIds) {
+                try {
+                    await apiRequest(`/api/decks/${selectedDeckId}/cards`, { method: 'POST', token, body: { cardId } })
+                    added++
+                } catch {
+                    // Skip cards that fail (e.g. duplicates already in deck)
+                }
+            }
+            showToast(`Auto-built: added ${added} cards!`, 'success')
+            fetchDeckCards(selectedDeckId)
+            fetchDecks()
+        } catch (err) {
+            showToast(err instanceof Error ? err.message : 'Auto-build failed')
+        }
+    }
+
     const selectedDeck = decks.find(d => d.id === selectedDeckId)
     const deckCardIds = new Set(deckCards.map(dc => dc.card.id))
 
@@ -112,5 +133,6 @@ export function useDecks(showToast: (message: string, type?: ToastType) => void)
         newDeckName, setNewDeckName,
         createDeck, deleteDeck,
         addCardToDeck, removeCardFromDeck,
+        bulkAddCardsToDeck,
     }
 }
